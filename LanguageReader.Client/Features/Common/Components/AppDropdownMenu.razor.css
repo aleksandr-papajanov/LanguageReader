@@ -1,0 +1,25 @@
+.app-dropdown {
+    position: relative;
+}
+
+.app-dropdown__menu {
+    position: absolute;
+    left: 0;
+    z-index: 40;
+    display: grid;
+    gap: var(--space-1);
+    min-width: 10rem;
+    padding: var(--space-2);
+    border: 1px solid color-mix(in srgb, var(--color-border-strong) 72%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-bg-elevated) 95%, white 5%);
+    box-shadow: 0 10px 24px rgba(23, 20, 17, 0.08);
+}
+
+.app-dropdown__menu--up {
+    bottom: calc(100% + 0.5rem);
+}
+
+.app-dropdown__item {
+    justify-content: flex-start;
+}

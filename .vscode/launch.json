@@ -1,0 +1,59 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "LanguageReader.Api",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/LanguageReader.Api/bin/Debug/net9.0/LanguageReader.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/LanguageReader.Api",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on:\\s+(http://\\S+)",
+        "uriFormat": "%s/swagger"
+      }
+    },
+    {
+      "name": "LanguageReader.Client (Watch)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/LanguageReader.Client/LanguageReader.Client.csproj"
+      ],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5082"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on:\\s+(http://\\S+)",
+        "uriFormat": "%s"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "LanguageReader: full stack",
+      "preLaunchTask": "dev: prepare",
+      "configurations": [
+        "LanguageReader.Api",
+        "LanguageReader.Client (Watch)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

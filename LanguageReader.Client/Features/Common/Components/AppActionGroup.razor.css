@@ -1,0 +1,13 @@
+.app-action-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.app-action-group--wrap {
+    flex-wrap: wrap;
+}
+
+.app-action-group--nowrap {
+    flex-wrap: nowrap;
+}

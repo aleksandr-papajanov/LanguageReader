@@ -1,0 +1,23 @@
+.reader-bottom-dock {
+    display: flex;
+    justify-content: center;
+}
+
+.reader-dock-bar {
+    width: fit-content;
+    max-width: 100%;
+
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.reader-dock-label {
+    white-space: nowrap;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}

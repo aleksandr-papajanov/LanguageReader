@@ -1,0 +1,14 @@
+<span class="@CssClass">@ChildContent</span>
+
+@code {
+    [Parameter]
+    public string Tone { get; set; } = "default";
+
+    [Parameter]
+    public bool PreserveCase { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => $"app-badge app-badge--{Tone}{(PreserveCase ? " app-badge--preserve-case" : string.Empty)}";
+}

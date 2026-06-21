@@ -1,0 +1,63 @@
+<div class="top-row navbar">
+    <div class="container-fluid nav-shell">
+        <a class="navbar-brand" href="">
+            <span class="navbar-brand__title">LanguageReader</span>
+            <span class="navbar-brand__subtitle">Reading workspace</span>
+        </a>
+
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="nav-menu">
+        <AppNavItem Href=""
+                    Match="NavLinkMatch.All"
+                    Icon="home"
+                    Label="Home"
+                    Justify="center" />
+
+        <AppNavItem Href="my-library"
+                    Icon="library_books"
+                    Label="My Library"
+                    Justify="center" />
+
+        <AppNavItem Href="public-library"
+                    Icon="public"
+                    Label="Public Library"
+                    Justify="center" />
+
+        <AppNavItem Href="news"
+                    Icon="feed"
+                    Label="News"
+                    Justify="center" />
+
+        <AppNavItem Href="vocabulary"
+                    Icon="dictionary"
+                    Label="Vocabulary"
+                    Justify="center" />
+
+        <AppNavItem Href="training"
+                    Icon="school"
+                    Label="Training"
+                    Justify="center" />
+
+        <AppNavItem Href="settings"
+                    Icon="settings"
+                    Label="Settings"
+                    Justify="center" />
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

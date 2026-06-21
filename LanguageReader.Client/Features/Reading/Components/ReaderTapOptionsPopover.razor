@@ -1,0 +1,24 @@
+@if (Options.Count > 0)
+{
+    <div class="tap-options-popover">
+        <AppPanel AdditionalClass="tap-options-card">
+            <AppActionGroup>
+                @foreach (var option in Options)
+                {
+                    <AppButton Label="@option.Label"
+                               Variant="secondary"
+                               Size="sm"
+                               OnClick="@(_ => OptionSelected.InvokeAsync(option))" />
+                }
+            </AppActionGroup>
+        </AppPanel>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TapOption> Options { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<TapOption> OptionSelected { get; set; }
+}

@@ -1,0 +1,99 @@
+@typeparam TValue
+
+<AppField Label="@Label"
+          Hint="@Hint"
+          Message="@Message"
+          For="@Id"
+          AdditionalClass="@FieldClass">
+    <div class="@ShellClass">
+        <select id="@Id"
+                class="app-select"
+                value="@FormattedValue"
+                disabled="@Disabled"
+                required="@Required"
+                @onchange="OnChanged">
+            @if (!string.IsNullOrWhiteSpace(Placeholder))
+            {
+                <option value="" disabled="@PlaceholderDisabled">
+                    @Placeholder
+                </option>
+            }
+
+            @foreach (var option in Options)
+            {
+                <option value="@FormatValue(option.Value)">
+                    @option.Label
+                </option>
+            }
+        </select>
+
+        @if (!string.IsNullOrWhiteSpace(LeadingIcon))
+        {
+            <div class="app-select__leading-icon">
+                <AppIcon Name="@LeadingIcon" Size="18" />
+            </div>
+        }
+
+        <div class="app-select__chevron">
+            <AppIcon Name="expand_more" Size="18" />
+        </div>
+    </div>
+</AppField>
+
+@code {
+    [Parameter] public string Id { get; set; } = $"select-{Guid.NewGuid():N}";
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string? Message { get; set; }
+
+    [Parameter] public TValue? Value { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter] public IReadOnlyList<AppSelectOption<TValue>> Options { get; set; } = [];
+
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public bool PlaceholderDisabled { get; set; } = true;
+
+    [Parameter] public string? LeadingIcon { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Required { get; set; }
+
+    // md | sm
+    [Parameter] public string Size { get; set; } = "md";
+
+    // default | quiet | strong
+    [Parameter] public string Variant { get; set; } = "default";
+
+    [Parameter] public string? FieldClass { get; set; }
+    [Parameter] public string? AdditionalClass { get; set; }
+
+    private string FormattedValue => FormatValue(Value);
+
+    private string ShellClass =>
+        $"app-select-shell app-select-shell--{Size.ToLowerInvariant()} app-select-shell--{Variant.ToLowerInvariant()}" +
+        $"{(string.IsNullOrWhiteSpace(LeadingIcon) ? string.Empty : " app-select-shell--with-icon")}" +
+        $"{(Disabled ? " app-select-shell--disabled" : string.Empty)}" +
+        $"{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+
+    private static string FormatValue(TValue? value)
+    {
+        return value?.ToString() ?? string.Empty;
+    }
+
+    private Task OnChanged(ChangeEventArgs args)
+    {
+        var raw = args.Value?.ToString() ?? string.Empty;
+
+        foreach (var option in Options)
+        {
+            if (string.Equals(FormatValue(option.Value), raw, StringComparison.Ordinal))
+            {
+                return ValueChanged.InvokeAsync(option.Value);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+}

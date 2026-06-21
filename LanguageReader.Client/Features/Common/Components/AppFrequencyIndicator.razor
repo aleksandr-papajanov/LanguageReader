@@ -1,0 +1,27 @@
+@if (Score.HasValue)
+{
+    <div class="app-frequency-indicator">
+        <div class="app-frequency-indicator__dots" aria-hidden="true">
+            @for (var index = 0; index < 5; index++)
+            {
+                <span class="@(index < ActiveDotCount ? $"app-frequency-indicator__dot app-frequency-indicator__dot--{Tone}" : "app-frequency-indicator__dot")"></span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? Score { get; set; }
+
+    private int ActiveDotCount => Math.Clamp(((Score ?? 0) / 20) + 1, 1, 5);
+
+    private string Tone => Score switch
+    {
+        >= 80 => "high",
+        >= 60 => "medium-high",
+        >= 40 => "medium",
+        >= 20 => "medium-low",
+        _ => "low"
+    };
+}

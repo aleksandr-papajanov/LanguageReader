@@ -1,0 +1,68 @@
+@inject VocabularyApiClient Api
+@inject UserSession Session
+
+<AppHeading Title="Vocabulary"
+            Subtitle="Words you decided to keep, revisit, and reopen in context." />
+
+@if (!Session.IsSignedIn)
+{
+    <SignInPrompt />
+}
+else if (state.IsLoading)
+{
+    <AppLoader Label="Loading vocabulary" />
+}
+else
+{
+    <AppSection Title="Saved Words"
+                Subtitle="Each entry remembers its book and saved reading position.">
+        <Actions>
+            <AppSelect TValue="Guid?"
+                       Id="vocabulary-book-filter"
+                       Label="Book Filter"
+                       Size="sm"
+                       Variant="quiet"
+                       LeadingIcon="book_5"
+                       Value="state.SelectedBookId"
+                       ValueChanged="OnBookChanged"
+                       Options="state.BookOptions" />
+        </Actions>
+        <ChildContent>
+            <VocabularyEntryList Entries="state.VisibleEntries"
+                                 DeleteSelected="DeleteEntryAsync" />
+            <AppInfiniteScrollSentinel IsEnabled="@(state.HasMoreEntries && !state.IsLoadingMore)"
+                                       Reached="LoadMoreAsync" />
+        </ChildContent>
+    </AppSection>
+}
+
+@code {
+    private readonly VocabularyBrowserState state = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        await state.LoadAsync(Api, Session.Username!);
+    }
+
+    private Task OnBookChanged(Guid? bookId)
+    {
+        state.OnBookChanged(bookId);
+        return Task.CompletedTask;
+    }
+
+    private Task LoadMoreAsync()
+    {
+        state.LoadMore();
+        return Task.CompletedTask;
+    }
+
+    private async Task DeleteEntryAsync(VocabularyEntryDto entry)
+    {
+        await state.HideEntryAsync(Api, entry, Session.Username!);
+    }
+}

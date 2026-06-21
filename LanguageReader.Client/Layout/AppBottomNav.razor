@@ -1,0 +1,69 @@
+@inject UserSession Session
+
+<nav class="@NavClass" aria-label="Primary navigation">
+    <AppNavItem Href=""
+                Match="NavLinkMatch.All"
+                Icon="shelves"
+                IconSize="25"
+                Label="Library"
+                Layout="Vertical"
+                Justify="center"
+                Align="center"
+                AdditionalClass="bottom-nav__item" />
+
+    <AppNavItem Href="@ReaderRoute"
+                Icon="auto_stories"
+                IconSize="25"
+                Label="Reader"
+                Layout="Vertical"
+                Justify="center"
+                Align="center"
+                AdditionalClass="bottom-nav__item" />
+
+    <AppNavItem Href="news"
+                Icon="feed"
+                IconSize="25"
+                Label="News"
+                Layout="Vertical"
+                Justify="center"
+                Align="center"
+                AdditionalClass="bottom-nav__item" />
+
+    <AppNavItem Href="vocabulary"
+                Icon="spellcheck"
+                IconSize="25"
+                Label="Words"
+                Layout="Vertical"
+                Justify="center"
+                Align="center"
+                AdditionalClass="bottom-nav__item" />
+
+    <AppNavItem Href="training"
+                Icon="school"
+                IconSize="25"
+                Label="Train"
+                Layout="Vertical"
+                Justify="center"
+                Align="center"
+                AdditionalClass="bottom-nav__item" />
+
+    <AppNavItem Href="settings"
+                Icon="tune"
+                IconSize="25"
+                Label="Settings"
+                Layout="Vertical"
+                Justify="center"
+                Align="center"
+                AdditionalClass="bottom-nav__item" />
+</nav>
+
+@code {
+    [Parameter]
+    public bool Embedded { get; set; }
+
+    private string ReaderRoute => Session.LastReaderRoute;
+
+    private string NavClass => Embedded
+        ? "bottom-nav bottom-nav--embedded"
+        : "bottom-nav";
+}

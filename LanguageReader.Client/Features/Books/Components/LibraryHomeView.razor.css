@@ -1,0 +1,31 @@
+.library-shell {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.library-header-row {
+    position: sticky;
+    top: 4.35rem;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: 0.1rem 0 0.35rem;
+    background: linear-gradient(to bottom, rgba(252, 251, 248, 0.96), rgba(252, 251, 248, 0.68));
+    backdrop-filter: blur(12px);
+}
+
+.library-filter-row {
+    display: flex;
+    justify-content: center;
+    min-width: min(100%, 14rem);
+}
+
+.library-filter {
+    width: 100%;
+}
+
+.library-add-button {
+    flex: 0 0 auto;
+}

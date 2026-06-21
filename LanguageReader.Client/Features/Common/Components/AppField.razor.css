@@ -1,0 +1,61 @@
+.app-field {
+    display: grid;
+    gap: 0.45rem;
+    width: 100%;
+}
+
+.app-field__label {
+    margin: 0;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    font-weight: 650;
+    line-height: 1.2;
+
+    cursor: pointer;
+}
+
+.app-field__hint {
+    margin: -0.15rem 0 0;
+
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.app-field__message {
+    margin: 0.1rem 0 0;
+
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.app-field__message--success {
+    color: var(--color-success);
+}
+
+.app-field__message--warning {
+    color: var(--color-warning);
+}
+
+.app-field__message--error {
+    color: var(--color-error);
+}
+
+.app-field:has(:disabled) .app-field__label {
+    opacity: 0.6;
+}
+
+.app-field:focus-within .app-field__label {
+    color: var(--color-text);
+}
+
+.app-field + .app-field {
+    margin-top: var(--space-3);
+}

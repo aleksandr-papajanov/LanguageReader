@@ -1,0 +1,83 @@
+<button type="@Type"
+        class="@CssClass"
+        disabled="@Disabled"
+        title="@Title"
+        @onclick="HandleClick">
+    @if (!string.IsNullOrWhiteSpace(Icon) && !IconTrailing)
+    {
+        <AppIcon Name="@Icon" Size="@IconSize" />
+    }
+
+    @if (!IconOnly && !string.IsNullOrWhiteSpace(Label))
+    {
+        <span class="app-button__label">@Label</span>
+    }
+    else if (ChildContent is not null)
+    {
+        @ChildContent
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Icon) && IconTrailing)
+    {
+        <AppIcon Name="@Icon" Size="@IconSize" />
+    }
+</button>
+
+@code {
+    [Parameter]
+    public string Type { get; set; } = "button";
+
+    [Parameter]
+    public string Variant { get; set; } = "secondary";
+
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public bool IconTrailing { get; set; }
+
+    [Parameter]
+    public string IconSize { get; set; } = "18";
+
+    [Parameter]
+    public bool IconOnly { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    // start | center | end | between
+    [Parameter]
+    public string Justify { get; set; } = "center";
+
+    // start | center | end | stretch
+    [Parameter]
+    public string Align { get; set; } = "center";
+
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+        
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass =>
+        $"app-button app-button--{Variant} app-button--{Size} app-button--justify-{Justify} app-button--align-{Align}" +
+        $"{(IconOnly ? " app-button--icon-only" : string.Empty)}" +
+        $"{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+
+    private Task HandleClick(MouseEventArgs args)
+    {
+        return Disabled ? Task.CompletedTask : OnClick.InvokeAsync(args);
+    }
+}

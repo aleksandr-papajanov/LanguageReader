@@ -1,0 +1,51 @@
+<AppField Label="@Label" Hint="@Hint" Message="@Message" For="@Id" AdditionalClass="@FieldClass">
+    <div class="app-input-shell">
+        @if (!string.IsNullOrWhiteSpace(LeadingIcon))
+        {
+            <span class="material-symbols-outlined app-input__icon" aria-hidden="true">@LeadingIcon</span>
+        }
+        <input id="@Id"
+               class="app-input"
+               type="@Type"
+               value="@Value"
+               placeholder="@Placeholder"
+               @oninput="OnInputChanged" />
+    </div>
+</AppField>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Type { get; set; } = "text";
+
+    [Parameter]
+    public string? LeadingIcon { get; set; }
+
+    [Parameter]
+    public string? FieldClass { get; set; }
+
+    private Task OnInputChanged(ChangeEventArgs args)
+    {
+        return ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    }
+}

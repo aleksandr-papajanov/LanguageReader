@@ -1,0 +1,13 @@
+@page "/words/{EntryId:guid}"
+
+<PageTitle>Vocabulary Entry</PageTitle>
+
+<WordDetailsView EntryId="EntryId" ReturnUrl="ReturnUrl" />
+
+@code {
+    [Parameter]
+    public Guid EntryId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+}

@@ -1,0 +1,146 @@
+.app-nav-item-host {
+    width: 100%;
+    min-width: 0;
+}
+
+.app-nav-item-host ::deep .app-nav-item {
+    position: relative;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+
+    display: flex;
+    gap: 0.65rem;
+
+    padding: 0.78rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+
+    color: var(--color-text-soft);
+    text-decoration: none;
+    font-family: var(--font-ui);
+    font-size: 0.94rem;
+    font-weight: 650;
+    line-height: 1.1;
+
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease,
+        box-shadow 140ms ease,
+        transform 140ms ease;
+}
+
+.app-nav-item-host ::deep .app-nav-item::before {
+    content: "";
+    position: absolute;
+    inset: 0.32rem;
+    border-radius: calc(var(--radius-sm) - 0.25rem);
+    background: transparent;
+    opacity: 0;
+    transition: opacity 140ms ease, background-color 140ms ease;
+    pointer-events: none;
+}
+
+.app-nav-item-host ::deep .app-nav-item:hover {
+    color: var(--color-text);
+    transform: translateY(-1px);
+}
+
+.app-nav-item-host ::deep .app-nav-item:hover::before {
+    opacity: 1;
+    background: rgba(23, 20, 17, 0.035);
+}
+
+.app-nav-item-host ::deep .app-nav-item--active {
+    color: var(--color-text);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: color-mix(in srgb, var(--color-border-strong) 64%, transparent);
+    box-shadow:
+        0 8px 20px rgba(23, 20, 17, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.app-nav-item-host ::deep .app-nav-item--active::before {
+    opacity: 1;
+    background: linear-gradient(
+        135deg,
+        rgba(23, 20, 17, 0.04),
+        rgba(23, 20, 17, 0.015)
+    );
+}
+
+.app-nav-item-host ::deep .material-symbols-outlined {
+    position: relative;
+    z-index: 1;
+    opacity: 0.82;
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease;
+}
+
+.app-nav-item-host ::deep .app-nav-item:hover .material-symbols-outlined,
+.app-nav-item-host ::deep .app-nav-item--active .material-symbols-outlined {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.app-nav-item-host ::deep .app-nav-item__label {
+    position: relative;
+    z-index: 1;
+
+    min-width: 0;
+    flex: 0 0 auto;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-nav-item-host--horizontal ::deep .app-nav-item {
+    flex-direction: row;
+}
+
+.app-nav-item-host--vertical ::deep .app-nav-item {
+    flex-direction: column;
+}
+
+.app-nav-item-host--justify-start ::deep .app-nav-item {
+    justify-content: flex-start;
+}
+
+.app-nav-item-host--justify-center ::deep .app-nav-item {
+    justify-content: center;
+}
+
+.app-nav-item-host--justify-end ::deep .app-nav-item {
+    justify-content: flex-end;
+}
+
+.app-nav-item-host--justify-between ::deep .app-nav-item {
+    justify-content: space-between;
+}
+
+.app-nav-item-host--align-start ::deep .app-nav-item {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.app-nav-item-host--align-center ::deep .app-nav-item {
+    align-items: center;
+    text-align: center;
+}
+
+.app-nav-item-host--align-end ::deep .app-nav-item {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.app-nav-item-host--align-stretch ::deep .app-nav-item {
+    align-items: stretch;
+}
+
+.app-nav-item-host--justify-between ::deep .app-nav-item__label {
+    flex: 1;
+}

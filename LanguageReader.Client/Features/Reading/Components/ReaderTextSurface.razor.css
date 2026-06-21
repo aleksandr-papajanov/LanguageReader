@@ -1,0 +1,151 @@
+.reader-page {
+    position: relative;
+    min-height: 44rem;
+    padding: clamp(1.75rem, 3vw, 3rem);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: #fff;
+    overflow: visible;
+}
+
+.reader-page p {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 1.35rem;
+    color: #231e1a;
+    font-family: var(--font-reading);
+    font-size: clamp(1.08rem, 1rem + 0.22vw, 1.2rem);
+    line-height: 1.86;
+}
+
+.reader-page p span[data-translated="true"] {
+    color: #231e1a;
+    font-weight: 600;
+}
+
+.reader-range-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.reader-fragment-action-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.reader-fragment-action-layer ::deep .reader-fragment-actions {
+    position: absolute;
+    pointer-events: auto;
+}
+
+.reader-fragment-action-layer ::deep .reader-selection-actions {
+    pointer-events: auto;
+}
+
+.reader-range-fill,
+.reader-range-frame {
+    position: absolute;
+    border-radius: 4px;
+}
+
+.reader-range-fill {
+    border: 2px solid transparent;
+    pointer-events: none;
+}
+
+.reader-range-frame {
+    border: 2px solid transparent;
+    background: transparent;
+    cursor: default;
+    pointer-events: none;
+    transition: border-color 120ms ease;
+}
+
+.reader-range-fill--selection,
+.reader-range-fill--selection-loading {
+    background: rgba(52, 105, 190, 0.14);
+}
+
+.reader-range-fill--translation,
+.reader-range-fill--active-translation.reader-range-fill--translation {
+    background: rgba(216, 174, 55, 0.22);
+}
+
+.reader-range-fill--vocabulary,
+.reader-range-fill--active-translation.reader-range-fill--vocabulary {
+    background: rgba(146, 44, 44, 0.16);
+}
+
+.reader-range-frame--selection,
+.reader-range-frame--selection-loading {
+    border-color: rgba(52, 105, 190, 0.92);
+}
+
+.reader-range-frame--active-translation.reader-range-frame--translation {
+    border-color: rgba(216, 174, 55, 0.92);
+}
+
+.reader-range-frame--active-translation.reader-range-frame--vocabulary {
+    border-color: rgba(146, 44, 44, 0.86);
+}
+
+.reader-range-frame--translation:hover {
+    border-color: rgba(216, 174, 55, 0.46);
+}
+
+.reader-range-frame--vocabulary:hover {
+    border-color: rgba(146, 44, 44, 0.46);
+}
+
+.reader-range-frame--selection:hover,
+.reader-range-frame--selection-loading:hover {
+    border-color: rgba(52, 105, 190, 0.92);
+}
+
+.reader-range-fill--selection-loading {
+    animation: reader-selection-loading 1.1s ease-in-out infinite;
+}
+
+.reader-range-frame--selection-loading {
+    animation: reader-frame-loading 1.1s ease-in-out infinite;
+}
+
+@keyframes reader-selection-loading {
+    0%,
+    100% {
+        background: rgba(52, 105, 190, 0.1);
+    }
+
+    50% {
+        background: rgba(52, 105, 190, 0.24);
+    }
+}
+
+@keyframes reader-frame-loading {
+    0%,
+    100% {
+        border-color: rgba(52, 105, 190, 0.42);
+    }
+
+    50% {
+        border-color: rgba(52, 105, 190, 0.95);
+    }
+}
+
+@media (max-width: 700px) {
+    .reader-page {
+        min-height: 68vh;
+        padding: 1.35rem 1rem 1.55rem;
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+    }
+
+    .reader-page p {
+        font-size: 1.04rem;
+    }
+}

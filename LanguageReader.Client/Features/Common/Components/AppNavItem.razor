@@ -1,0 +1,49 @@
+<div class="@WrapperClass">
+    <NavLink href="@Href"
+             Match="@Match"
+             class="app-nav-item"
+             ActiveClass="app-nav-item--active">
+
+        @if (!string.IsNullOrWhiteSpace(Icon))
+        {
+            <AppIcon Name="@Icon" Size="@IconSize" />
+        }
+
+        <span class="app-nav-item__label">@Label</span>
+    </NavLink>
+</div>
+
+@code {
+    [Parameter]
+    public string Href { get; set; } = "";
+
+    [Parameter]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public string IconSize { get; set; } = "18";
+
+    [Parameter]
+    public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+
+    // start | center | end | between
+    [Parameter]
+    public string Justify { get; set; } = "start";
+
+    // start | center | end | stretch
+    [Parameter]
+    public string Align { get; set; } = "center";
+
+    [Parameter]
+    public string Layout { get; set; } = "horizontal";
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    private string WrapperClass =>
+        $"app-nav-item-host app-nav-item-host--{Layout.ToLowerInvariant()} app-nav-item-host--justify-{Justify.ToLowerInvariant()} app-nav-item-host--align-{Align.ToLowerInvariant()}" +
+        $"{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+}

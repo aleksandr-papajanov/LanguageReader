@@ -1,0 +1,658 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<article class="reader-page" @ref="readerPage" @onclick="HandleReaderClickAsync">
+    <div class="reader-range-layer" aria-hidden="true">
+        @foreach (var rect in overlayRects)
+        {
+            <span class="@GetFillClass(rect)"
+                  style="@GetOverlayStyle(rect)"></span>
+        }
+
+        @foreach (var frame in overlayRects)
+        {
+            <span class="@GetFrameClass(frame)"
+                  style="@GetOverlayStyle(frame)"></span>
+        }
+    </div>
+
+    <div class="reader-fragment-action-layer" aria-label="Translated fragment actions">
+        @if (BuildSelectionActionAnchor() is { } selectionAnchor)
+        {
+            <ReaderSelectionActions Style="@GetActionAnchorStyle(selectionAnchor)"
+                                    ActiveMode="ActiveMode"
+                                    IsTranslateDisabled="IsSelectionTranslateDisabled"
+                                    ModeSelected="SelectionModeSelected"
+                                    TranslateClicked="SelectionTranslateSelected" />
+        }
+
+        @if (BuildActiveTranslationPopupAnchor() is { } popupAnchor)
+        {
+            <ReaderTranslatedFragmentActions Translation="popupAnchor.Translation!"
+                                             Style="@GetActionAnchorStyle(popupAnchor)"
+                                             Mode="ReaderTranslatedFragmentActions.ReaderFragmentActionMode.Popup"
+                                             IsActive="true"
+                                             IsInVocabulary="@IsInVocabulary(popupAnchor.Translation!)"
+                                             SelectClicked="TranslationSelected"
+                                             DisplayToggleClicked="TranslationDisplayToggleSelected"
+                                             VocabularyToggleClicked="TranslationVocabularyToggleSelected"
+                                             OpenDetailsClicked="TranslationOpenDetailsSelected"
+                                             DeleteClicked="TranslationDeleteSelected" />
+        }
+    </div>
+
+    @foreach (var paragraph in Paragraphs)
+    {
+        <p data-paragraph-index="@paragraph.Index">
+            @foreach (var chunk in BuildTextChunks(paragraph))
+            {
+                @if (chunk.SelectTranslation is not null)
+                {
+                    <ReaderTranslatedFragmentActions Translation="chunk.SelectTranslation"
+                                                     Mode="ReaderTranslatedFragmentActions.ReaderFragmentActionMode.SelectMarker"
+                                                     IsActive="@(ActiveTranslation?.Id == chunk.SelectTranslation.Id)"
+                                                     IsInVocabulary="@IsInVocabulary(chunk.SelectTranslation)"
+                                                     SelectClicked="TranslationSelected"
+                                                     DisplayToggleClicked="TranslationDisplayToggleSelected"
+                                                     VocabularyToggleClicked="TranslationVocabularyToggleSelected"
+                                                     OpenDetailsClicked="TranslationOpenDetailsSelected"
+                                                     DeleteClicked="TranslationDeleteSelected" />
+                }
+
+                @if (!string.IsNullOrEmpty(chunk.Text))
+                {
+                    <span data-original-start="@chunk.StartOffset"
+                          data-original-end="@chunk.EndOffset"
+                          data-translated="@chunk.IsTranslated.ToString().ToLowerInvariant()">@chunk.Text</span>
+                }
+            }
+        </p>
+    }
+</article>
+
+@code {
+    private const double SelectionActionsWidth = 18 * 16;
+    private const double TranslationPopupWidth = 11 * 16;
+
+    private readonly List<ReaderRangeRect> overlayRects = [];
+
+    private ElementReference readerPage;
+    private DotNetObjectReference<ReaderTextSurface>? dotNetReference;
+    private string? resizeObserverId;
+    private string? scrollObserverId;
+    private bool shouldMeasure;
+    private string overlaySignature = string.Empty;
+    private long lastScrollRequestKey = -1;
+
+    [Parameter]
+    public IReadOnlyList<ReaderParagraph> Paragraphs { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<TranslatedRangeDto> TranslatedRanges { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<VocabularyEntryDto> VocabularyEntries { get; set; } = [];
+
+    [Parameter]
+    public ReaderSelection? Selection { get; set; }
+
+    [Parameter]
+    public TranslatedRangeDto? ActiveTranslation { get; set; }
+
+    [Parameter]
+    public SelectionKind ActiveMode { get; set; } = SelectionKind.Word;
+
+    [Parameter]
+    public bool IsTranslationLoading { get; set; }
+
+    [Parameter]
+    public bool IsSelectionTranslateDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<ReaderOffsetTap> OffsetSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<ReaderCustomSelectionRange> CustomRangeSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<int> VisibleParagraphChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> TranslationSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> TranslationDisplayToggleSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> TranslationVocabularyToggleSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> TranslationOpenDetailsSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> TranslationDeleteSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<SelectionKind> SelectionModeSelected { get; set; }
+
+    [Parameter]
+    public EventCallback SelectionTranslateSelected { get; set; }
+
+    [Parameter]
+    public int? ScrollParagraphIndex { get; set; }
+
+    [Parameter]
+    public int? ScrollOffset { get; set; }
+
+    [Parameter]
+    public long ScrollRequestKey { get; set; }
+
+    private ReaderSelection? previousSelection;
+
+    protected override void OnParametersSet()
+    {
+        var nextSignature = string.Join("|", BuildOverlays().Select(range =>
+            $"{range.Id}:{range.Kind}:{range.Layer}:{range.ParagraphIndex}:{range.StartOffset}:{range.EndOffset}:{range.DisplayText}:{IsTranslationLoading}"));
+
+        if (!string.Equals(nextSignature, overlaySignature, StringComparison.Ordinal))
+        {
+            overlaySignature = nextSignature;
+            shouldMeasure = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetReference = DotNetObjectReference.Create(this);
+
+            resizeObserverId = await JsRuntime.InvokeAsync<string>(
+                "languageReaderSelection.observeRangeRoot",
+                readerPage,
+                dotNetReference);
+
+            scrollObserverId = await JsRuntime.InvokeAsync<string>(
+                "languageReaderSelection.observeReaderScroll",
+                readerPage,
+                dotNetReference);
+        }
+
+        if (ScrollParagraphIndex.HasValue && ScrollRequestKey != lastScrollRequestKey)
+        {
+            lastScrollRequestKey = ScrollRequestKey;
+
+            await JsRuntime.InvokeVoidAsync(
+                "languageReaderSelection.scrollToParagraphOffset",
+                readerPage,
+                ScrollParagraphIndex.Value,
+                ScrollOffset ?? 0);
+        }
+
+        if (Selection is not null && !IsSameSelection(Selection, previousSelection))
+        {
+            previousSelection = Selection;
+
+            await JsRuntime.InvokeVoidAsync(
+                "languageReaderSelection.scrollRangeStartIntoViewIfNeeded",
+                readerPage,
+                Selection.ParagraphIndex,
+                Selection.StartOffset);
+        }
+
+        if (!shouldMeasure && !firstRender)
+        {
+            return;
+        }
+
+        shouldMeasure = false;
+        await MeasureOverlaysAsync();
+    }
+
+    private static bool IsSameSelection(ReaderSelection? current, ReaderSelection? previous)
+    {
+        return current?.ParagraphIndex == previous?.ParagraphIndex
+            && current?.StartOffset == previous?.StartOffset
+            && current?.EndOffset == previous?.EndOffset
+            && current?.SelectionType == previous?.SelectionType;
+    }
+
+    [JSInvokable]
+    public async Task RequestRangeMeasureAsync()
+    {
+        await MeasureOverlaysAsync();
+    }
+
+    [JSInvokable]
+    public async Task NotifyVisibleParagraphChangedAsync(int paragraphIndex)
+    {
+        await VisibleParagraphChanged.InvokeAsync(paragraphIndex);
+    }
+
+    public async Task<ReadingPositionDto?> GetViewportPositionAsync(Guid readingItemId)
+    {
+        var visibleParagraphIndex = await JsRuntime.InvokeAsync<int?>(
+            "languageReaderSelection.getFirstVisibleParagraphIndex",
+            readerPage);
+
+        return visibleParagraphIndex.HasValue
+            ? new ReadingPositionDto(readingItemId, visibleParagraphIndex.Value, 0)
+            : null;
+    }
+
+    public ValueTask ScrollRangeStartIntoViewIfNeededAsync(int paragraphIndex, int startOffset)
+    {
+        return JsRuntime.InvokeVoidAsync(
+            "languageReaderSelection.scrollRangeStartIntoViewIfNeeded",
+            readerPage,
+            paragraphIndex,
+            startOffset);
+    }
+
+    private async Task HandleReaderClickAsync(MouseEventArgs args)
+    {
+        if (ActiveMode == SelectionKind.Phrase)
+        {
+            var selectedRange = await JsRuntime.InvokeAsync<ReaderCustomSelectionRange?>(
+                "languageReaderSelection.getSelectedRange",
+                readerPage);
+
+            if (selectedRange is not null && !string.IsNullOrWhiteSpace(selectedRange.SelectedText))
+            {
+                await CustomRangeSelected.InvokeAsync(selectedRange);
+                await JsRuntime.InvokeVoidAsync("languageReaderSelection.clearSelectedText");
+                return;
+            }
+        }
+
+        var hit = await JsRuntime.InvokeAsync<ReaderDomTextHit?>(
+            "languageReaderSelection.getTextOffsetAtPoint",
+            readerPage,
+            args.ClientX,
+            args.ClientY);
+
+        if (hit is null)
+        {
+            return;
+        }
+
+        var paragraph = Paragraphs.FirstOrDefault(item => item.Index == hit.ParagraphIndex);
+        if (paragraph is null)
+        {
+            return;
+        }
+
+        await OffsetSelected.InvokeAsync(new ReaderOffsetTap(paragraph, hit.Offset));
+    }
+
+    private async Task MeasureOverlaysAsync()
+    {
+        var ranges = BuildOverlays().ToList();
+
+        if (ranges.Count == 0)
+        {
+            overlayRects.Clear();
+            StateHasChanged();
+            return;
+        }
+
+        var measured = await JsRuntime.InvokeAsync<ReaderRangeRect[]>(
+            "languageReaderSelection.measureRanges",
+            readerPage,
+            ranges);
+
+        overlayRects.Clear();
+        overlayRects.AddRange(measured);
+        StateHasChanged();
+    }
+
+    private IEnumerable<ReaderRangeOverlay> BuildOverlays()
+    {
+        foreach (var range in GetVisibleTranslations().OrderBy(GetTranslationLayerPriority).ThenBy(item => item.StartOffset))
+        {
+            foreach (var overlay in BuildTranslationOverlays(range))
+            {
+                yield return overlay;
+            }
+        }
+
+        if (Selection is not null && ActiveTranslation is null)
+        {
+            foreach (var overlay in BuildSelectionOverlays(Selection))
+            {
+                yield return overlay;
+            }
+        }
+
+        if (ActiveTranslation is not null)
+        {
+            foreach (var overlay in BuildTranslationOverlays(ActiveTranslation, "active-translation"))
+            {
+                yield return overlay;
+            }
+        }
+    }
+
+    private IEnumerable<ReaderRangeOverlay> BuildSelectionOverlays(ReaderSelection readerSelection)
+    {
+        if (readerSelection.SelectionType == SelectionKind.Page)
+        {
+            foreach (var paragraph in Paragraphs)
+            {
+                yield return new ReaderRangeOverlay(
+                    "selection-page-" + paragraph.Index,
+                    "selection",
+                    "selection",
+                    paragraph.Index,
+                    0,
+                    paragraph.Text.Length,
+                    null);
+            }
+
+            yield break;
+        }
+
+        yield return new ReaderRangeOverlay(
+            "selection",
+            IsTranslationLoading ? "selection-loading" : "selection",
+            "selection",
+            readerSelection.ParagraphIndex,
+            readerSelection.StartOffset,
+            readerSelection.EndOffset,
+            null);
+    }
+
+    private IEnumerable<ReaderRangeOverlay> BuildTranslationOverlays(
+        TranslatedRangeDto range,
+        string kind = "translation")
+    {
+        var layer = IsInVocabulary(range) ? "vocabulary" : "translation";
+        var displayText = range.ShowOriginal ? null : range.TranslatedText;
+
+        if (range.SelectionKind == SelectionKind.Page)
+        {
+            foreach (var paragraph in Paragraphs.Where(paragraph =>
+                         paragraph.Index >= range.ParagraphIndex && paragraph.Index < range.EndOffset))
+            {
+                yield return new ReaderRangeOverlay(
+                    $"{kind}-{range.Id}-{paragraph.Index}",
+                    kind,
+                    layer,
+                    paragraph.Index,
+                    0,
+                    paragraph.Text.Length,
+                    displayText);
+            }
+
+            yield break;
+        }
+
+        yield return new ReaderRangeOverlay(
+            $"{kind}-{range.Id}",
+            kind,
+            layer,
+            range.ParagraphIndex,
+            range.StartOffset,
+            range.EndOffset,
+            displayText);
+    }
+
+    private IReadOnlyList<ReaderTextChunk> BuildTextChunks(ReaderParagraph paragraph)
+    {
+        var translations = GetVisibleTranslations()
+            .Where(range =>
+                range.SelectionKind != SelectionKind.Page
+                && range.ParagraphIndex == paragraph.Index)
+            .ToList();
+
+        return BuildTextChunks(paragraph, translations, 0, paragraph.Text.Length, null);
+    }
+
+    private IReadOnlyList<ReaderTextChunk> BuildTextChunks(
+        ReaderParagraph paragraph,
+        IReadOnlyList<TranslatedRangeDto> translations,
+        int rangeStart,
+        int rangeEnd,
+        TranslatedRangeDto? owner)
+    {
+        var chunks = new List<ReaderTextChunk>();
+        var cursor = rangeStart;
+        var replacements = GetDirectChildTranslations(translations, rangeStart, rangeEnd, owner);
+
+        foreach (var replacement in replacements)
+        {
+            if (replacement.StartOffset < cursor || replacement.StartOffset >= paragraph.Text.Length)
+            {
+                continue;
+            }
+
+            var endOffset = Math.Clamp(replacement.EndOffset, replacement.StartOffset, paragraph.Text.Length);
+            if (endOffset <= replacement.StartOffset)
+            {
+                continue;
+            }
+
+            if (replacement.StartOffset > cursor)
+            {
+                chunks.Add(new ReaderTextChunk(
+                    paragraph.Text[cursor..replacement.StartOffset],
+                    cursor,
+                    replacement.StartOffset,
+                    false,
+                    null));
+            }
+
+            if (replacement.ShowOriginal)
+            {
+                chunks.Add(new ReaderTextChunk(
+                    string.Empty,
+                    replacement.StartOffset,
+                    replacement.StartOffset,
+                    false,
+                    replacement));
+
+                chunks.AddRange(BuildTextChunks(paragraph, translations, replacement.StartOffset, endOffset, replacement));
+                cursor = endOffset;
+                continue;
+            }
+
+            chunks.Add(new ReaderTextChunk(
+                replacement.TranslatedText,
+                replacement.StartOffset,
+                endOffset,
+                true,
+                replacement));
+
+            cursor = endOffset;
+        }
+
+        if (cursor < rangeEnd)
+        {
+            chunks.Add(new ReaderTextChunk(
+                paragraph.Text[cursor..rangeEnd],
+                cursor,
+                rangeEnd,
+                false,
+                null));
+        }
+
+        return chunks;
+    }
+
+    private IReadOnlyList<TranslatedRangeDto> GetDirectChildTranslations(
+        IReadOnlyList<TranslatedRangeDto> translations,
+        int rangeStart,
+        int rangeEnd,
+        TranslatedRangeDto? owner)
+    {
+        return translations
+            .Where(candidate =>
+                candidate.Id != owner?.Id
+                && candidate.StartOffset >= rangeStart
+                && candidate.EndOffset <= rangeEnd
+                && !translations.Any(parent =>
+                    parent.Id != candidate.Id
+                    && parent.Id != owner?.Id
+                    && parent.StartOffset >= rangeStart
+                    && parent.EndOffset <= rangeEnd
+                    && Contains(parent, candidate)))
+            .OrderBy(candidate => candidate.StartOffset)
+            .ThenBy(candidate => GetTranslationLayerPriority(candidate))
+            .ThenByDescending(candidate => candidate.EndOffset)
+            .ToList();
+    }
+
+    private IEnumerable<TranslatedRangeDto> GetVisibleTranslations()
+    {
+        return TranslatedRanges.Where(range =>
+            !TranslatedRanges.Any(parent =>
+                parent.Id != range.Id
+                && !parent.ShowOriginal
+                && Contains(parent, range)));
+    }
+
+    private static bool Contains(TranslatedRangeDto parent, TranslatedRangeDto child)
+    {
+        if (parent.SelectionKind == SelectionKind.Page)
+        {
+            return child.ReadingItemId == parent.ReadingItemId
+                && child.ParagraphIndex >= parent.ParagraphIndex
+                && child.ParagraphIndex < parent.EndOffset;
+        }
+
+        return parent.ReadingItemId == child.ReadingItemId
+            && parent.ParagraphIndex == child.ParagraphIndex
+            && parent.StartOffset <= child.StartOffset
+            && parent.EndOffset >= child.EndOffset
+            && (parent.StartOffset < child.StartOffset || parent.EndOffset > child.EndOffset);
+    }
+
+    private TranslationActionAnchor? BuildActiveTranslationPopupAnchor()
+    {
+        if (ActiveTranslation is null)
+        {
+            return null;
+        }
+
+        var anchorRect = overlayRects
+            .Where(rect =>
+                rect.Id.StartsWith($"active-translation-{ActiveTranslation.Id}", StringComparison.Ordinal)
+                || rect.Id.StartsWith($"translation-{ActiveTranslation.Id}", StringComparison.Ordinal))
+            .OrderBy(rect => rect.Top)
+            .ThenBy(rect => rect.Left)
+            .FirstOrDefault();
+
+        return anchorRect is null
+            ? null
+            : new TranslationActionAnchor(
+                ActiveTranslation,
+                anchorRect.Left,
+                Math.Max(0, anchorRect.Top - 34),
+                TranslationPopupWidth);
+    }
+
+    private TranslationActionAnchor? BuildSelectionActionAnchor()
+    {
+        if (Selection is null || ActiveTranslation is not null)
+        {
+            return null;
+        }
+
+        var anchorRect = overlayRects
+            .Where(rect => rect.Id.StartsWith("selection", StringComparison.Ordinal))
+            .OrderBy(rect => rect.Top)
+            .ThenBy(rect => rect.Left)
+            .FirstOrDefault();
+
+        return anchorRect is null
+            ? null
+            : new TranslationActionAnchor(
+                null,
+                anchorRect.Left,
+                Math.Max(0, anchorRect.Top - 36),
+                SelectionActionsWidth);
+    }
+
+    private bool IsInVocabulary(TranslatedRangeDto range)
+    {
+        if (range.VocabularyEntryId.HasValue)
+        {
+            return VocabularyEntries.Any(entry =>
+                entry.IsVisibleInVocabulary
+                && entry.Id == range.VocabularyEntryId.Value);
+        }
+
+        return VocabularyEntries.Any(entry =>
+            entry.IsVisibleInVocabulary
+            && entry.ReadingItemId == range.ReadingItemId
+            && entry.Position.ParagraphIndex == range.ParagraphIndex
+            && entry.Position.CharacterOffset == range.StartOffset
+            && entry.SelectionKind == range.SelectionKind
+            && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int GetTranslationLayerPriority(TranslatedRangeDto range)
+    {
+        return range.SelectionKind switch
+        {
+            SelectionKind.Page => 0,
+            SelectionKind.Paragraph => 1,
+            SelectionKind.Sentence => 2,
+            SelectionKind.Phrase => 3,
+            SelectionKind.Word => 4,
+            _ => 5
+        };
+    }
+
+    private static string GetFillClass(ReaderRangeRect rect)
+    {
+        return $"reader-range-fill reader-range-fill--{rect.Kind} reader-range-fill--{rect.Layer}";
+    }
+
+    private static string GetFrameClass(ReaderRangeRect frame)
+    {
+        return $"reader-range-frame reader-range-frame--{frame.Kind} reader-range-frame--{frame.Layer}";
+    }
+
+    private static string GetOverlayStyle(ReaderRangeRect rect)
+    {
+        return string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"left:{rect.Left:0.###}px;top:{rect.Top:0.###}px;width:{rect.Width:0.###}px;height:{rect.Height:0.###}px;");
+    }
+
+    private static string GetActionAnchorStyle(TranslationActionAnchor anchor)
+    {
+        return string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"left:clamp(0.75rem, {anchor.Left:0.###}px, calc(100% - {anchor.Width:0.###}px - 0.75rem));top:{anchor.Top:0.###}px;");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(scrollObserverId))
+        {
+            await JsRuntime.InvokeVoidAsync("languageReaderSelection.unobserveReaderScroll", scrollObserverId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(resizeObserverId))
+        {
+            await JsRuntime.InvokeVoidAsync("languageReaderSelection.unobserveRangeRoot", resizeObserverId);
+        }
+
+        dotNetReference?.Dispose();
+    }
+
+    private sealed record ReaderTextChunk(
+        string Text,
+        int StartOffset,
+        int EndOffset,
+        bool IsTranslated,
+        TranslatedRangeDto? SelectTranslation);
+
+    private sealed record TranslationActionAnchor(
+        TranslatedRangeDto? Translation,
+        double Left,
+        double Top,
+        double Width);
+}

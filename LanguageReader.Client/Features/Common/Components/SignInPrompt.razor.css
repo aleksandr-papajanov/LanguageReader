@@ -1,0 +1,7 @@
+.sign-in-prompt {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 32rem;
+    padding: var(--panel-padding-lg);
+    border-radius: var(--radius-md);
+}

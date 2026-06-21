@@ -1,0 +1,103 @@
+.app-input-shell {
+    position: relative;
+    display: grid;
+    width: 100%;
+}
+
+.app-input {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--control-height-md);
+
+    border: 1px solid rgba(23, 20, 17, 0.11);
+    border-radius: var(--radius-sm);
+
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82)),
+        var(--color-surface-strong);
+
+    color: var(--color-text);
+
+    padding: 0.78rem 0.9rem;
+
+    font: inherit;
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.1;
+
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7),
+        0 8px 18px rgba(23, 20, 17, 0.035);
+
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        color 140ms ease;
+}
+
+.app-input-shell:has(.app-input__icon) .app-input {
+    padding-left: 2.7rem;
+}
+
+.app-input:hover:not(:disabled) {
+    border-color: rgba(23, 20, 17, 0.18);
+}
+
+.app-input:focus {
+    outline: none;
+    border-color: var(--color-border-strong);
+    box-shadow:
+        0 0 0 0.18rem rgba(23, 20, 17, 0.08),
+        0 10px 22px rgba(23, 20, 17, 0.055);
+}
+
+.app-input::placeholder {
+    color: var(--color-text-faint);
+    font-weight: 500;
+}
+
+.app-input:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.app-input__icon {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+
+    width: 2.4rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--color-text-faint);
+    opacity: 0.78;
+
+    pointer-events: none;
+
+    font-family: "Material Symbols Outlined";
+    font-size: 1.1rem;
+    line-height: 1;
+    font-weight: normal;
+    font-style: normal;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+
+    font-variation-settings:
+        "FILL" 0,
+        "wght" 400,
+        "GRAD" 0,
+        "opsz" 24;
+
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-input-shell:focus-within .app-input__icon {
+    color: var(--color-text);
+    opacity: 1;
+}

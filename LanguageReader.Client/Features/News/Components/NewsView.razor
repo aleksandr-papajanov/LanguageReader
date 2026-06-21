@@ -1,0 +1,204 @@
+@using LanguageReader.Client.Features.ReadingItems.Components
+@using LanguageReader.Client.Features.ReadingItems.Services
+@using LanguageReader.Client.Features.Users.Services
+@using LanguageReader.Shared.Features.News
+@using LanguageReader.Shared.Features.ReadingItems
+@inject NewsApiClient NewsApi
+@inject ReadingItemsApiClient ReadingItemsApi
+@inject NavigationManager Navigation
+@inject UserSession Session
+
+<AppHeading Title="News" Subtitle="Fresh articles you can save into your reading library." />
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <AppAlert Tone="error" Title="Unable to load news">
+        @errorMessage
+    </AppAlert>
+}
+
+<section class="news-shell">
+    <div class="news-header-row">
+        <ReadingItemSourceMark SourceKey="@activeSourceKey" Size="lg" />
+    </div>
+
+    <div class="news-filter-row">
+        <AppTabs Items="sourceTabs"
+                 ActiveValue="@activeSourceKey"
+                 ActiveValueChanged="SelectSourceAsync"
+                 AriaLabel="News sources" />
+    </div>
+
+    <AppSection Title="Latest news">
+        <ReadingItemList Items="items"
+                         EmptyMessage="No news items found."
+                         BusyItemId="busyItemId"
+                         PrimaryActionSelected="HandlePrimaryActionAsync"
+                         VisibilityToggleSelected="ToggleVisibilityAsync"
+                         DeleteSelected="DeleteSavedAsync"
+                         OpenOriginalSelected="OpenOriginalAsync" />
+    </AppSection>
+</section>
+
+@code {
+    private List<ReadingItemSummaryDto> items = [];
+    private readonly IReadOnlyList<AppTabItem> sourceTabs = ReadingItemSourceCatalog.ToTabs();
+    private string activeSourceKey = NewsSourceKeys.Svt;
+    private Guid? busyItemId;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(Session.Username))
+        {
+            items = [];
+            return;
+        }
+
+        try
+        {
+            items = (await ReadingItemsApi.GetReadingItemsAsync(
+                new GetReadingItemsRequest(
+                    Session.Username,
+                    Collection: ReadingItemCollectionFilter.Discover,
+                    SourceKey: activeSourceKey),
+                CancellationToken.None)).ToList();
+        }
+        catch (Exception exception)
+        {
+            items = [];
+            errorMessage = exception.Message;
+        }
+    }
+
+    private async Task HandlePrimaryActionAsync(ReadingItemSummaryDto item)
+    {
+        if (item.CanImport)
+        {
+            await ImportArticleAsync(item);
+            return;
+        }
+
+        if (!item.CanOpen && !item.CanContinue)
+        {
+            return;
+        }
+
+        var route = item.Position is null
+            ? $"/reader/{item.Id}"
+            : $"/reader/{item.Id}?paragraph={item.Position.ParagraphIndex}&offset={item.Position.CharacterOffset}";
+
+        Navigation.NavigateTo(route);
+    }
+
+    private async Task ImportArticleAsync(ReadingItemSummaryDto item)
+    {
+        if (string.IsNullOrWhiteSpace(Session.Username) || string.IsNullOrWhiteSpace(item.OriginalUrl))
+        {
+            return;
+        }
+
+        busyItemId = item.Id;
+        errorMessage = null;
+
+        try
+        {
+            var result = await NewsApi.ImportArticleAsync(
+                new ImportNewsArticleRequest(Session.Username, item.SourceKey ?? NewsSourceKeys.Svt, item.OriginalUrl),
+                CancellationToken.None);
+
+            await LoadAsync();
+            Navigation.NavigateTo($"/reader/{result.Id}");
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            busyItemId = null;
+        }
+    }
+
+    private async Task ToggleVisibilityAsync(ReadingItemSummaryDto item)
+    {
+        if (string.IsNullOrWhiteSpace(Session.Username) || (!item.CanPublish && !item.CanUnpublish))
+        {
+            return;
+        }
+
+        busyItemId = item.Id;
+        errorMessage = null;
+
+        try
+        {
+            await ReadingItemsApi.SetVisibilityAsync(
+                new UpdateReadingItemVisibilityRequest(item.Id, Session.Username, !item.IsPublic),
+                CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            busyItemId = null;
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteSavedAsync(ReadingItemSummaryDto item)
+    {
+        if (string.IsNullOrWhiteSpace(Session.Username) || !item.CanDelete)
+        {
+            return;
+        }
+
+        busyItemId = item.Id;
+        errorMessage = null;
+
+        try
+        {
+            await ReadingItemsApi.DeleteReadingItemAsync(
+                new DeleteReadingItemRequest(item.Id, Session.Username),
+                CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            busyItemId = null;
+            await LoadAsync();
+        }
+    }
+
+    private Task OpenOriginalAsync(ReadingItemSummaryDto item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.OriginalUrl))
+        {
+            Navigation.NavigateTo(item.OriginalUrl, forceLoad: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task SelectSourceAsync(string sourceKey)
+    {
+        if (string.IsNullOrWhiteSpace(sourceKey) || string.Equals(activeSourceKey, sourceKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        activeSourceKey = sourceKey;
+        await LoadAsync();
+    }
+}

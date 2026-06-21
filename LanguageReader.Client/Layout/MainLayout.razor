@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<div class="app-layout">
+    <header class="app-layout__top">
+        <div class="app-layout__top-inner">
+            <SessionStatusBar />
+        </div>
+    </header>
+
+    <main class="app-layout__content">
+        <div class="app-layout__content-inner">
+            <article class="app-shell">
+                @Body
+            </article>
+        </div>
+    </main>
+
+    <footer class="app-layout__bottom">
+        <div class="app-layout__bottom-inner">
+            <AppBottomNav />
+        </div>
+    </footer>
+</div>

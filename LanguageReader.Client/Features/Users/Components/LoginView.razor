@@ -1,0 +1,60 @@
+@inject SessionApiClient Api
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<AppHeading Title="Login"
+            Subtitle="Temporary local development login. Use admin for now." />
+
+<AppPanel AdditionalClass="form-panel">
+    <AppTextInput Id="username"
+                  Label="Username"
+                  Value="@username"
+                  ValueChanged="OnUsernameChanged"
+                  LeadingIcon="person"
+                  Placeholder="admin" />
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <p class="app-inline-error">@error</p>
+    }
+
+    <AppButton Label="Enter"
+               Variant="primary"
+               Icon="arrow_forward"
+               AdditionalClass="login-view__submit"
+               Disabled="@isBusy"
+               OnClick="LoginAsync" />
+</AppPanel>
+
+@code {
+    private string username = "admin";
+    private string? error;
+    private bool isBusy;
+
+    private Task OnUsernameChanged(string value)
+    {
+        username = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task LoginAsync(MouseEventArgs _)
+    {
+        error = null;
+        isBusy = true;
+
+        try
+        {
+            var session = await Api.LoginAsync(new LoginRequest(username));
+            await Session.SignInAsync(session.Username);
+            Navigation.NavigateTo("my-library");
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+}

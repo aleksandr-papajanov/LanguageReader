@@ -1,0 +1,18 @@
+.tap-options-popover {
+    position: sticky;
+    top: 4.2rem;
+    z-index: 18;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-3);
+}
+
+.tap-options-card {
+    padding: var(--space-2);
+}
+
+@media (max-width: 700px) {
+    .tap-options-popover {
+        top: 3.9rem;
+    }
+}

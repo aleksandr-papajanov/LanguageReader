@@ -1,0 +1,219 @@
+@using LanguageReader.Client.Features.ReadingItems.Components
+@inject ReadingItemsApiClient ReadingItemsApi
+@inject ReaderSessionCache ReaderCache
+@inject NavigationManager Navigation
+@inject UserSession Session
+
+<AppHeading Title="Library"
+            Subtitle="A quiet reading workspace for books, saved articles, progress, and shared texts."
+            Actions="@HeaderActions" />
+
+@if (!Session.IsSignedIn)
+{
+    <SignInPrompt Message="Use the temporary local username login to enter the application." />
+}
+else if (state.IsLoading)
+{
+    <AppLoader Label="Loading library" />
+}
+else if (!string.IsNullOrWhiteSpace(state.Error))
+{
+    <AppAlert Title="We could not load the library."
+              Message="@state.Error" />
+}
+else
+{
+    <section class="library-shell">
+        <div class="library-header-row">
+            <AppTabs Items="LibraryHomeState.Tabs"
+                     ActiveValue="@state.ActiveTab"
+                     ActiveValueChanged="SelectTab"
+                     AriaLabel="Library filters" />
+        </div>
+
+        <div class="library-filter-row">
+            <AppSelect TValue="string"
+                       Id="library-item-filter"
+                       Label="Type"
+                       Size="sm"
+                       Variant="quiet"
+                       Value="@itemFilter"
+                       ValueChanged="OnFilterChanged"
+                       Options="itemFilterOptions"
+                       FieldClass="library-filter" />
+        </div>
+
+        @if (state.ActiveTab is "reading")
+        {
+            <AppSection Title="Continue Reading"
+                        Subtitle="Jump back into the reading items you left open most recently.">
+                <ReadingItemList Items="ReadingItems"
+                                 EmptyMessage="No reading progress yet."
+                                 BusyItemId="busyItemId"
+                                 PrimaryActionSelected="HandlePrimaryActionAsync"
+                                 VisibilityToggleSelected="TogglePublicAsync"
+                                 DeleteSelected="DeleteAsync"
+                                 OpenOriginalSelected="OpenOriginal" />
+            </AppSection>
+        }
+
+        @if (state.ActiveTab is "my-books")
+        {
+            <AppSection Title="My Library"
+                        Subtitle="Your saved books and articles, with publishing controls for shared reading.">
+                <ReadingItemList Items="MyItems"
+                                 EmptyMessage="You have not saved any reading items yet."
+                                 BusyItemId="busyItemId"
+                                 PrimaryActionSelected="HandlePrimaryActionAsync"
+                                 VisibilityToggleSelected="TogglePublicAsync"
+                                 DeleteSelected="DeleteAsync"
+                                 OpenOriginalSelected="OpenOriginal" />
+            </AppSection>
+        }
+
+        @if (state.ActiveTab is "public")
+        {
+            <AppSection Title="Public Library"
+                        Subtitle="Shared books and articles available across the application.">
+                <ReadingItemList Items="PublicItems"
+                                 EmptyMessage="No public reading items yet."
+                                 BusyItemId="busyItemId"
+                                 PrimaryActionSelected="HandlePrimaryActionAsync"
+                                 VisibilityToggleSelected="TogglePublicAsync"
+                                 DeleteSelected="DeleteAsync"
+                                 OpenOriginalSelected="OpenOriginal" />
+            </AppSection>
+        }
+    </section>
+}
+
+@code {
+    private readonly LibraryHomeState state = new();
+    private static readonly IReadOnlyList<AppSelectOption<string>> itemFilterOptions =
+    [
+        new("all", "All"),
+        new("books", "Books"),
+        new("articles", "Articles")
+    ];
+
+    private string itemFilter = "all";
+    private Guid? busyItemId;
+
+    [Parameter]
+    public string InitialTab { get; set; } = "reading";
+
+    private IReadOnlyList<ReadingItemSummaryDto> ReadingItems => state.Items
+        .Where(item => item.ReadingStatus == ReadingItemReadingStatus.Reading && MatchesFilter(item.Type))
+        .ToList();
+
+    private IReadOnlyList<ReadingItemSummaryDto> MyItems => state.Items
+        .Where(item => item.IsOwnedByCurrentUser && MatchesFilter(item.Type))
+        .ToList();
+
+    private IReadOnlyList<ReadingItemSummaryDto> PublicItems => state.Items
+        .Where(item => item.IsPublic && MatchesFilter(item.Type))
+        .ToList();
+
+    private RenderFragment HeaderActions => builder =>
+    {
+        builder.OpenComponent<AppButton>(0);
+        builder.AddAttribute(1, "IconOnly", true);
+        builder.AddAttribute(2, "Variant", "primary");
+        builder.AddAttribute(3, "Icon", "add");
+        builder.AddAttribute(4, "Title", "Add book");
+        builder.AddAttribute(5, "AdditionalClass", "library-add-button");
+        builder.AddAttribute(6, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OpenUpload));
+        builder.CloseComponent();
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        state.SetInitialTab(InitialTab);
+
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        await state.LoadAsync(Session.Username!, ReadingItemsApi, ReaderCache);
+    }
+
+    private async Task HandlePrimaryActionAsync(ReadingItemSummaryDto item)
+    {
+        if (item.CanImport)
+        {
+            return;
+        }
+
+        var route = item.Position is null
+            ? $"/reader/{item.Id}"
+            : $"/reader/{item.Id}?paragraph={item.Position.ParagraphIndex}&offset={item.Position.CharacterOffset}";
+
+        Navigation.NavigateTo(route);
+        await Task.CompletedTask;
+    }
+
+    private async Task TogglePublicAsync(ReadingItemSummaryDto item)
+    {
+        busyItemId = item.Id;
+        try
+        {
+            await state.TogglePublicAsync(item, Session.Username!, ReadingItemsApi);
+        }
+        finally
+        {
+            busyItemId = null;
+        }
+    }
+
+    private async Task DeleteAsync(ReadingItemSummaryDto item)
+    {
+        busyItemId = item.Id;
+        try
+        {
+            await state.DeleteAsync(item.Id, Session.Username!, ReadingItemsApi);
+        }
+        finally
+        {
+            busyItemId = null;
+        }
+    }
+
+    private Task OpenOriginal(ReadingItemSummaryDto item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.OriginalUrl))
+        {
+            Navigation.NavigateTo(item.OriginalUrl, forceLoad: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task SelectTab(string tab)
+    {
+        Navigation.NavigateTo(state.SelectTab(tab), replace: false);
+        return Task.CompletedTask;
+    }
+
+    private Task OpenUpload(MouseEventArgs _)
+    {
+        Navigation.NavigateTo("my-library");
+        return Task.CompletedTask;
+    }
+
+    private Task OnFilterChanged(string value)
+    {
+        itemFilter = string.IsNullOrWhiteSpace(value) ? "all" : value;
+        return Task.CompletedTask;
+    }
+
+    private bool MatchesFilter(ReadingItemType type)
+    {
+        return itemFilter switch
+        {
+            "books" => type == ReadingItemType.Book,
+            "articles" => type == ReadingItemType.Article,
+            _ => true
+        };
+    }
+}

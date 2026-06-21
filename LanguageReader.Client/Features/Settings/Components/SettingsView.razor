@@ -1,0 +1,67 @@
+@inject SettingsApiClient Api
+@inject UserSession Session
+
+<AppHeading Title="Settings"
+            Subtitle="Reader and translation preferences." />
+
+@if (!Session.IsSignedIn)
+{
+    <SignInPrompt />
+}
+else if (state.IsLoading)
+{
+    <AppLoader Label="Loading settings" />
+}
+else
+{
+    <AppPanel AdditionalClass="form-panel settings-panel">
+        <AppTextInput Id="language"
+                      Label="Native Language"
+                      Value="@(state.NativeLanguage ?? string.Empty)"
+                      ValueChanged="@state.OnNativeLanguageChanged"
+                      LeadingIcon="translate"
+                      Placeholder="e.g. Russian, English, Swedish" />
+
+        <AppSelect TValue="AiServiceMode"
+                   Id="ai-mode"
+                   Label="AI Mode"
+                   Value="@state.AiServiceMode"
+                   ValueChanged="@state.OnAiServiceModeChanged"
+                   Options="@SettingsEditorState.AiModeOptions" />
+
+        @if (!string.IsNullOrWhiteSpace(state.Message))
+        {
+            <p class="app-inline-success">@state.Message</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(state.Error))
+        {
+            <p class="app-inline-error">@state.Error</p>
+        }
+
+        <AppButton Label="Save"
+                   Variant="primary"
+                   Icon="save"
+                   OnClick="SaveAsync" />
+    </AppPanel>
+}
+
+@code {
+    private readonly SettingsEditorState state = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        await state.LoadAsync(Api, Session.Username!);
+    }
+
+
+    private async Task SaveAsync(MouseEventArgs _)
+    {
+        await state.SaveAsync(Api, Session.Username!);
+    }
+}

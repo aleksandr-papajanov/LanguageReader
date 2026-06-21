@@ -1,0 +1,51 @@
+<div class="app-tabs" role="tablist" aria-label="@AriaLabel">
+    @foreach (var item in Items)
+    {
+        <button class="@GetTabClass(item.Value)"
+                role="tab"
+                aria-selected="@(item.Value == ActiveValue)"
+                @onclick="@(() => Select(item.Value))">
+            @if (!string.IsNullOrWhiteSpace(item.ImageSrc))
+            {
+                <AppImage Src="@item.ImageSrc"
+                          Alt="@item.Label"
+                          Decorative="true"
+                          Inline="true"
+                          Fit="contain"
+                          AdditionalClass="app-tab__image-wrap"
+                          ImageClass="app-tab__image" />
+            }
+            @if (!string.IsNullOrWhiteSpace(item.Icon))
+            {
+                <AppIcon Name="@item.Icon" Size="18" />
+            }
+            <span>@item.Label</span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<AppTabItem> Items { get; set; } = [];
+
+    [Parameter]
+    public string ActiveValue { get; set; } = string.Empty;
+
+    [Parameter]
+    public string AriaLabel { get; set; } = "Tabs";
+
+    [Parameter]
+    public EventCallback<string> ActiveValueChanged { get; set; }
+
+    private string GetTabClass(string value)
+    {
+        return value == ActiveValue
+            ? "app-tab app-tab--active"
+            : "app-tab";
+    }
+
+    private Task Select(string value)
+    {
+        return ActiveValueChanged.InvokeAsync(value);
+    }
+}

@@ -1,0 +1,36 @@
+.app-content-card {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem 0.9rem;
+    border-radius: 1rem;
+    transition:
+        transform 140ms ease,
+        box-shadow 140ms ease,
+        border-color 140ms ease,
+        background-color 140ms ease;
+}
+
+.app-content-card__header,
+.app-content-card__footer {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.app-content-card__body {
+    position: relative;
+    z-index: 1;
+
+    display: grid;
+    gap: 0.45rem;
+}
+
+.app-content-card__footer {
+    padding-top: 0.15rem;
+    justify-content: flex-end;
+}

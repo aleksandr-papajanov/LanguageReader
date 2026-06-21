@@ -1,0 +1,132 @@
+@using LanguageReader.Client.Features.ReadingItems.Components
+
+<div class="reader-header">
+    @if (Details?.Type == ReadingItemType.Article)
+    {
+        <div class="reader-article-header">
+            <div class="reader-article-header__content">
+                <div class="reader-article-header__source-mark">
+                    <ReadingItemSourceMark SourceKey="@Details.SourceKey"
+                                           SourceName="@Details.SourceName"
+                                           Size="md" />
+                </div>
+
+                <div class="reader-article-header__badges">
+                    <AppBadge Tone="warning">Article</AppBadge>
+                    <ReadingItemSourceBadge SourceKey="@Details.SourceKey" SourceName="@Details.SourceName" />
+                </div>
+
+                <h1 class="reader-title">@Title</h1>
+
+                @if (!string.IsNullOrWhiteSpace(Details.Excerpt))
+                {
+                    @* Temporary disable *@
+                    @* <p class="reader-article-header__excerpt">@Details.Excerpt</p> *@
+
+                    <p class="reader-article-header__excerpt"></p>
+                }
+
+                <div class="reader-article-header__meta">
+                    @if (!string.IsNullOrWhiteSpace(Details.Author))
+                    {
+                        <span>@Details.Author</span>
+                    }
+
+                    @if (Details.PublishedAtUtc.HasValue)
+                    {
+                        <span>@Details.PublishedAtUtc.Value.LocalDateTime.ToString("d MMM yyyy")</span>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(OriginalLanguage))
+                    {
+                        <span>@OriginalLanguage</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Details.OriginalUrl))
+                {
+                    <a class="reader-article-header__link"
+                       href="@Details.OriginalUrl"
+                       target="_blank"
+                       rel="noreferrer">Open original article</a>
+                }
+            </div>
+
+            <div class="reader-article-header__aside">
+                @if (!string.IsNullOrWhiteSpace(Details.ImageUrl))
+                {
+                    <AppImage Src="@Details.ImageUrl"
+                              Alt="@Title"
+                              Decorative="true"
+                              UseNewsprint="true"
+                              AdditionalClass="reader-article-header__image-wrap"
+                              Style="width: min(100%, clamp(9.5rem, 30vw, 12.5rem)); aspect-ratio: 16 / 10; height: auto; justify-self: start; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);"
+                              ImageClass="reader-article-header__image" />
+                }
+
+                <ReaderBottomDock CurrentPage="@CurrentPage"
+                                  TotalPages="@TotalPages"
+                                  ProgressPercent="@ProgressPercent"
+                                  IsPreviousDisabled="@IsPreviousDisabled"
+                                  IsNextDisabled="@IsNextDisabled"
+                                  PreviousClicked="PreviousClicked"
+                                  NextClicked="NextClicked" />
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="reader-meta">
+            <h1 class="reader-title">@Title</h1>
+
+            <div class="reader-meta__aside">
+                <ReaderBottomDock CurrentPage="@CurrentPage"
+                                  TotalPages="@TotalPages"
+                                  ProgressPercent="@ProgressPercent"
+                                  IsPreviousDisabled="@IsPreviousDisabled"
+                                  IsNextDisabled="@IsNextDisabled"
+                                  PreviousClicked="PreviousClicked"
+                                  NextClicked="NextClicked" />
+            </div>
+        </div>
+    }
+
+    <div class="reader-progress-bar" aria-hidden="true">
+        <span style="@ProgressStyle"></span>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ReadingItemDetailsDto? Details { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? OriginalLanguage { get; set; }
+
+    [Parameter]
+    public int CurrentPage { get; set; }
+
+    [Parameter]
+    public int TotalPages { get; set; }
+
+    [Parameter]
+    public double ProgressPercent { get; set; }
+
+    [Parameter]
+    public bool IsPreviousDisabled { get; set; }
+
+    [Parameter]
+    public bool IsNextDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback PreviousClicked { get; set; }
+
+    [Parameter]
+    public EventCallback NextClicked { get; set; }
+
+    private string ProgressStyle =>
+        $"width: {ProgressPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}%;";
+}

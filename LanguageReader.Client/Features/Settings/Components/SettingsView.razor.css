@@ -1,0 +1,10 @@
+.settings-panel {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 30rem;
+}
+
+.settings-panel .app-inline-success,
+.settings-panel .app-inline-error {
+    margin-top: calc(var(--space-2) * -1);
+}

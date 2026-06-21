@@ -1,0 +1,44 @@
+.app-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.7rem;
+    padding: 0.16rem 0.58rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--color-text-soft);
+    font-size: var(--text-caption);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.app-badge--success {
+    border-color: rgba(46, 106, 69, 0.24);
+    background: rgba(46, 106, 69, 0.08);
+    color: var(--color-success);
+}
+
+.app-badge--warning {
+    border-color: rgba(138, 100, 19, 0.2);
+    background: rgba(138, 100, 19, 0.08);
+    color: var(--color-warning);
+}
+
+.app-badge--info {
+    border-color: rgba(38, 92, 140, 0.22);
+    background: rgba(38, 92, 140, 0.08);
+    color: #265c8c;
+}
+
+.app-badge--error {
+    border-color: rgba(141, 47, 47, 0.2);
+    background: rgba(141, 47, 47, 0.08);
+    color: var(--color-error);
+}
+
+.app-badge--preserve-case {
+    text-transform: none;
+    letter-spacing: 0;
+}

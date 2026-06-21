@@ -1,0 +1,37 @@
+<AppPanel AdditionalClass="@CssClass">
+    @if (Header is not null)
+    {
+        <div class="app-content-card__header">
+            @Header
+        </div>
+    }
+
+    <div class="app-content-card__body">
+        @ChildContent
+    </div>
+
+    @if (Footer is not null)
+    {
+        <div class="app-content-card__footer">
+            @Footer
+        </div>
+    }
+</AppPanel>
+
+@code {
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public RenderFragment? Header { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(AdditionalClass)
+        ? "app-content-card"
+        : $"app-content-card {AdditionalClass}";
+}

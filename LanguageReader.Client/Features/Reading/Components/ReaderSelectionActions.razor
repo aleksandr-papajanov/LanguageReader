@@ -1,0 +1,80 @@
+<ReaderFloatingPanel Style="@Style" AdditionalClass="reader-selection-actions">
+    <div class="reader-selection-modes" aria-label="Selection modes">
+        @foreach (var mode in Modes)
+        {
+            <button type="button"
+                    class="@GetModeClass(mode)"
+                    title="@SelectionModeLabelFor(mode)"
+                    @onclick="@(() => ModeSelected.InvokeAsync(mode))">
+                @SelectionModeShortLabelFor(mode)
+            </button>
+        }
+    </div>
+
+    <button type="button"
+            class="reader-selection-action"
+            title="Translate selection"
+            disabled="@IsTranslateDisabled"
+            @onclick="@(() => TranslateClicked.InvokeAsync())">
+        <AppIcon Name="translate" Size="15" />
+    </button>
+</ReaderFloatingPanel>
+
+@code {
+    private static readonly SelectionKind[] Modes =
+    [
+        SelectionKind.Word,
+        SelectionKind.Phrase,
+        SelectionKind.Sentence,
+        SelectionKind.Paragraph,
+        SelectionKind.Page
+    ];
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public SelectionKind ActiveMode { get; set; } = SelectionKind.Word;
+
+    [Parameter]
+    public bool IsTranslateDisabled { get; set; }
+
+    [Parameter]
+    public EventCallback<SelectionKind> ModeSelected { get; set; }
+
+    [Parameter]
+    public EventCallback TranslateClicked { get; set; }
+
+    private string GetModeClass(SelectionKind mode)
+    {
+        return mode == ActiveMode
+            ? "reader-selection-mode reader-selection-mode--active"
+            : "reader-selection-mode";
+    }
+
+    private static string SelectionModeShortLabelFor(SelectionKind mode)
+    {
+        return mode switch
+        {
+            SelectionKind.Word => "W",
+            SelectionKind.Phrase => "C",
+            SelectionKind.Sentence => "S",
+            SelectionKind.Paragraph => "P",
+            SelectionKind.Page => "Pg",
+            _ => mode.ToString()
+        };
+    }
+
+    private static string SelectionModeLabelFor(SelectionKind mode)
+    {
+        return mode switch
+        {
+            SelectionKind.Word => "Word",
+            SelectionKind.Phrase => "Custom",
+            SelectionKind.Sentence => "Sentence",
+            SelectionKind.Paragraph => "Paragraph",
+            SelectionKind.Page => "Page",
+            _ => mode.ToString()
+        };
+    }
+}

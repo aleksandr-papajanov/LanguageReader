@@ -1,0 +1,10 @@
+@page "/"
+
+<PageTitle>Library</PageTitle>
+
+<LibraryHomeView InitialTab="Tab" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+}

@@ -1,0 +1,15 @@
+<div class="@CssClass">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(AdditionalClass)
+        ? "app-list"
+        : $"app-list {AdditionalClass}";
+}

@@ -1,0 +1,24 @@
+.news-shell {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.news-header-row {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.15rem;
+}
+
+.news-filter-row {
+    position: sticky;
+    top: 4.35rem;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: 0.1rem 0 0.35rem;
+    margin-bottom: 0;
+    background: linear-gradient(to bottom, rgba(252, 251, 248, 0.96), rgba(252, 251, 248, 0.68));
+    backdrop-filter: blur(12px);
+}

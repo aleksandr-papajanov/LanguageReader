@@ -1,0 +1,41 @@
+<div class="@CssClass">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label class="app-field__label" for="@For">@Label</label>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Hint))
+    {
+        <p class="app-field__hint">@Hint</p>
+    }
+
+    @ChildContent
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <p class="app-field__message">@Message</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public string? For { get; set; }
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(AdditionalClass)
+        ? "app-field"
+        : $"app-field {AdditionalClass}";
+}

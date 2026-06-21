@@ -1,0 +1,116 @@
+<div class="@WrapperClass" style="@WrapperStyle">
+    <img src="@Src"
+         alt="@ResolvedAlt"
+         class="@ImageClassName"
+         style="@ImageStyle"
+         loading="@Loading"
+         decoding="@Decoding"
+         draggable="false"
+         aria-hidden="@Decorative" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Src { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Alt { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool Decorative { get; set; }
+
+    [Parameter]
+    public bool Inline { get; set; }
+
+    [Parameter]
+    public bool UseNewsprint { get; set; }
+
+    [Parameter]
+    public bool FillContainer { get; set; }
+
+    [Parameter]
+    public string Fit { get; set; } = "cover";
+
+    [Parameter]
+    public string Loading { get; set; } = "lazy";
+
+    [Parameter]
+    public string Decoding { get; set; } = "async";
+
+    [Parameter]
+    public string? AspectRatio { get; set; }
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public string? ImageClass { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public string? MediaStyle { get; set; }
+
+    private string ResolvedAlt => Decorative ? string.Empty : Alt;
+
+    private string WrapperClass
+    {
+        get
+        {
+            var classes = new List<string> { "app-image" };
+
+            if (Inline)
+            {
+                classes.Add("app-image--inline");
+            }
+
+            if (UseNewsprint)
+            {
+                classes.Add("app-image--newsprint");
+            }
+
+            if (FillContainer)
+            {
+                classes.Add("app-image--fill");
+            }
+
+            classes.Add(Fit == "contain" ? "app-image--contain" : "app-image--cover");
+
+            if (!string.IsNullOrWhiteSpace(AdditionalClass))
+            {
+                classes.Add(AdditionalClass);
+            }
+
+            return string.Join(" ", classes);
+        }
+    }
+
+    private string ImageClassName => string.IsNullOrWhiteSpace(ImageClass)
+        ? "app-image__media"
+        : $"app-image__media {ImageClass}";
+
+    private string? ImageStyle => string.IsNullOrWhiteSpace(MediaStyle)
+        ? null
+        : MediaStyle;
+
+    private string? WrapperStyle
+    {
+        get
+        {
+            var styles = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(AspectRatio))
+            {
+                styles.Add($"--app-image-aspect-ratio: {AspectRatio}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(Style))
+            {
+                styles.Add(Style);
+            }
+
+            return styles.Count == 0 ? null : string.Join("; ", styles);
+        }
+    }
+}

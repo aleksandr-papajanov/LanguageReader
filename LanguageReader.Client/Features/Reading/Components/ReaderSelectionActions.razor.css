@@ -1,0 +1,46 @@
+.reader-selection-modes {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding-right: 0.45rem;
+    border-right: 1px solid rgba(23, 20, 17, 0.12);
+}
+
+.reader-selection-mode,
+.reader-selection-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.1rem;
+    height: 2.1rem;
+    padding: 0 0.55rem;
+    border: 1px solid rgba(23, 20, 17, 0.14);
+    border-radius: 0.8rem;
+    background: #fff;
+    color: var(--color-text-muted);
+    font-family: var(--font-ui-serif, var(--font-reading));
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.reader-selection-mode--active {
+    border-color: rgba(52, 105, 190, 0.62);
+    color: var(--color-text);
+    background: rgba(52, 105, 190, 0.08);
+}
+
+.reader-selection-action:disabled {
+    opacity: 0.38;
+    cursor: default;
+}
+
+.reader-selection-mode:hover,
+.reader-selection-action:hover:not(:disabled),
+.reader-selection-mode:focus-visible,
+.reader-selection-action:focus-visible {
+    border-color: rgba(23, 20, 17, 0.44);
+    color: var(--color-text);
+    outline: none;
+}

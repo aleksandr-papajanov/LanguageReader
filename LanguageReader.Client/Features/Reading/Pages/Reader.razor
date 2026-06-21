@@ -1,0 +1,16 @@
+@page "/reader/{ReadingItemId:guid}"
+
+<PageTitle>Reader</PageTitle>
+
+<ReaderView ReadingItemId="ReadingItemId" QueryParagraph="QueryParagraph" QueryOffset="QueryOffset" />
+
+@code {
+    [Parameter]
+    public Guid ReadingItemId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "paragraph")]
+    public int? QueryParagraph { get; set; }
+
+    [SupplyParameterFromQuery(Name = "offset")]
+    public int? QueryOffset { get; set; }
+}

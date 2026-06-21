@@ -1,0 +1,33 @@
+<AppPanel AdditionalClass="@CssClass">
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <strong class="app-alert__title">@Title</strong>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <p class="app-alert__message">@Message</p>
+    }
+    else if (ChildContent is not null)
+    {
+        <div class="app-alert__message">
+            @ChildContent
+        </div>
+    }
+</AppPanel>
+
+@code {
+    [Parameter]
+    public string Tone { get; set; } = "error";
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass => $"app-alert app-alert--{Tone}";
+}

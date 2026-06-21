@@ -1,0 +1,67 @@
+@if (Items.Count == 0)
+{
+    <p>@EmptyMessage</p>
+}
+else
+{
+    <AppList>
+        @foreach (var item in VisibleItems)
+        {
+            <ReadingItemCard Item="item"
+                             Busy="@(BusyItemId == item.Id)"
+                             PrimaryActionSelected="PrimaryActionSelected"
+                             VisibilityToggleSelected="VisibilityToggleSelected"
+                             DeleteSelected="DeleteSelected"
+                             OpenOriginalSelected="OpenOriginalSelected" />
+        }
+    </AppList>
+
+    <AppInfiniteScrollSentinel IsEnabled="@HasMoreItems"
+                               Reached="LoadMoreAsync" />
+}
+
+@code {
+    private const int BatchSize = 12;
+    private int renderedCount;
+    private IReadOnlyList<ReadingItemSummaryDto> previousItems = [];
+
+    [Parameter]
+    public IReadOnlyList<ReadingItemSummaryDto> Items { get; set; } = [];
+
+    [Parameter]
+    public string EmptyMessage { get; set; } = "No items found.";
+
+    [Parameter]
+    public Guid? BusyItemId { get; set; }
+
+    [Parameter]
+    public EventCallback<ReadingItemSummaryDto> PrimaryActionSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<ReadingItemSummaryDto> VisibilityToggleSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<ReadingItemSummaryDto> DeleteSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<ReadingItemSummaryDto> OpenOriginalSelected { get; set; }
+
+    private IReadOnlyList<ReadingItemSummaryDto> VisibleItems => Items.Take(renderedCount).ToList();
+
+    private bool HasMoreItems => renderedCount < Items.Count;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(previousItems, Items) || renderedCount > Items.Count)
+        {
+            previousItems = Items;
+            renderedCount = Math.Min(BatchSize, Items.Count);
+        }
+    }
+
+    private Task LoadMoreAsync()
+    {
+        renderedCount = Math.Min(renderedCount + BatchSize, Items.Count);
+        return InvokeAsync(StateHasChanged);
+    }
+}

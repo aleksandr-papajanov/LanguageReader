@@ -1,0 +1,159 @@
+.app-select-shell {
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+
+.app-select {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--control-height-md);
+
+    appearance: none;
+    -webkit-appearance: none;
+
+    border: 1px solid rgba(23, 20, 17, 0.11);
+    border-radius: var(--radius-sm);
+
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82)),
+        var(--color-surface-strong);
+
+    color: var(--color-text);
+
+    padding: 0.78rem 2.55rem 0.78rem 0.9rem;
+
+    font: inherit;
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.1;
+
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7),
+        0 8px 18px rgba(23, 20, 17, 0.035);
+
+    cursor: pointer;
+
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        color 140ms ease;
+}
+
+.app-select-shell--with-icon .app-select {
+    padding-left: 2.7rem;
+}
+
+.app-select:hover:not(:disabled) {
+    border-color: rgba(23, 20, 17, 0.18);
+}
+
+.app-select:focus {
+    outline: none;
+    border-color: var(--color-border-strong);
+    box-shadow:
+        0 0 0 0.18rem rgba(23, 20, 17, 0.08),
+        0 10px 22px rgba(23, 20, 17, 0.055);
+}
+
+.app-select:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.app-select-shell--sm .app-select {
+    min-height: var(--control-height-sm);
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+    font-size: 0.88rem;
+}
+
+.app-select__leading-icon,
+.app-select__chevron {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 2.4rem;
+    height: auto;
+    margin: 0;
+    padding: 0;
+
+    color: var(--color-text-faint);
+    opacity: 0.78;
+
+    font-family: "Material Symbols Outlined";
+    font-size: 1.1rem;
+    line-height: 1;
+    font-weight: normal;
+    font-style: normal;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+
+    font-variation-settings:
+        "FILL" 0,
+        "wght" 400,
+        "GRAD" 0,
+        "opsz" 24;
+
+    -webkit-font-smoothing: antialiased;
+
+    pointer-events: none;
+    transform: none;
+}
+
+.app-select__leading-icon {
+    left: 0;
+}
+
+.app-select__chevron {
+    right: 0;
+}
+
+.app-select-shell:focus-within .app-select__leading-icon,
+.app-select-shell:focus-within .app-select__chevron {
+    color: var(--color-text);
+    opacity: 1;
+}
+
+.app-select-shell:focus-within .app-select__chevron {
+    transform: rotate(180deg);
+}
+
+.app-select-shell--quiet .app-select {
+    background: transparent;
+    box-shadow: none;
+}
+
+.app-select-shell--strong .app-select {
+    background:
+        linear-gradient(180deg, rgba(23, 20, 17, 0.96), rgba(23, 20, 17, 0.9)),
+        #171411;
+
+    border-color: #171411;
+    color: #fbfaf7;
+}
+
+.app-select-shell--strong .app-select:hover:not(:disabled),
+.app-select-shell--strong .app-select:focus {
+    border-color: #26211d;
+}
+
+.app-select-shell--strong .app-select__leading-icon,
+.app-select-shell--strong .app-select__chevron {
+    color: #fbfaf7;
+}
+
+.app-select option {
+    background: #fff;
+    color: var(--color-text);
+}

@@ -1,0 +1,25 @@
+<div class="@CssClass"
+     role="progressbar"
+     aria-valuemin="0"
+     aria-valuemax="100"
+     aria-valuenow="@SafeValue">
+    <span class="app-progress__fill" style="@FillStyle"></span>
+</div>
+
+@code {
+    [Parameter]
+    public double Value { get; set; }
+
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    private double SafeValue => Math.Clamp(Value, 0, 100);
+
+    private string FillStyle => $"width: {SafeValue.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}%;";
+
+    private string CssClass =>
+        $"app-progress app-progress--{Size}{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+}

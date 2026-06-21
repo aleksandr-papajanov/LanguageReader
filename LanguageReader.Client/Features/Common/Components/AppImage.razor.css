@@ -1,0 +1,78 @@
+.app-image {
+    --app-image-dot-color-strong: rgba(18, 16, 13, 0.42);
+    --app-image-dot-color-soft: rgba(18, 16, 13, 0.28);
+    --app-image-overlay-opacity: 0.42;
+    --app-image-line-opacity: 0.65;
+
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+    background: var(--color-surface-strong);
+}
+
+.app-image--fill {
+    height: 100%;
+}
+
+.app-image--inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+}
+
+.app-image__media {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.app-image--cover .app-image__media {
+    object-fit: cover;
+}
+
+.app-image--contain .app-image__media {
+    object-fit: contain;
+}
+
+.app-image[style*="--app-image-aspect-ratio"] {
+    aspect-ratio: var(--app-image-aspect-ratio);
+}
+
+.app-image--newsprint::before,
+.app-image--newsprint::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.app-image--newsprint::before {
+    z-index: 1;
+    background:
+        radial-gradient(circle, var(--app-image-dot-color-strong) 34%, transparent 36%) 0 0 / 7px 7px,
+        radial-gradient(circle, var(--app-image-dot-color-soft) 28%, transparent 30%) 3.5px 3.5px / 7px 7px;
+    mix-blend-mode: multiply;
+    opacity: var(--app-image-overlay-opacity);
+}
+
+.app-image--newsprint::after {
+    z-index: 2;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.04)),
+        repeating-linear-gradient(
+            0deg,
+            rgba(255, 255, 255, 0.08) 0,
+            rgba(255, 255, 255, 0.08) 1px,
+            transparent 1px,
+            transparent 5px);
+    mix-blend-mode: soft-light;
+    opacity: var(--app-image-line-opacity);
+}
+
+.app-image--newsprint .app-image__media {
+    filter: url(#app-image-newsprint) contrast(1.06) brightness(1.03);
+}

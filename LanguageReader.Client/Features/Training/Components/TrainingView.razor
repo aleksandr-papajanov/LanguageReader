@@ -1,0 +1,244 @@
+@inject VocabularyApiClient Api
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<AppHeading Title="Training"
+            Subtitle="A simple recall loop from your saved words." />
+
+@if (!Session.IsSignedIn)
+{
+    <SignInPrompt />
+}
+else if (isLoading)
+{
+    <AppLoader Label="Loading training deck" />
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <p class="text-danger">@error</p>
+}
+else if (entries.Count == 0)
+{
+    <AppSection Title="No Training Words Yet">
+        <p class="training-empty">Save a few words to vocabulary and they will show up here automatically.</p>
+    </AppSection>
+}
+else if (activeEntry is not null)
+{
+    <AppSection Title="Current Card"
+                Subtitle="Pause, recall the other side, then move on."
+                AdditionalClass="training-section">
+        <Actions>
+            <AppSelect TValue="Guid?"
+                       Id="training-book-filter"
+                       Label="Book Filter"
+                       Size="sm"
+                       Variant="quiet"
+                       LeadingIcon="book_5"
+                       Value="selectedBookId"
+                       ValueChanged="OnBookChanged"
+                       Options="bookOptions" />
+        </Actions>
+        <ChildContent>
+            <div class="@GetCardWrapClass()">
+                <div class="training-card-stage">
+                    <div class="training-card-face training-card-face--front">
+                        <div class="@GetFrontCardClass()">
+                            <p class="training-card__label">@(showOriginal ? "Original" : "Translation")</p>
+                            <p class="training-card__value">@(showOriginal ? activeEntry.Word : activeEntry.Translation)</p>
+                            <p class="training-card__hint">@activeEntry.ReadingItemTitle</p>
+                        </div>
+                    </div>
+                    <div class="training-card-face training-card-face--back">
+                        <div class="@GetBackCardClass()">
+                            <p class="training-card__label">Answer</p>
+                            <p class="training-card__value">@(showOriginal ? activeEntry.Translation : activeEntry.Word)</p>
+                            <p class="training-card__hint">@activeEntry.ReadingItemTitle</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <AppActionGroup>
+                <AppButton Label="Reveal Other Side"
+                           Variant="secondary"
+                           Icon="visibility"
+                           Disabled="@isRevealed"
+                           OnClick="@(_ => Reveal())" />
+                <AppButton Label="Next"
+                           Variant="primary"
+                           Icon="arrow_forward"
+                           OnClick="@(_ => NextCard())" />
+                <AppButton Label="Open Word"
+                           Variant="ghost"
+                           Icon="open_in_new"
+                           OnClick="@(_ => OpenWord())" />
+            </AppActionGroup>
+        </ChildContent>
+    </AppSection>
+}
+
+@code {
+    private static readonly TimeSpan FlipDuration = TimeSpan.FromMilliseconds(560);
+    private readonly List<VocabularyEntryDto> entries = [];
+    private readonly List<AppSelectOption<Guid?>> bookOptions = [];
+    private readonly Random random = new();
+    private VocabularyEntryDto? activeEntry;
+    private bool isLoading;
+    private bool isRevealed;
+    private bool showOriginal;
+    private bool suppressFlipAnimation;
+    private string? error;
+    private Guid? selectedBookId;
+
+    private IReadOnlyList<VocabularyEntryDto> FilteredEntries =>
+        entries.Where(item => !selectedBookId.HasValue || item.ReadingItemId == selectedBookId.Value).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        isLoading = true;
+        error = null;
+
+        try
+        {
+            entries.Clear();
+            entries.AddRange((await Api.GetVocabularyAsync(new GetVocabularyRequest(Session.Username!, false)))
+                .Where(item => item.SelectionKind == SelectionKind.Word && item.IsVisibleInVocabulary));
+            BuildBookOptions();
+
+            SelectNextCardImmediate();
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Reveal()
+    {
+        isRevealed = true;
+    }
+
+    private async Task NextCard()
+    {
+        if (isRevealed)
+        {
+            isRevealed = false;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(FlipDuration);
+        }
+
+        SelectNextCardImmediate();
+    }
+
+    private void SelectNextCardImmediate()
+    {
+        var source = FilteredEntries;
+        if (source.Count == 0)
+        {
+            activeEntry = null;
+            return;
+        }
+
+        if (source.Count == 1)
+        {
+            activeEntry = source[0];
+        }
+        else
+        {
+            VocabularyEntryDto? next;
+            do
+            {
+                next = source[random.Next(source.Count)];
+            }
+            while (activeEntry is not null && next.Id == activeEntry.Id);
+
+            activeEntry = next;
+        }
+
+        showOriginal = random.Next(2) == 0;
+        suppressFlipAnimation = true;
+        isRevealed = false;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!suppressFlipAnimation)
+        {
+            return;
+        }
+
+        suppressFlipAnimation = false;
+        StateHasChanged();
+    }
+
+    private void BuildBookOptions()
+    {
+        bookOptions.Clear();
+        bookOptions.Add(new AppSelectOption<Guid?>(null, "All books"));
+
+        foreach (var item in entries
+                     .Select(entry => new { entry.ReadingItemId, entry.ReadingItemTitle })
+                     .DistinctBy(item => item.ReadingItemId)
+                     .OrderBy(item => item.ReadingItemTitle))
+        {
+            bookOptions.Add(new AppSelectOption<Guid?>(item.ReadingItemId, item.ReadingItemTitle));
+        }
+    }
+
+    private Task OnBookChanged(Guid? bookId)
+    {
+        selectedBookId = bookId;
+        SelectNextCardImmediate();
+        return Task.CompletedTask;
+    }
+
+    private string GetCardWrapClass()
+    {
+        var classes = new List<string> { "training-card-wrap" };
+        if (isRevealed)
+        {
+            classes.Add("training-card-wrap--revealed");
+        }
+
+        if (suppressFlipAnimation)
+        {
+            classes.Add("training-card-wrap--instant");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetFrontCardClass()
+    {
+        return showOriginal
+            ? "training-card app-panel training-card--original"
+            : "training-card app-panel training-card--translation";
+    }
+
+    private string GetBackCardClass()
+    {
+        return showOriginal
+            ? "training-card app-panel training-card--translation training-card--back-panel"
+            : "training-card app-panel training-card--original training-card--back-panel";
+    }
+
+    private void OpenWord()
+    {
+        if (activeEntry is null)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/words/{activeEntry.Id}");
+    }
+}

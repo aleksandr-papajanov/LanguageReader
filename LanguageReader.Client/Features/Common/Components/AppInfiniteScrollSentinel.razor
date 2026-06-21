@@ -1,0 +1,58 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<div class="app-infinite-scroll-sentinel" @ref="sentinel"></div>
+
+@code {
+    private ElementReference sentinel;
+    private DotNetObjectReference<AppInfiniteScrollSentinel>? dotNetReference;
+    private string? observerId;
+    private bool isQueued;
+
+    [Parameter]
+    public bool IsEnabled { get; set; } = true;
+
+    [Parameter]
+    public EventCallback Reached { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetReference = DotNetObjectReference.Create(this);
+            observerId = await JsRuntime.InvokeAsync<string>(
+                "languageReaderSelection.observeVisibility",
+                sentinel,
+                dotNetReference);
+        }
+    }
+
+    [JSInvokable]
+    public async Task NotifyVisibleAsync()
+    {
+        if (!IsEnabled || isQueued)
+        {
+            return;
+        }
+
+        isQueued = true;
+        try
+        {
+            await Reached.InvokeAsync();
+        }
+        finally
+        {
+            isQueued = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(observerId))
+        {
+            await JsRuntime.InvokeVoidAsync("languageReaderSelection.unobserveVisibility", observerId);
+        }
+
+        dotNetReference?.Dispose();
+    }
+}

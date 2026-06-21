@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: language-reader-postgres
+    environment:
+      POSTGRES_DB: language_reader
+      POSTGRES_USER: language_reader
+      POSTGRES_PASSWORD: language_reader_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U language_reader -d language_reader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: LanguageReader.Api/Dockerfile
+    container_name: language-reader-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      Database__ConnectionString: Host=postgres;Port=5432;Database=language_reader;Username=language_reader;Password=language_reader_dev_password
+      Authentication__RequireHttpsMetadata: "false"
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:

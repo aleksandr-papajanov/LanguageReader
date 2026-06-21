@@ -1,0 +1,84 @@
+@if (Mode == ReaderFragmentActionMode.SelectMarker)
+{
+    <button type="button"
+            class="reader-fragment-action reader-fragment-action--select"
+            style="@Style"
+            title="Select translated fragment"
+            @onclick:stopPropagation="true"
+            @onclick="@(() => SelectClicked.InvokeAsync(Translation))">
+        <AppIcon Name="ink_highlighter" Size="15" />
+    </button>
+}
+else
+{
+    <ReaderFloatingPanel Style="@Style" AdditionalClass="@CssClass">
+        @if (IsInVocabulary)
+        {
+            <button type="button"
+                    class="reader-fragment-action reader-fragment-action--icon"
+                    title="Open vocabulary entry"
+                    @onclick="@(() => OpenDetailsClicked.InvokeAsync(Translation))">
+                <AppIcon Name="dictionary" Size="15" />
+            </button>
+        }
+        <button type="button"
+                class="reader-fragment-action reader-fragment-action--icon"
+                title="Show original or translation"
+                @onclick="@(() => DisplayToggleClicked.InvokeAsync(Translation))">
+            <AppIcon Name="visibility" Size="15" />
+        </button>
+        <button type="button"
+                class="reader-fragment-action reader-fragment-action--icon"
+                title="@(IsInVocabulary ? "Remove from vocabulary" : "Add to vocabulary")"
+                @onclick="@(() => VocabularyToggleClicked.InvokeAsync(Translation))">
+            <AppIcon Name="@(IsInVocabulary ? "bookmark_remove" : "bookmark_add")" Size="15" />
+        </button>
+        <button type="button"
+                class="reader-fragment-action reader-fragment-action--icon reader-fragment-action--danger"
+                title="Delete translation"
+                @onclick="@(() => DeleteClicked.InvokeAsync(Translation))">
+            <AppIcon Name="delete" Size="15" />
+        </button>
+    </ReaderFloatingPanel>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public TranslatedRangeDto Translation { get; set; } = null!;
+
+    [Parameter]
+    public bool IsActive { get; set; }
+
+    [Parameter]
+    public bool IsInVocabulary { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public ReaderFragmentActionMode Mode { get; set; } = ReaderFragmentActionMode.SelectMarker;
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> SelectClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> DisplayToggleClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> VocabularyToggleClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> OpenDetailsClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> DeleteClicked { get; set; }
+
+    private string CssClass =>
+        $"reader-fragment-actions{(IsActive ? " reader-fragment-actions--active" : string.Empty)}{(IsInVocabulary ? " reader-fragment-actions--vocabulary" : string.Empty)}";
+
+    public enum ReaderFragmentActionMode
+    {
+        SelectMarker,
+        Popup
+    }
+}

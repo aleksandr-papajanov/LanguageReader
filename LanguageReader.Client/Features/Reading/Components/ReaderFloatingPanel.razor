@@ -1,0 +1,17 @@
+<div class="@CssClass" style="@Style" @onclick:stopPropagation="true">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CssClass =>
+        $"reader-floating-panel{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+}

@@ -1,0 +1,67 @@
+.reader-fragment-actions {
+    position: relative;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.36rem;
+    vertical-align: baseline;
+}
+
+.reader-fragment-actions--popup {
+    padding: 0.36rem;
+    border: 1px solid rgba(23, 20, 17, 0.14);
+    border-radius: 0.95rem;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px rgba(23, 20, 17, 0.12);
+}
+
+.reader-fragment-actions--active .reader-fragment-action {
+    border-color: rgba(23, 20, 17, 0.42);
+}
+
+.reader-fragment-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.2rem 0.62rem;
+    border: 1px solid rgba(23, 20, 17, 0.18);
+    border-radius: 0.78rem;
+    background: #fff;
+    color: var(--color-text-muted);
+    font-family: var(--font-ui-serif, var(--font-reading));
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.reader-fragment-action--select {
+    min-height: 1.75rem;
+    padding: 0.14rem 0.56rem;
+    border-color: rgba(23, 20, 17, 0.13);
+    background: rgba(255, 255, 255, 0.86);
+    font-size: 0.78rem;
+}
+
+.reader-fragment-action--icon {
+    width: 2rem;
+    padding: 0;
+}
+
+.reader-fragment-action--danger {
+    color: var(--color-error);
+    border-color: rgba(146, 44, 44, 0.24);
+}
+
+.reader-fragment-action:hover,
+.reader-fragment-action:focus-visible {
+    border-color: rgba(23, 20, 17, 0.48);
+    color: var(--color-text);
+    outline: none;
+}
+
+.reader-fragment-actions--vocabulary .reader-fragment-action {
+    border-color: rgba(146, 44, 44, 0.34);
+}

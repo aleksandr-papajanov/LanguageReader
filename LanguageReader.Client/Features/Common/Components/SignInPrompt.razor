@@ -1,0 +1,25 @@
+@inject NavigationManager Navigation
+
+<AppPanel AdditionalClass="sign-in-prompt">
+    <AppHeading Title="Sign in required"
+                Subtitle="@Message"
+                Level="section" />
+    <AppButton Label="@ButtonText"
+               Variant="primary"
+               Icon="login"
+               OnClick="NavigateToLogin" />
+</AppPanel>
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = "Please login first.";
+
+    [Parameter]
+    public string ButtonText { get; set; } = "Login";
+
+    private Task NavigateToLogin(MouseEventArgs _)
+    {
+        Navigation.NavigateTo("login");
+        return Task.CompletedTask;
+    }
+}

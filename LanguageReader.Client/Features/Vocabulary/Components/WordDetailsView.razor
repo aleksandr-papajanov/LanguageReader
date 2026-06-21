@@ -1,0 +1,477 @@
+@inject VocabularyApiClient Api
+@inject NavigationManager Navigation
+@inject UserSession Session
+
+@if (!Session.IsSignedIn)
+{
+    <AppHeading Title="Vocabulary Entry" Subtitle="Sign in to inspect saved vocabulary." />
+    <SignInPrompt />
+}
+else if (isLoading)
+{
+    <AppHeading Title="Vocabulary Entry" Subtitle="Loading saved entry." />
+    <AppLoader Label="Loading entry details" />
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <AppHeading Title="Vocabulary Entry" Subtitle="We could not load this entry." />
+    <p class="text-danger">@error</p>
+}
+else if (entry is not null)
+{
+    <div class="word-details-page">
+        <AppPanel AdditionalClass="word-details-hero">
+            <div class="word-details-hero__header">
+                <div class="word-details-hero__title-block">
+                    <div class="word-details-hero__title-row">
+                        <h1 class="word-details-hero__title">@entry.Word</h1>
+                        <AppButton Variant="ghost"
+                                   Size="sm"
+                                   Icon="volume_up"
+                                   IconOnly="true"
+                                   Title="Pronunciation is not available yet"
+                                   Disabled="true"
+                                   AdditionalClass="word-details-hero__icon-button" />
+                    </div>
+
+                    <p class="word-details-hero__subtitle">@entry.Translation</p>
+                    <p class="word-details-hero__eyebrow">@GetEyebrow()</p>
+                </div>
+
+                <div class="word-details-hero__actions">
+                    <AppButton Variant="@(entry.IsVisibleInVocabulary ? "primary" : "ghost")"
+                               Size="sm"
+                               Icon="@(entry.IsVisibleInVocabulary ? "bookmark_added" : "bookmark_add")"
+                               IconOnly="true"
+                               Title="@(entry.IsVisibleInVocabulary ? "Remove from vocabulary" : "Add to vocabulary")"
+                               Disabled="@isBusy"
+                               AdditionalClass="@GetBookmarkButtonClass()"
+                               OnClick="@(_ => ToggleVocabularyAsync())" />
+
+                    @if (IsWordEntry)
+                    {
+                        <AppButton Label="Autofill"
+                                   Variant="secondary"
+                                   Size="sm"
+                                   Icon="auto_awesome"
+                                   Disabled="@isBusy"
+                                   AdditionalClass="word-details-hero__action-button"
+                                   OnClick="@(_ => AutofillAsync())" />
+                    }
+
+                    @if (entry.IsVisibleInVocabulary)
+                    {
+                        <AppButton Label="Delete"
+                                   Variant="destructive"
+                                   Size="sm"
+                                   Icon="delete"
+                                   Disabled="@isBusy"
+                                   AdditionalClass="word-details-hero__action-button"
+                                   OnClick="@(_ => DeleteEntryAsync())" />
+                    }
+                </div>
+            </div>
+
+            <div class="word-details-metadata">
+                @if (!string.IsNullOrWhiteSpace(entry.WordDetails?.SeenForm)
+                    && !string.Equals(entry.WordDetails.SeenForm, entry.Word, StringComparison.OrdinalIgnoreCase))
+                {
+                    <div class="word-details-metadata__item">
+                        <span class="word-details-metadata__label">Seen Form</span>
+                        <AppBadge PreserveCase="true">@entry.WordDetails.SeenForm</AppBadge>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(entry.WordDetails?.DictionaryForm)
+                    && !string.Equals(entry.WordDetails.DictionaryForm, entry.Word, StringComparison.OrdinalIgnoreCase))
+                {
+                    <div class="word-details-metadata__item">
+                        <span class="word-details-metadata__label">Base Form</span>
+                        <AppBadge PreserveCase="true">@entry.WordDetails.DictionaryForm</AppBadge>
+                    </div>
+                }
+
+                <div class="word-details-metadata__item">
+                    <span class="word-details-metadata__label">Lang</span>
+                    <AppBadge>@(string.IsNullOrWhiteSpace(entry.SourceLanguage) ? entry.TargetLanguage : entry.SourceLanguage)</AppBadge>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(entry.WordDetails?.PartOfSpeech))
+                {
+                    <div class="word-details-metadata__item">
+                        <span class="word-details-metadata__label">Pos</span>
+                        <AppBadge>@entry.WordDetails!.PartOfSpeech</AppBadge>
+                    </div>
+                }
+
+                @if (entry.WordDetails?.FrequencyScore is { } frequencyScore)
+                {
+                    <div class="word-details-metadata__item">
+                        <span class="word-details-metadata__label">Frequency</span>
+                        <AppFrequencyIndicator Score="frequencyScore" />
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(entry.WordDetails?.Description))
+            {
+                <section class="word-details-block">
+                    <p class="word-details-block__label">Description</p>
+                    <p class="word-details-block__copy">@entry.WordDetails!.Description</p>
+                </section>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(entry.WordDetails?.Notes))
+            {
+                <section class="word-details-block">
+                    <p class="word-details-block__label">Notes</p>
+                    <p class="word-details-block__copy word-details-block__copy--muted">@entry.WordDetails!.Notes</p>
+                </section>
+            }
+        </AppPanel>
+
+        @if (IsWordEntry)
+        {
+            <AppSection Title="Related Words"
+                        AdditionalClass="word-details-section">
+                <ChildContent>
+                    @if (entry.RelatedWords.Count == 0)
+                    {
+                        <p class="word-details-empty">Nothing generated yet.</p>
+                    }
+                    else
+                    {
+                        <div class="word-details-related">
+                            @foreach (var group in entry.RelatedWords
+                                                      .GroupBy(item => item.Type)
+                                                      .OrderBy(group => GetRelationSortOrder(group.Key)))
+                            {
+                                <div class="word-details-related__row">
+                                    <p class="word-details-related__label">@FormatRelation(group.Key)</p>
+                                    <div class="word-details-related__tags">
+                                        @foreach (var relatedWord in group)
+                                        {
+                                            <AppBadge PreserveCase="true">@relatedWord.Word</AppBadge>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </ChildContent>
+            </AppSection>
+
+            <AppSection Title="User Examples"
+                        AdditionalClass="word-details-section">
+                <Actions>
+                    <AppButton Label="Generate more"
+                               Variant="secondary"
+                               Size="sm"
+                               Icon="auto_awesome"
+                               Disabled="@isBusy"
+                               OnClick="@(_ => AddExampleAsync())" />
+                </Actions>
+                <ChildContent>
+                    @if (entry.Examples.Count == 0)
+                    {
+                        <p class="word-details-empty">No examples saved yet.</p>
+                    }
+                    else
+                    {
+                        <div class="word-details-examples">
+                            @foreach (var example in entry.Examples.OrderBy(item => item.CreatedAtUtc))
+                            {
+                                <AppContentCard AdditionalClass="word-details-example">
+                                    <Header>
+                                        <AppBadge Tone="@(example.IsFromBook ? "warning" : "default")">
+                                            @(example.IsFromBook ? "From book" : "Generated")
+                                        </AppBadge>
+                                        <span class="word-details-example__date">@example.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
+                                    </Header>
+                                    <ChildContent>
+                                        <p class="word-details-example__text">@example.Text</p>
+
+                                        @if (!string.IsNullOrWhiteSpace(example.Translation))
+                                        {
+                                            <p class="word-details-example__translation">@example.Translation</p>
+                                        }
+                                    </ChildContent>
+
+                                    <Footer>
+                                        @if (example.ReadingItemId.HasValue && example.Position is not null)
+                                        {
+                                            <AppButton Label="Open in Reader"
+                                                       Variant="ghost"
+                                                       Size="sm"
+                                                       Icon="menu_book"
+                                                       OnClick="@(_ => OpenInReader(example.ReadingItemId.Value, example.Position!))" />
+                                        }
+                                        else
+                                        {
+                                            <AppButton Label="Delete"
+                                                       Variant="destructive"
+                                                       Size="sm"
+                                                       Icon="delete"
+                                                       Disabled="@isBusy"
+                                                       OnClick="@(_ => DeleteExampleAsync(example.Id))" />
+                                        }
+                                    </Footer>
+                                </AppContentCard>
+                            }
+                        </div>
+                    }
+                </ChildContent>
+            </AppSection>
+        }
+
+        <AppPanel AdditionalClass="word-details-ai-panel">
+            <div class="word-details-ai-panel__header">
+                <p class="word-details-block__label">AI Activity</p>
+                @if (entry.Operations.Count > 0)
+                {
+                    <AppBadge PreserveCase="true">@GetLatestOperationModel()</AppBadge>
+                }
+            </div>
+
+            <div class="word-details-ai-grid">
+                <div class="word-details-ai-metric">
+                    <span class="word-details-ai-metric__label">Input Tokens</span>
+                    <strong class="word-details-ai-metric__value">@entry.UsageSummary.InputTokens</strong>
+                </div>
+
+                <div class="word-details-ai-metric">
+                    <span class="word-details-ai-metric__label">Output Tokens</span>
+                    <strong class="word-details-ai-metric__value">@entry.UsageSummary.OutputTokens</strong>
+                </div>
+
+                <div class="word-details-ai-metric">
+                    <span class="word-details-ai-metric__label">Total Cost (USD)</span>
+                    <strong class="word-details-ai-metric__value">$@entry.UsageSummary.TotalCostUsd.ToString("0.000000")</strong>
+                </div>
+            </div>
+
+            <p class="word-details-ai-panel__summary">
+                @entry.UsageSummary.OperationCount operations
+                @if (entry.Operations.Count > 0)
+                {
+                    <span>&nbsp;•&nbsp;Last used @entry.Operations.MaxBy(item => item.CreatedAtUtc)!.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
+                }
+            </p>
+        </AppPanel>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid EntryId { get; set; }
+
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    private VocabularyEntryDto? entry;
+    private bool isLoading;
+    private bool isBusy;
+    private string? error;
+
+    private bool IsWordEntry => entry?.SelectionKind == SelectionKind.Word;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        await LoadEntryAsync();
+    }
+
+    private async Task LoadEntryAsync()
+    {
+        isLoading = true;
+        error = null;
+
+        try
+        {
+            entry = await Api.GetVocabularyEntryAsync(
+                new GetVocabularyEntryRequest(
+                    EntryId,
+                    Session.Username!));
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ToggleVocabularyAsync()
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            entry = await Api.UpdateVocabularyVisibilityAsync(
+                new UpdateVocabularyVisibilityRequest(
+                    entry.Id,
+                    Session.Username!,
+                    !entry.IsVisibleInVocabulary));
+        });
+    }
+
+    private async Task AutofillAsync()
+    {
+        if (entry is null || !IsWordEntry)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            entry = await Api.AutofillVocabularyEntryAsync(
+                new AutofillVocabularyEntryRequest(
+                    entry.Id,
+                    Session.Username!));
+        });
+    }
+
+    private async Task AddExampleAsync()
+    {
+        if (entry is null || !IsWordEntry)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            entry = await Api.AddVocabularyExampleAsync(
+                new AddVocabularyExampleRequest(
+                    entry.Id,
+                    Session.Username!));
+        });
+    }
+
+    private async Task DeleteExampleAsync(Guid exampleId)
+    {
+        if (entry is null || !IsWordEntry)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            await Api.DeleteVocabularyExampleAsync(
+                new DeleteVocabularyExampleRequest(
+                    entry.Id,
+                    exampleId,
+                    Session.Username!));
+
+            entry = await Api.GetVocabularyEntryAsync(
+                new GetVocabularyEntryRequest(
+                    entry.Id,
+                    Session.Username!));
+        });
+    }
+
+    private async Task DeleteEntryAsync()
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            await Api.UpdateVocabularyVisibilityAsync(
+                new UpdateVocabularyVisibilityRequest(
+                    entry.Id,
+                    Session.Username!,
+                    false));
+
+            if (!string.IsNullOrWhiteSpace(ReturnUrl))
+            {
+                Navigation.NavigateTo(Uri.UnescapeDataString(ReturnUrl));
+                return;
+            }
+
+            Navigation.NavigateTo("/vocabulary");
+        });
+    }
+
+    private async Task RunBusyAsync(Func<Task> action)
+    {
+        isBusy = true;
+        error = null;
+
+        try
+        {
+            await action();
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private string GetEyebrow()
+    {
+        return entry is null
+            ? string.Empty
+            : $"{entry.SelectionKind} in {entry.ReadingItemTitle}";
+    }
+
+    private string GetLatestOperationModel()
+    {
+        if (entry is null || entry.Operations.Count == 0)
+        {
+            return "No activity";
+        }
+
+        var latestOperation = entry.Operations.MaxBy(item => item.CreatedAtUtc)!;
+        return $"{latestOperation.Provider} / {latestOperation.Model}";
+    }
+
+    private string GetBookmarkButtonClass()
+    {
+        return entry?.IsVisibleInVocabulary == true
+            ? "word-details-hero__icon-button word-details-hero__icon-button--active"
+            : "word-details-hero__icon-button";
+    }
+
+    private static string FormatRelation(RelatedWordType type)
+    {
+        return type switch
+        {
+            RelatedWordType.AlternativeTranslation => "Alternative Translations",
+            RelatedWordType.Synonym => "Synonyms",
+            RelatedWordType.Antonym => "Antonyms",
+            _ => "Related"
+        };
+    }
+
+    private static int GetRelationSortOrder(RelatedWordType type)
+    {
+        return type switch
+        {
+            RelatedWordType.AlternativeTranslation => 0,
+            RelatedWordType.Synonym => 1,
+            RelatedWordType.Antonym => 2,
+            _ => 3
+        };
+    }
+
+    private Task OpenInReader(Guid readingItemId, ReadingPositionDto position)
+    {
+        Navigation.NavigateTo($"/reader/{readingItemId}?paragraph={position.ParagraphIndex}&offset={position.CharacterOffset}");
+        return Task.CompletedTask;
+    }
+}

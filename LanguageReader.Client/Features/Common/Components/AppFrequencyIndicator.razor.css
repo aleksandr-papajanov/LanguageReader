@@ -1,0 +1,42 @@
+.app-frequency-indicator {
+    display: inline-grid;
+    gap: 0.4rem;
+}
+
+.app-frequency-indicator__dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.34rem;
+}
+
+.app-frequency-indicator__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 0.18rem;
+    background: rgba(23, 20, 17, 0.12);
+}
+
+.app-frequency-indicator__dot--low {
+    background: #bb2626;
+    outline: 1px solid var(--color-text);
+}
+
+.app-frequency-indicator__dot--medium-low {
+    background: #bb6d29;
+    outline: 1px solid var(--color-text);
+}
+
+.app-frequency-indicator__dot--medium {
+    background: #ab8e23;
+    outline: 1px solid var(--color-text);
+}
+
+.app-frequency-indicator__dot--medium-high {
+    background: #689a1d;
+    outline: 1px solid var(--color-text);
+}
+
+.app-frequency-indicator__dot--high {
+    background: #198627;
+    outline: 1px solid var(--color-text);
+}
