@@ -43,7 +43,7 @@ public sealed class ExceptionHandlingMiddleware(
         catch (InfrastructureException exception)
         {
             logger.LogError(exception, "Infrastructure error");
-            await WriteErrorAsync(context, "infrastructure_error", exception.Message, HttpStatusCode.ServiceUnavailable);
+            await WriteErrorAsync(context, "infrastructure_error", exception.Message, HttpStatusCode.ServiceUnavailable, detail: GetDevelopmentDetail(exception));
         }
         catch (Infrastructure.Exceptions.ApplicationException exception)
         {

@@ -1,3 +1,10 @@
+.login-view__mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
 .login-view__submit {
     width: 100%;
     margin-top: var(--space-2);

@@ -15,9 +15,6 @@ else
 
                     <div class="vocabulary-entry-card__meta-row">
                         <AppBadge PreserveCase="true">@entry.ReadingItemTitle</AppBadge>
-                        <span class="vocabulary-entry-card__date">
-                            @entry.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy")
-                        </span>
                     </div>
 
                     <strong class="vocabulary-entry-card__text">
@@ -37,14 +34,21 @@ else
                 </div>
 
                 <div class="vocabulary-entry-card__actions">
+                    <AppDateMeta Label="Saved"
+                                 Value="@entry.CreatedAtUtc"
+                                 Format="ddd, d MMM" />
+
                     @if (DeleteSelected.HasDelegate)
                     {
-                        <AppButton Variant="destructive"
-                                   Size="sm"
-                                   Icon="delete"
-                                   IconOnly="true"
-                                   Title="Delete"
-                                   OnClick="@(_ => DeleteSelected.InvokeAsync(entry))" />
+                        <AppDropdownMenu ButtonIcon="more_horiz"
+                                         ButtonIconOnly="true"
+                                         ButtonTitle="Word actions"
+                                         ButtonVariant="ghost"
+                                         ButtonSize="sm"
+                                         Align="end"
+                                         Disabled="@(BusyEntryId == entry.Id)"
+                                         Items="@DeleteMenuItems"
+                                         ItemSelected="@(_ => DeleteSelected.InvokeAsync(entry))" />
                     }
                 </div>
             </article>
@@ -57,7 +61,15 @@ else
     public IReadOnlyList<VocabularyEntryDto> Entries { get; set; } = [];
 
     [Parameter]
+    public Guid? BusyEntryId { get; set; }
+
+    [Parameter]
     public EventCallback<VocabularyEntryDto> DeleteSelected { get; set; }
+
+    private static readonly IReadOnlyList<AppMenuItem> DeleteMenuItems =
+    [
+        new("remove", "Remove from vocabulary", "bookmark_remove", Variant: "destructive")
+    ];
 
     private Task OpenEntry(VocabularyEntryDto entry)
     {

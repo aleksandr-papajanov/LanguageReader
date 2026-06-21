@@ -16,14 +16,8 @@
     backdrop-filter: blur(12px);
 }
 
-.library-filter-row {
-    display: flex;
-    justify-content: center;
-    min-width: min(100%, 14rem);
-}
-
 .library-filter {
-    width: 100%;
+    width: min(100%, 14rem);
 }
 
 .library-add-button {

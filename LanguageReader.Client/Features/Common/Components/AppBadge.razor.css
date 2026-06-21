@@ -12,6 +12,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-decoration: none;
+}
+
+a.app-badge:hover,
+a.app-badge:focus-visible {
+    border-color: var(--color-border-strong);
+    color: var(--color-text);
+    outline: none;
 }
 
 .app-badge--success {

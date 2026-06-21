@@ -1,4 +1,17 @@
-<span class="@CssClass">@ChildContent</span>
+@if (!string.IsNullOrWhiteSpace(Href))
+{
+    <a class="@CssClass"
+       href="@Href"
+       target="@Target"
+       rel="@Rel"
+       title="@Title">
+        @ChildContent
+    </a>
+}
+else
+{
+    <span class="@CssClass" title="@Title">@ChildContent</span>
+}
 
 @code {
     [Parameter]
@@ -9,6 +22,18 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string Target { get; set; } = "_blank";
+
+    [Parameter]
+    public string Rel { get; set; } = "noreferrer";
 
     private string CssClass => $"app-badge app-badge--{Tone}{(PreserveCase ? " app-badge--preserve-case" : string.Empty)}";
 }

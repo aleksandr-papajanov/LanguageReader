@@ -4,7 +4,6 @@ using HtmlAgilityPack;
 using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.News.Models;
 using SmartReader;
-using SmartReader.NaturalLanguageProcessing;
 
 namespace LanguageReader.Infrastructure.Features.News.Services;
 
@@ -33,12 +32,8 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
                 "Swedish")
         };
 
-    private static int nlpEnabled;
-
     public async Task<ExtractedArticleContent> ExtractAsync(string sourceKey, string url, CancellationToken cancellationToken = default)
     {
-        EnsureLanguageDetectionEnabled();
-
         var source = ResolveSource(sourceKey);
         string sourceHtml;
 
@@ -88,7 +83,7 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
             source.SourceName,
             url,
             title,
-            ResolveOriginalLanguage(sourceDocument, article, source.DefaultLanguage),
+            LanguageNameNormalizer.Normalize(source.DefaultLanguage),
             paragraphs,
             NormalizeText(article.Author)
                 ?? FirstContent(sourceDocument,
@@ -147,16 +142,6 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
         {
             return null;
         }
-    }
-
-    private static void EnsureLanguageDetectionEnabled()
-    {
-        if (Interlocked.Exchange(ref nlpEnabled, 1) == 1)
-        {
-            return;
-        }
-
-        NLP.Enable();
     }
 
     private static NewsFeedSourceDefinition ResolveSource(string sourceKey)
@@ -304,27 +289,6 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
             .Cast<string>()
             .Distinct(StringComparer.Ordinal)
             .ToList();
-    }
-
-    private static string ResolveOriginalLanguage(HtmlDocument? sourceDocument, Article article, string fallbackLanguage)
-    {
-        var htmlLanguage = FirstContent(sourceDocument,
-            "//html/@lang",
-            "//meta[@http-equiv='content-language']/@content",
-            "//meta[@name='language']/@content",
-            "//meta[@property='og:locale']/@content");
-
-        if (!string.IsNullOrWhiteSpace(htmlLanguage))
-        {
-            return LanguageNameNormalizer.Normalize(htmlLanguage, fallbackLanguage);
-        }
-
-        if (!string.IsNullOrWhiteSpace(article.Language))
-        {
-            return LanguageNameNormalizer.Normalize(article.Language, fallbackLanguage);
-        }
-
-        return fallbackLanguage;
     }
 
     private static string? FirstContent(HtmlDocument? document, params string[] xpaths)

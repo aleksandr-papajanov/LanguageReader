@@ -30,7 +30,7 @@ internal sealed class VocabularyEntryConfiguration : IEntityTypeConfiguration<Vo
         entity.HasOne(entry => entry.Book)
             .WithMany(item => item.VocabularyEntries)
             .HasForeignKey(entry => entry.ReadingItemId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

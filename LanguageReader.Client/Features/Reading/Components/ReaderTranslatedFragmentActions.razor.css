@@ -35,14 +35,31 @@
     line-height: 1;
     letter-spacing: 0;
     cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .reader-fragment-action--select {
-    min-height: 1.75rem;
-    padding: 0.14rem 0.56rem;
-    border-color: rgba(23, 20, 17, 0.13);
-    background: rgba(255, 255, 255, 0.86);
-    font-size: 0.78rem;
+    display: inline-flex;
+    gap: 0.22rem;
+    min-height: 1.55rem;
+    padding: 0.1rem 0.44rem;
+    border-color: rgba(23, 20, 17, 0.16);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--color-text-muted);
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 750;
+    line-height: 1;
+    vertical-align: text-bottom;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
+    background-clip: padding-box;
+    isolation: isolate;
+}
+
+.reader-fragment-action--select,
+.reader-fragment-action--select * {
+    background-color: #fff;
 }
 
 .reader-fragment-action--icon {

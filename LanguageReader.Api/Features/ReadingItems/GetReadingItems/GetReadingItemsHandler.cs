@@ -3,7 +3,6 @@ using LanguageReader.Infrastructure.Features.News.Entities;
 using LanguageReader.Infrastructure.Features.News.Models;
 using LanguageReader.Infrastructure.Features.News.Services;
 using LanguageReader.Infrastructure.Features.Reading.Entities;
-using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Api.Features.ReadingItems;

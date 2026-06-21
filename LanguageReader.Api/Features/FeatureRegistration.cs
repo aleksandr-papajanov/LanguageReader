@@ -2,7 +2,6 @@ using LanguageReader.Api.Features.BookTranslations;
 using LanguageReader.Api.Features.Books;
 using LanguageReader.Api.Features.News;
 using LanguageReader.Api.Features.ReadingItems;
-using LanguageReader.Api.Features.Settings.Services;
 using LanguageReader.Api.Features.Reading;
 using LanguageReader.Api.Features.Settings;
 using LanguageReader.Api.Features.Translation;
@@ -40,7 +39,9 @@ internal static class FeatureRegistration
         services.AddScoped<GetUserSettingsHandler>();
         services.AddScoped<UpdateUserSettingsHandler>();
         services.AddScoped<TranslateSelectionHandler>();
+        services.AddScoped<PasswordHashService>();
         services.AddScoped<CreateSessionHandler>();
+        services.AddScoped<RegisterUserHandler>();
 
         services.AddScoped<GetVocabularyHandler>();
         services.AddScoped<GetVocabularyEntryHandler>();
@@ -54,4 +55,3 @@ internal static class FeatureRegistration
         return services;
     }
 }
-

@@ -1,0 +1,31 @@
+<time class="@CssClass"
+      datetime="@Value.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture)"
+      title="@Title">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <span>@Label</span>
+    }
+    <strong>@FormattedValue</strong>
+</time>
+
+@code {
+    [Parameter, EditorRequired]
+    public DateTimeOffset Value { get; set; }
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string Format { get; set; } = "ddd, d MMM";
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(AdditionalClass)
+        ? "app-date-meta"
+        : $"app-date-meta {AdditionalClass}";
+
+    private string FormattedValue => Value.LocalDateTime.ToString(Format);
+
+    private string Title => Value.LocalDateTime.ToString("f");
+}

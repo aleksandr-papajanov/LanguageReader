@@ -8,9 +8,13 @@
     max-width: 100%;
 
     display: grid;
-    grid-template-columns: auto auto auto;
+    grid-template-columns: auto minmax(5.8rem, auto) auto;
     align-items: center;
-    gap: var(--space-3);
+    gap: 0.22rem 0.55rem;
+    padding: 0.2rem 0.3rem 0.34rem;
+    border: 1px solid rgba(23, 20, 17, 0.08);
+    border-radius: 1.15rem;
+    background: rgba(255, 255, 255, 0.62);
 }
 
 .reader-dock-label {
@@ -20,4 +24,10 @@
     font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 0.03em;
+}
+
+.reader-dock-bar ::deep .reader-dock-progress {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 7rem;
 }

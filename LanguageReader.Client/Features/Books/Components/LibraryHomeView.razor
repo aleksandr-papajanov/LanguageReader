@@ -31,22 +31,11 @@ else
                      AriaLabel="Library filters" />
         </div>
 
-        <div class="library-filter-row">
-            <AppSelect TValue="string"
-                       Id="library-item-filter"
-                       Label="Type"
-                       Size="sm"
-                       Variant="quiet"
-                       Value="@itemFilter"
-                       ValueChanged="OnFilterChanged"
-                       Options="itemFilterOptions"
-                       FieldClass="library-filter" />
-        </div>
-
         @if (state.ActiveTab is "reading")
         {
             <AppSection Title="Continue Reading"
-                        Subtitle="Jump back into the reading items you left open most recently.">
+                        Subtitle="Jump back into the reading items you left open most recently."
+                        Actions="@TypeFilterActions">
                 <ReadingItemList Items="ReadingItems"
                                  EmptyMessage="No reading progress yet."
                                  BusyItemId="busyItemId"
@@ -60,7 +49,8 @@ else
         @if (state.ActiveTab is "my-books")
         {
             <AppSection Title="My Library"
-                        Subtitle="Your saved books and articles, with publishing controls for shared reading.">
+                        Subtitle="Your saved books and articles, with publishing controls for shared reading."
+                        Actions="@TypeFilterActions">
                 <ReadingItemList Items="MyItems"
                                  EmptyMessage="You have not saved any reading items yet."
                                  BusyItemId="busyItemId"
@@ -74,7 +64,8 @@ else
         @if (state.ActiveTab is "public")
         {
             <AppSection Title="Public Library"
-                        Subtitle="Shared books and articles available across the application.">
+                        Subtitle="Shared books and articles available across the application."
+                        Actions="@TypeFilterActions">
                 <ReadingItemList Items="PublicItems"
                                  EmptyMessage="No public reading items yet."
                                  BusyItemId="busyItemId"
@@ -123,6 +114,20 @@ else
         builder.AddAttribute(4, "Title", "Add book");
         builder.AddAttribute(5, "AdditionalClass", "library-add-button");
         builder.AddAttribute(6, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OpenUpload));
+        builder.CloseComponent();
+    };
+
+    private RenderFragment TypeFilterActions => builder =>
+    {
+        builder.OpenComponent<AppSelect<string>>(0);
+        builder.AddAttribute(1, "Id", "library-item-filter");
+        builder.AddAttribute(2, "Label", "Type");
+        builder.AddAttribute(3, "Size", "sm");
+        builder.AddAttribute(4, "Variant", "quiet");
+        builder.AddAttribute(5, "Value", itemFilter);
+        builder.AddAttribute(6, "ValueChanged", EventCallback.Factory.Create<string>(this, OnFilterChanged));
+        builder.AddAttribute(7, "Options", itemFilterOptions);
+        builder.AddAttribute(8, "FieldClass", "library-filter");
         builder.CloseComponent();
     };
 

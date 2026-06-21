@@ -1,0 +1,23 @@
+.app-progress {
+    position: relative;
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(23, 20, 17, 0.08);
+}
+
+.app-progress--sm {
+    height: 0.28rem;
+}
+
+.app-progress--md {
+    height: 0.42rem;
+}
+
+.app-progress__fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(23, 20, 17, 0.82), rgba(23, 20, 17, 0.42));
+}

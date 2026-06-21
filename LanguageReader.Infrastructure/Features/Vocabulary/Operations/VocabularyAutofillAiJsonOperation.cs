@@ -3,7 +3,6 @@ using LanguageReader.Infrastructure.Agents.Json.Models;
 using LanguageReader.Infrastructure.Agents.Json.Operations;
 using LanguageReader.Infrastructure.Common;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Ai.Models;
 using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
 
 namespace LanguageReader.Infrastructure.Features.Vocabulary.Operations;
@@ -27,7 +26,7 @@ internal sealed class VocabularyAutofillAiJsonOperation(
             input,
             SchemaName: "vocabulary_autofill",
             JsonSchema: BuildSchema(request),
-            Model: null,
+            Model: "gpt-5-mini",
             request.Word.Length + request.Translation.Length,
             request.ContextSentence?.Length ?? 0,
             ExpectedJsonPropertyCount: 9);
@@ -60,6 +59,8 @@ Rules:
 - Treat word as already normalized to the best dictionary form.
 - Base every field on word, not on an inflected seen form.
 - Use contextSentence only for learner-friendly nuance and examples.
+- Write learner-facing explanations, descriptions, notes, and translations in translationLanguage.
+- Keep source-language fields only where the schema explicitly asks for source-language words.
 """;
     }
 
@@ -95,7 +96,7 @@ Rules:
                 description = new
                 {
                     type = "string",
-                    description = $"One short learner-friendly definition written entirely in {wordLanguage}. Do not translate the definition.",
+                    description = $"One short learner-friendly definition written entirely in {translationLanguage}. Do not use {wordLanguage} except for the word itself if needed.",
                     minLength = 1
                 },
                 alternativeTranslations = new

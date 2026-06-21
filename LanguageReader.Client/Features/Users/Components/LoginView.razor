@@ -3,33 +3,89 @@
 @inject NavigationManager Navigation
 
 <AppHeading Title="Login"
-            Subtitle="Temporary local development login. Use admin for now." />
+            Subtitle="Sign in or create a simple local account." />
 
 <AppPanel AdditionalClass="form-panel">
+    <div class="login-view__mode">
+        <AppButton Label="Login"
+                   Variant="@(mode == AuthMode.Login ? "primary" : "secondary")"
+                   Size="sm"
+                   OnClick="@(_ => SetMode(AuthMode.Login))" />
+        <AppButton Label="Register"
+                   Variant="@(mode == AuthMode.Register ? "primary" : "secondary")"
+                   Size="sm"
+                   OnClick="@(_ => SetMode(AuthMode.Register))" />
+    </div>
+
     <AppTextInput Id="username"
                   Label="Username"
                   Value="@username"
                   ValueChanged="OnUsernameChanged"
                   LeadingIcon="person"
-                  Placeholder="admin" />
+                  Placeholder="" />
+
+    @if (mode == AuthMode.Register)
+    {
+        <AppTextInput Id="email"
+                      Label="Email"
+                      Type="email"
+                      Value="@email"
+                      ValueChanged="OnEmailChanged"
+                      LeadingIcon="mail"
+                      Placeholder="you@example.com" />
+    }
+
+    <AppTextInput Id="password"
+                  Label="Password"
+                  Type="password"
+                  Value="@password"
+                  ValueChanged="OnPasswordChanged"
+                  LeadingIcon="lock"
+                  Placeholder="Password" />
+
+    @if (mode == AuthMode.Register)
+    {
+        <AppTextInput Id="confirm-password"
+                      Label="Confirm password"
+                      Type="password"
+                      Value="@confirmPassword"
+                      ValueChanged="OnConfirmPasswordChanged"
+                      LeadingIcon="lock_reset"
+                      Placeholder="Repeat password" />
+    }
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
         <p class="app-inline-error">@error</p>
     }
 
-    <AppButton Label="Enter"
+    <AppButton Label="@SubmitLabel"
                Variant="primary"
-               Icon="arrow_forward"
+               Icon="@(mode == AuthMode.Register ? "person_add" : "arrow_forward")"
                AdditionalClass="login-view__submit"
                Disabled="@isBusy"
-               OnClick="LoginAsync" />
+               OnClick="SubmitAsync" />
 </AppPanel>
 
 @code {
+    private AuthMode mode = AuthMode.Login;
     private string username = "admin";
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string confirmPassword = string.Empty;
     private string? error;
     private bool isBusy;
+
+    private string SubmitLabel => mode == AuthMode.Register
+        ? (isBusy ? "Registering..." : "Register")
+        : (isBusy ? "Signing in..." : "Login");
+
+    private Task SetMode(AuthMode nextMode)
+    {
+        mode = nextMode;
+        error = null;
+        return Task.CompletedTask;
+    }
 
     private Task OnUsernameChanged(string value)
     {
@@ -37,16 +93,37 @@
         return Task.CompletedTask;
     }
 
-    private async Task LoginAsync(MouseEventArgs _)
+    private Task OnEmailChanged(string value)
+    {
+        email = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnPasswordChanged(string value)
+    {
+        password = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnConfirmPasswordChanged(string value)
+    {
+        confirmPassword = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task SubmitAsync(MouseEventArgs _)
     {
         error = null;
         isBusy = true;
 
         try
         {
-            var session = await Api.LoginAsync(new LoginRequest(username));
+            var session = mode == AuthMode.Register
+                ? await Api.RegisterAsync(new RegisterUserRequest(username, email, password, confirmPassword))
+                : await Api.LoginAsync(new LoginRequest(username, password));
+
             await Session.SignInAsync(session.Username);
-            Navigation.NavigateTo("my-library");
+            Navigation.NavigateTo(mode == AuthMode.Register ? "settings" : "");
         }
         catch (Exception exception)
         {
@@ -56,5 +133,11 @@
         {
             isBusy = false;
         }
+    }
+
+    private enum AuthMode
+    {
+        Login,
+        Register
     }
 }

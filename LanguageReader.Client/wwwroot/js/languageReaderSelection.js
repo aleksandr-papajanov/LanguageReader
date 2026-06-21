@@ -47,7 +47,7 @@ window.languageReaderSelection = {
             paragraphIndex,
             startOffset,
             endOffset,
-            selectedText: selection.toString()
+            selectedText: getOriginalTextForRange(startParagraph, startOffset, endOffset) || selection.toString()
         };
     },
 
@@ -128,20 +128,17 @@ window.languageReaderSelection = {
         return result;
     },
 
-    scrollToParagraphOffset: (root, paragraphIndex, offset) => {
+    scrollParagraphOffsetIntoViewIfNeeded: (root, paragraphIndex, offset) => {
         if (!root) {
             return;
         }
 
-        const paragraph = root.querySelector(`[data-paragraph-index="${paragraphIndex}"]`);
-        if (!paragraph) {
+        const rect = getRangeRectForOffset(root, paragraphIndex, offset);
+        if (!rect) {
             return;
         }
 
-        const metrics = getReaderViewportInsets();
-        const targetRect = paragraph.getBoundingClientRect();
-        const top = window.scrollY + targetRect.top - metrics.top - 18;
-        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        scrollRectIntoViewIfNeeded(rect);
     },
 
     getFirstVisibleParagraphIndex: (root) => {
@@ -274,6 +271,17 @@ window.languageReaderSelection = {
 
         observer.disconnect();
         languageReaderVisibilityObservers.delete(id);
+    },
+
+    scrollElementHorizontally: (element, delta) => {
+        if (!element || !delta) {
+            return;
+        }
+
+        element.scrollBy({
+            left: delta,
+            behavior: "smooth"
+        });
     }
 };
 
@@ -331,10 +339,23 @@ function getTextNode(paragraph) {
         return null;
     }
 
-    for (const node of paragraph.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) {
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => {
+            const parent = node.parentElement;
+            if (parent?.closest?.("button,.reader-fragment-action")) {
+                return NodeFilter.FILTER_REJECT;
+            }
+
+            return NodeFilter.FILTER_ACCEPT;
+        }
+    });
+    let node = walker.nextNode();
+    while (node) {
+        if (node.textContent.length > 0) {
             return node;
         }
+
+        node = walker.nextNode();
     }
 
     return null;
@@ -417,10 +438,38 @@ function getOriginalOffsetFromDomPosition(paragraph, targetNode, targetOffset) {
     const start = Number(chunk.dataset.originalStart);
     const end = Number(chunk.dataset.originalEnd);
     if (chunk.dataset.translated === "true") {
-        return start;
+        const textNode = getTextNode(chunk);
+        const textLength = textNode?.textContent?.length || 0;
+        if (!textNode || textLength === 0 || targetNode !== textNode) {
+            return start;
+        }
+
+        const originalLength = Math.max(1, end - start);
+        const ratio = clamp(targetOffset / textLength, 0, 1);
+        return clamp(start + Math.round(ratio * originalLength), start, end);
     }
 
     return clamp(start + targetOffset, start, end);
+}
+
+function getOriginalTextForRange(paragraph, startOffset, endOffset) {
+    const chunks = Array.from(paragraph.querySelectorAll("[data-original-start][data-original-end]"));
+    const parts = [];
+
+    for (const chunk of chunks) {
+        const chunkStart = Number(chunk.dataset.originalStart);
+        const chunkEnd = Number(chunk.dataset.originalEnd);
+        if (chunkEnd <= startOffset || chunkStart >= endOffset) {
+            continue;
+        }
+
+        const text = chunk.dataset.originalText || chunk.textContent || "";
+        const sliceStart = clamp(startOffset - chunkStart, 0, text.length);
+        const sliceEnd = clamp(endOffset - chunkStart, sliceStart, text.length);
+        parts.push(text.slice(sliceStart, sliceEnd));
+    }
+
+    return parts.join("");
 }
 
 function getClosestOriginalOffset(paragraph, clientX, clientY) {
@@ -500,9 +549,18 @@ window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, paragra
         return;
     }
 
+    const rect = getRangeRectForOffset(root, paragraphIndex, startOffset);
+    if (!rect) {
+        return;
+    }
+
+    scrollRectIntoViewIfNeeded(rect);
+};
+
+function getRangeRectForOffset(root, paragraphIndex, startOffset) {
     const paragraph = root.querySelector(`[data-paragraph-index="${paragraphIndex}"]`);
     if (!paragraph) {
-        return;
+        return null;
     }
 
     const paragraphLength = getParagraphOriginalLength(paragraph);
@@ -511,7 +569,7 @@ window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, paragra
 
     const boundary = getRangeBoundary(paragraph, safeStart, safeEnd);
     if (!boundary) {
-        return;
+        return paragraph.getBoundingClientRect();
     }
 
     const range = document.createRange();
@@ -522,15 +580,19 @@ window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, paragra
     range.detach();
 
     if (!rect || rect.height <= 0) {
-        return;
+        return paragraph.getBoundingClientRect();
     }
 
+    return rect;
+}
+
+function scrollRectIntoViewIfNeeded(rect) {
     const metrics = getReaderViewportInsets();
 
     const viewportTop = metrics.top + 16;
     const viewportBottom = window.innerHeight - metrics.bottom - 16;
 
-    const isVisible = rect.top >= viewportTop && rect.top <= viewportBottom;
+    const isVisible = rect.top >= viewportTop && rect.bottom <= viewportBottom;
 
     if (isVisible) {
         return;
@@ -542,4 +604,4 @@ window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, paragra
         top: Math.max(0, top),
         behavior: "smooth"
     });
-};
+}

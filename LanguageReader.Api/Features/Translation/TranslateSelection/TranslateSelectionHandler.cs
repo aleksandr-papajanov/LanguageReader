@@ -1,6 +1,3 @@
-using LanguageReader.Api.Features.Common.Services;
-using LanguageReader.Api.Features.Settings;
-using LanguageReader.Api.Features.Settings.Services;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Features.Translation.Services;
 using Microsoft.EntityFrameworkCore;

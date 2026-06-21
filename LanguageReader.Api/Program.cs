@@ -54,7 +54,7 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod();
 
-        if (builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+        if (builder.Environment.IsDevelopment())
         {
             policy.SetIsOriginAllowed(_ => true);
             return;

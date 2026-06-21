@@ -5,31 +5,41 @@
     {
         <div class="reader-article-header">
             <div class="reader-article-header__content">
-                <div class="reader-article-header__source-mark">
-                    <ReadingItemSourceMark SourceKey="@Details.SourceKey"
-                                           SourceName="@Details.SourceName"
-                                           Size="md" />
-                </div>
+                <div class="reader-article-header__source-row">
+                    @if (!string.IsNullOrWhiteSpace(Details.OriginalUrl))
+                    {
+                        <a class="reader-article-header__source-link"
+                           href="@Details.OriginalUrl"
+                           target="_blank"
+                           rel="noreferrer"
+                           title="Open original article">
+                            <ReadingItemSourceMark SourceKey="@Details.SourceKey"
+                                                   SourceName="@Details.SourceName"
+                                                   Size="md" />
+                        </a>
+                    }
+                    else
+                    {
+                        <ReadingItemSourceMark SourceKey="@Details.SourceKey"
+                                               SourceName="@Details.SourceName"
+                                               Size="md" />
+                    }
 
-                <div class="reader-article-header__badges">
-                    <AppBadge Tone="warning">Article</AppBadge>
-                    <ReadingItemSourceBadge SourceKey="@Details.SourceKey" SourceName="@Details.SourceName" />
+                    <div class="reader-article-header__badges">
+                        <AppBadge Tone="warning">Article</AppBadge>
+                        <ReadingItemSourceBadge SourceKey="@Details.SourceKey"
+                                                SourceName="@Details.SourceName"
+                                                Href="@Details.OriginalUrl"
+                                                Title="Open original article" />
+                    </div>
                 </div>
 
                 <h1 class="reader-title">@Title</h1>
 
-                @if (!string.IsNullOrWhiteSpace(Details.Excerpt))
-                {
-                    @* Temporary disable *@
-                    @* <p class="reader-article-header__excerpt">@Details.Excerpt</p> *@
-
-                    <p class="reader-article-header__excerpt"></p>
-                }
-
                 <div class="reader-article-header__meta">
                     @if (!string.IsNullOrWhiteSpace(Details.Author))
                     {
-                        <span>@Details.Author</span>
+                        <span class="reader-article-header__author">@Details.Author</span>
                     }
 
                     @if (Details.PublishedAtUtc.HasValue)
@@ -60,7 +70,7 @@
                               Decorative="true"
                               UseNewsprint="true"
                               AdditionalClass="reader-article-header__image-wrap"
-                              Style="width: min(100%, clamp(9.5rem, 30vw, 12.5rem)); aspect-ratio: 16 / 10; height: auto; justify-self: start; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);"
+                              Style="width: clamp(4.8rem, 14vw, 7rem); aspect-ratio: 1; height: auto; justify-self: start; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);"
                               ImageClass="reader-article-header__image" />
                 }
 
@@ -90,10 +100,6 @@
             </div>
         </div>
     }
-
-    <div class="reader-progress-bar" aria-hidden="true">
-        <span style="@ProgressStyle"></span>
-    </div>
 </div>
 
 @code {
@@ -127,6 +133,4 @@
     [Parameter]
     public EventCallback NextClicked { get; set; }
 
-    private string ProgressStyle =>
-        $"width: {ProgressPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}%;";
 }

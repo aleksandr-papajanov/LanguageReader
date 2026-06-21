@@ -1,5 +1,4 @@
 using Bogus;
-using LanguageReader.Infrastructure.Exceptions;
 using LanguageReader.Infrastructure.Features.Ai.Models;
 using LanguageReader.Shared.Features.Settings;
 using ValidationException = LanguageReader.Infrastructure.Exceptions.ValidationException;
@@ -41,7 +40,7 @@ public sealed class FakeTranslationService : ITranslationBackend
         {
             SelectionKind.Word => GenerateWordTranslation(sourceText, request.OriginalText, faker),
             SelectionKind.Sentence => GenerateSentenceTranslation(faker),
-            SelectionKind.Paragraph or SelectionKind.Page => GenerateParagraphTranslation(faker),
+            SelectionKind.Paragraph => GenerateParagraphTranslation(faker),
             SelectionKind.Phrase => GenerateSentenceTranslation(faker),
             _ => GenerateSentenceTranslation(faker)
         };

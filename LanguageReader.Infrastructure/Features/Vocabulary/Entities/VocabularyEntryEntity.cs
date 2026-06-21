@@ -48,10 +48,10 @@ public sealed class VocabularyEntryEntity
     /// <summary>
     /// Source reading item identifier.
     /// </summary>
-    public Guid ReadingItemId { get; set; }
+    public Guid? ReadingItemId { get; set; }
 
     [NotMapped]
-    public Guid BookId
+    public Guid? BookId
     {
         get => ReadingItemId;
         set => ReadingItemId = value;

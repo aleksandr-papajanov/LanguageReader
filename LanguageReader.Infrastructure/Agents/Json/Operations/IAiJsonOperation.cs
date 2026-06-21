@@ -1,5 +1,4 @@
 using LanguageReader.Infrastructure.Agents.Json.Models;
-using LanguageReader.Infrastructure.Features.Ai.Models;
 
 namespace LanguageReader.Infrastructure.Agents.Json.Operations;
 

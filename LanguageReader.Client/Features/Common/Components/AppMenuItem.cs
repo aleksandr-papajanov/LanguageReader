@@ -7,5 +7,6 @@ public sealed record AppMenuItem(
     string Key,
     string Label,
     string? Icon = null,
-    bool Disabled = false);
+    bool Disabled = false,
+    string Variant = "ghost");
 

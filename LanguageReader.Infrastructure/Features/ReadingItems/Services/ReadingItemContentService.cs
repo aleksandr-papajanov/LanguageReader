@@ -52,7 +52,7 @@ public sealed class ReadingItemContentService(
             item.Id,
             document.Title,
             item.Type,
-            LanguageNameNormalizer.Normalize(document.OriginalLanguage),
+            LanguageNameNormalizer.Normalize(item.OriginalLanguage),
             document.Paragraphs);
     }
 }

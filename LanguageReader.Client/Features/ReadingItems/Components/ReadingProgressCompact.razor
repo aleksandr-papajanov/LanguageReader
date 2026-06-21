@@ -1,0 +1,16 @@
+<div class="reading-progress-compact" title="@Label">
+    <AppProgressBar Value="@Value" Size="sm" />
+    <span>@Label</span>
+</div>
+
+@code {
+    [Parameter]
+    public double Value { get; set; }
+
+    [Parameter]
+    public ReadingItemReadingStatus Status { get; set; }
+
+    private string Label => Status == ReadingItemReadingStatus.Completed
+        ? "Completed"
+        : $"{Math.Round(Math.Clamp(Value, 0, 100))}% read";
+}

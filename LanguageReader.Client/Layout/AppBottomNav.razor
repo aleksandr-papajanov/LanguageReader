@@ -1,69 +1,87 @@
 @inject UserSession Session
+@inject IJSRuntime JsRuntime
 
 <nav class="@NavClass" aria-label="Primary navigation">
-    <AppNavItem Href=""
-                Match="NavLinkMatch.All"
-                Icon="shelves"
-                IconSize="25"
-                Label="Library"
-                Layout="Vertical"
-                Justify="center"
-                Align="center"
-                AdditionalClass="bottom-nav__item" />
+    <div class="bottom-nav__scroller"
+         tabindex="0"
+         @ref="scroller"
+         @onwheel="ScrollWithWheelAsync"
+         @onwheel:preventDefault>
+        <AppNavItem Href=""
+                    Match="NavLinkMatch.All"
+                    Icon="shelves"
+                    IconSize="23"
+                    Label="Library"
+                    Layout="Vertical"
+                    Justify="center"
+                    Align="center"
+                    AdditionalClass="bottom-nav__item" />
 
-    <AppNavItem Href="@ReaderRoute"
-                Icon="auto_stories"
-                IconSize="25"
-                Label="Reader"
-                Layout="Vertical"
-                Justify="center"
-                Align="center"
-                AdditionalClass="bottom-nav__item" />
+        <AppNavItem Href="@ReaderRoute"
+                    Icon="auto_stories"
+                    IconSize="23"
+                    Label="Reader"
+                    Layout="Vertical"
+                    Justify="center"
+                    Align="center"
+                    AdditionalClass="bottom-nav__item" />
 
-    <AppNavItem Href="news"
-                Icon="feed"
-                IconSize="25"
-                Label="News"
-                Layout="Vertical"
-                Justify="center"
-                Align="center"
-                AdditionalClass="bottom-nav__item" />
+        <AppNavItem Href="news"
+                    Icon="feed"
+                    IconSize="23"
+                    Label="News"
+                    Layout="Vertical"
+                    Justify="center"
+                    Align="center"
+                    AdditionalClass="bottom-nav__item" />
 
-    <AppNavItem Href="vocabulary"
-                Icon="spellcheck"
-                IconSize="25"
-                Label="Words"
-                Layout="Vertical"
-                Justify="center"
-                Align="center"
-                AdditionalClass="bottom-nav__item" />
+        <AppNavItem Href="vocabulary"
+                    Icon="spellcheck"
+                    IconSize="23"
+                    Label="Words"
+                    Layout="Vertical"
+                    Justify="center"
+                    Align="center"
+                    AdditionalClass="bottom-nav__item" />
 
-    <AppNavItem Href="training"
-                Icon="school"
-                IconSize="25"
-                Label="Train"
-                Layout="Vertical"
-                Justify="center"
-                Align="center"
-                AdditionalClass="bottom-nav__item" />
+        <AppNavItem Href="training"
+                    Icon="school"
+                    IconSize="23"
+                    Label="Train"
+                    Layout="Vertical"
+                    Justify="center"
+                    Align="center"
+                    AdditionalClass="bottom-nav__item" />
 
-    <AppNavItem Href="settings"
-                Icon="tune"
-                IconSize="25"
-                Label="Settings"
-                Layout="Vertical"
-                Justify="center"
-                Align="center"
-                AdditionalClass="bottom-nav__item" />
+        <AppNavItem Href="settings"
+                    Icon="tune"
+                    IconSize="23"
+                    Label="Settings"
+                    Layout="Vertical"
+                    Justify="center"
+                    Align="center"
+                    AdditionalClass="bottom-nav__item" />
+    </div>
 </nav>
 
 @code {
     [Parameter]
     public bool Embedded { get; set; }
 
+    private ElementReference scroller;
+
     private string ReaderRoute => Session.LastReaderRoute;
 
     private string NavClass => Embedded
         ? "bottom-nav bottom-nav--embedded"
         : "bottom-nav";
+
+    private async Task ScrollWithWheelAsync(WheelEventArgs args)
+    {
+        var delta = Math.Abs(args.DeltaX) > Math.Abs(args.DeltaY)
+            ? args.DeltaX
+            : args.DeltaY;
+
+        await JsRuntime.InvokeVoidAsync("languageReaderSelection.scrollElementHorizontally", scroller, delta);
+    }
 }

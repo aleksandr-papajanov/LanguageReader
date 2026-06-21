@@ -2,7 +2,10 @@
 
 @if (!string.IsNullOrWhiteSpace(displayName))
 {
-    <AppBadge Tone="@Tone" PreserveCase="true">@displayName</AppBadge>
+    <AppBadge Tone="@Tone"
+              PreserveCase="true"
+              Href="@Href"
+              Title="@Title">@displayName</AppBadge>
 }
 
 @code {
@@ -15,8 +18,13 @@
     [Parameter]
     public string Tone { get; set; } = "warning";
 
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
     private string? displayName;
-    private string? logoPath;
 
     protected override void OnParametersSet()
     {
@@ -24,6 +32,5 @@
         displayName = !string.IsNullOrWhiteSpace(SourceName)
             ? SourceName
             : source?.DisplayName;
-        logoPath = source?.LogoAssetPath;
     }
 }

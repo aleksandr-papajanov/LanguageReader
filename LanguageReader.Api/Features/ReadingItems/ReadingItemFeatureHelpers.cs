@@ -1,6 +1,5 @@
 using LanguageReader.Infrastructure.Features.Reading.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
-using LanguageReader.Shared.Features.News;
 
 namespace LanguageReader.Api.Features.ReadingItems;
 

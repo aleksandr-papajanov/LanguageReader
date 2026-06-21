@@ -5,6 +5,5 @@ public enum SelectionKind
     Word,
     Sentence,
     Phrase,
-    Paragraph,
-    Page
+    Paragraph
 }

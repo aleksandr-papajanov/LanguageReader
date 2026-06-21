@@ -1,5 +1,4 @@
 using Bogus;
-using LanguageReader.Infrastructure.Exceptions;
 using LanguageReader.Infrastructure.Features.Ai.Models;
 using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
 using LanguageReader.Shared.Features.Settings;

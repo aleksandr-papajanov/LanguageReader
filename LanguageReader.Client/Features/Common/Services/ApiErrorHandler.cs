@@ -18,7 +18,12 @@ public static class ApiErrorHandler
 
         LogApiError(response, error, message);
 
-        throw new InvalidOperationException(message);
+        throw new ApiClientException(
+            message,
+            response.StatusCode,
+            response.RequestMessage?.Method?.Method,
+            response.RequestMessage?.RequestUri?.ToString(),
+            error);
     }
 
     private static async Task<ApiErrorResponse?> TryReadApiErrorAsync(
@@ -46,7 +51,7 @@ public static class ApiErrorHandler
 
         if (error.Errors is null || error.Errors.Count == 0)
         {
-            return error.Message;
+            return AppendTraceId(error.Message, error.TraceId);
         }
 
         var details = string.Join(
@@ -54,7 +59,7 @@ public static class ApiErrorHandler
             error.Errors.SelectMany(pair =>
                 pair.Value.Select(value => $"{pair.Key}: {value}")));
 
-        return $"{error.Message} {details}".Trim();
+        return AppendTraceId($"{error.Message} {details}".Trim(), error.TraceId);
     }
 
     private static void LogApiError(
@@ -67,9 +72,39 @@ public static class ApiErrorHandler
 
         Console.Error.WriteLine($"[LanguageReader API] {message}");
 
+        if (error is not null)
+        {
+            Console.Error.WriteLine(
+                $"[LanguageReader API] type={error.Type}; status={error.StatusCode}; traceId={error.TraceId ?? "n/a"}");
+        }
+
         if (!string.IsNullOrWhiteSpace(error?.Detail))
         {
             Console.Error.WriteLine(error.Detail);
         }
     }
+
+    private static string AppendTraceId(string message, string? traceId)
+    {
+        return string.IsNullOrWhiteSpace(traceId)
+            ? message
+            : $"{message} Trace id: {traceId}";
+    }
+}
+
+public sealed class ApiClientException(
+    string message,
+    System.Net.HttpStatusCode statusCode,
+    string? method,
+    string? requestUri,
+    ApiErrorResponse? error)
+    : InvalidOperationException(message)
+{
+    public System.Net.HttpStatusCode StatusCode { get; } = statusCode;
+
+    public string? Method { get; } = method;
+
+    public string? RequestUri { get; } = requestUri;
+
+    public ApiErrorResponse? Error { get; } = error;
 }

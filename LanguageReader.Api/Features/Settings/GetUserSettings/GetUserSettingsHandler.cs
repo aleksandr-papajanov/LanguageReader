@@ -1,6 +1,3 @@
-using LanguageReader.Api.Features.Common.Services;
-using LanguageReader.Api.Features.Settings.Services;
-
 namespace LanguageReader.Api.Features.Settings;
 
 internal sealed class GetUserSettingsHandler(UserSettingsAccessor userSettingsAccessor)

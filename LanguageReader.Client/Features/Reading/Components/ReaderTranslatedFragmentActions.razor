@@ -3,10 +3,11 @@
     <button type="button"
             class="reader-fragment-action reader-fragment-action--select"
             style="@Style"
-            title="Select translated fragment"
+            title="@(IsActive ? "Unselect translated fragment" : "Select translated fragment")"
             @onclick:stopPropagation="true"
-            @onclick="@(() => SelectClicked.InvokeAsync(Translation))">
-        <AppIcon Name="ink_highlighter" Size="15" />
+            @onclick="ToggleSelectionAsync">
+        <AppIcon Name="@(IsActive ? "close" : "ink_highlighter")" Size="15" />
+        <span>@(IsActive ? "Unselect" : "Select")</span>
     </button>
 }
 else
@@ -62,6 +63,9 @@ else
     public EventCallback<TranslatedRangeDto> SelectClicked { get; set; }
 
     [Parameter]
+    public EventCallback<TranslatedRangeDto> UnselectClicked { get; set; }
+
+    [Parameter]
     public EventCallback<TranslatedRangeDto> DisplayToggleClicked { get; set; }
 
     [Parameter]
@@ -80,5 +84,12 @@ else
     {
         SelectMarker,
         Popup
+    }
+
+    private Task ToggleSelectionAsync()
+    {
+        return IsActive
+            ? UnselectClicked.InvokeAsync(Translation)
+            : SelectClicked.InvokeAsync(Translation);
     }
 }

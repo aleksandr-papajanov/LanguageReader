@@ -1,0 +1,18 @@
+.app-date-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.28rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.app-date-meta span {
+    font-weight: 650;
+}
+
+.app-date-meta strong {
+    color: var(--color-text-soft);
+    font-weight: 800;
+}

@@ -7,6 +7,7 @@ using LanguageReader.Infrastructure.Features.BookTranslations.Entities;
 using LanguageReader.Infrastructure.Features.Settings.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using LanguageReader.Infrastructure.Features.News.Entities;
+using LanguageReader.Infrastructure.Features.Users.Entities;
 
 namespace LanguageReader.Infrastructure.Data;
 
@@ -74,6 +75,11 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     /// Stored RSS article candidates.
     /// </summary>
     public DbSet<RssArticleCandidateEntity> RssArticleCandidates => Set<RssArticleCandidateEntity>();
+
+    /// <summary>
+    /// Registered user accounts.
+    /// </summary>
+    public DbSet<UserAccountEntity> UserAccounts => Set<UserAccountEntity>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

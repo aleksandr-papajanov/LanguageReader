@@ -1,4 +1,3 @@
-using LanguageReader.Shared.Features.Common;
 using LanguageReader.Shared.Features.News;
 
 namespace LanguageReader.Shared.Features.ReadingItems;

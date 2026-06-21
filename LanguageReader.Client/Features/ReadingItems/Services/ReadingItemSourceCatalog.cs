@@ -1,6 +1,4 @@
-using LanguageReader.Client.Features.Common.Components;
 using LanguageReader.Client.Features.ReadingItems.Models;
-using LanguageReader.Shared.Features.News;
 
 namespace LanguageReader.Client.Features.ReadingItems.Services;
 

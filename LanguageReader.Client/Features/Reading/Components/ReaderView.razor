@@ -61,6 +61,7 @@ else if (content is not null)
                            ScrollOffset="scrollOffset"
                            ScrollRequestKey="scrollRequestKey"
                            TranslationSelected="SelectTranslatedRange"
+                           TranslationUnselected="UnselectTranslatedRange"
                            TranslationDisplayToggleSelected="ToggleTranslationOriginalAsync"
                            TranslationVocabularyToggleSelected="ToggleTranslationVocabularyAsync"
                            TranslationOpenDetailsSelected="OpenTranslationVocabularyDetailsAsync"
@@ -263,9 +264,7 @@ else if (content is not null)
         var nextSelection = selectionService.BuildFromOffset(
             paragraph,
             offset,
-            activeMode,
-            CurrentPageParagraphs,
-            progress.PageStartParagraphIndex);
+            activeMode);
 
         if (nextSelection is null)
         {
@@ -293,9 +292,7 @@ else if (content is not null)
             mode,
             anchorParagraphIndex,
             anchorOffset,
-            paragraphs,
-            CurrentPageParagraphs,
-            progress.PageStartParagraphIndex);
+            paragraphs);
 
         if (nextSelection is null)
         {
@@ -311,11 +308,6 @@ else if (content is not null)
     private void RememberSelectionAnchor(ReaderSelection? readerSelection)
     {
         if (readerSelection is null)
-        {
-            return;
-        }
-
-        if (readerSelection.SelectionType == SelectionKind.Page)
         {
             return;
         }
@@ -463,6 +455,17 @@ else if (content is not null)
         QueueScrollTo(range.ParagraphIndex, range.StartOffset);
     }
 
+    private Task UnselectTranslatedRange(TranslatedRangeDto range)
+    {
+        if (activeTranslation?.Id == range.Id)
+        {
+            activeTranslation = null;
+            selection = null;
+        }
+
+        return Task.CompletedTask;
+    }
+
     private async Task ToggleTranslationOriginalAsync(TranslatedRangeDto range)
     {
         var updated = await BookTranslationsApi.UpdateBookTranslationDisplayAsync(
@@ -514,11 +517,8 @@ else if (content is not null)
         translationError = null;
         activeTranslation = null;
 
-        if (readerSelection.SelectionType != SelectionKind.Page)
-        {
-            selectionAnchorParagraphIndex = readerSelection.ParagraphIndex;
-            selectionAnchorOffset = readerSelection.AnchorOffset;
-        }
+        selectionAnchorParagraphIndex = readerSelection.ParagraphIndex;
+        selectionAnchorOffset = readerSelection.AnchorOffset;
     }
 
     private void ReplaceTranslatedRange(TranslatedRangeDto updated)
@@ -556,8 +556,8 @@ else if (content is not null)
             .OrderByDescending(entry => entry.CreatedAtUtc)
             .FirstOrDefault(entry =>
                 (includeHidden || entry.IsVisibleInVocabulary)
-                && entry.Position.ParagraphIndex == range.ParagraphIndex
-                && entry.Position.CharacterOffset == range.StartOffset
+                && entry.Position?.ParagraphIndex == range.ParagraphIndex
+                && entry.Position?.CharacterOffset == range.StartOffset
                 && entry.SelectionKind == range.SelectionKind
                 && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
     }

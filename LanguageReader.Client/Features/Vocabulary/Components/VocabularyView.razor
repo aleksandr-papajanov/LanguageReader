@@ -18,18 +18,19 @@ else
                 Subtitle="Each entry remembers its book and saved reading position.">
         <Actions>
             <AppSelect TValue="Guid?"
-                       Id="vocabulary-book-filter"
-                       Label="Book Filter"
+                       Id="vocabulary-reading-item-filter"
+                       Label="Reading item"
                        Size="sm"
                        Variant="quiet"
-                       LeadingIcon="book_5"
+                       LeadingIcon="auto_stories"
                        Value="state.SelectedBookId"
                        ValueChanged="OnBookChanged"
                        Options="state.BookOptions" />
         </Actions>
         <ChildContent>
             <VocabularyEntryList Entries="state.VisibleEntries"
-                                 DeleteSelected="DeleteEntryAsync" />
+                                 BusyEntryId="busyEntryId"
+                                 DeleteSelected="HideEntryAsync" />
             <AppInfiniteScrollSentinel IsEnabled="@(state.HasMoreEntries && !state.IsLoadingMore)"
                                        Reached="LoadMoreAsync" />
         </ChildContent>
@@ -38,6 +39,7 @@ else
 
 @code {
     private readonly VocabularyBrowserState state = new();
+    private Guid? busyEntryId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,8 +63,17 @@ else
         return Task.CompletedTask;
     }
 
-    private async Task DeleteEntryAsync(VocabularyEntryDto entry)
+    private async Task HideEntryAsync(VocabularyEntryDto entry)
     {
-        await state.HideEntryAsync(Api, entry, Session.Username!);
+        busyEntryId = entry.Id;
+
+        try
+        {
+            await state.HideEntryAsync(Api, entry, Session.Username!);
+        }
+        finally
+        {
+            busyEntryId = null;
+        }
     }
 }

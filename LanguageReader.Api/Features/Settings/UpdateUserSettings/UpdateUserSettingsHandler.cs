@@ -1,6 +1,4 @@
 using LanguageReader.Infrastructure.Data;
-using LanguageReader.Api.Features.Common.Services;
-using LanguageReader.Api.Features.Settings.Services;
 
 namespace LanguageReader.Api.Features.Settings;
 

@@ -30,11 +30,11 @@ else if (activeEntry is not null)
                 AdditionalClass="training-section">
         <Actions>
             <AppSelect TValue="Guid?"
-                       Id="training-book-filter"
-                       Label="Book Filter"
+                       Id="training-reading-item-filter"
+                       Label="Reading item"
                        Size="sm"
                        Variant="quiet"
-                       LeadingIcon="book_5"
+                       LeadingIcon="auto_stories"
                        Value="selectedBookId"
                        ValueChanged="OnBookChanged"
                        Options="bookOptions" />
@@ -184,7 +184,7 @@ else if (activeEntry is not null)
     private void BuildBookOptions()
     {
         bookOptions.Clear();
-        bookOptions.Add(new AppSelectOption<Guid?>(null, "All books"));
+        bookOptions.Add(new AppSelectOption<Guid?>(null, "All reading items"));
 
         foreach (var item in entries
                      .Select(entry => new { entry.ReadingItemId, entry.ReadingItemTitle })

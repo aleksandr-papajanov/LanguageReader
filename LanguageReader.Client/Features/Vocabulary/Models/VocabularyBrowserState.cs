@@ -72,22 +72,22 @@ public sealed class VocabularyBrowserState
         string username,
         CancellationToken cancellationToken = default)
     {
-        var updated = await api.UpdateVocabularyVisibilityAsync(
+        await api.UpdateVocabularyVisibilityAsync(
             new UpdateVocabularyVisibilityRequest(entry.Id, username, false),
             cancellationToken);
 
         Entries.RemoveAll(item => item.Id == entry.Id);
-        Entries.Add(updated);
         BuildBookOptions();
     }
 
     private void BuildBookOptions()
     {
         BookOptions.Clear();
-        BookOptions.Add(new AppSelectOption<Guid?>(null, "All books"));
+        BookOptions.Add(new AppSelectOption<Guid?>(null, "All reading items"));
 
         foreach (var item in Entries
                      .Select(entry => new { entry.ReadingItemId, entry.ReadingItemTitle })
+                     .Where(item => item.ReadingItemId.HasValue)
                      .DistinctBy(item => item.ReadingItemId)
                      .OrderBy(item => item.ReadingItemTitle))
         {

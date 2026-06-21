@@ -1,4 +1,6 @@
 namespace LanguageReader.Shared.Features.Users;
 
-public sealed record LoginRequest(string Username);
+public sealed record LoginRequest(
+    string Username,
+    string? Password = null);
 

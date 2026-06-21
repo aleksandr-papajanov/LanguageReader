@@ -26,8 +26,7 @@
         SelectionKind.Word,
         SelectionKind.Phrase,
         SelectionKind.Sentence,
-        SelectionKind.Paragraph,
-        SelectionKind.Page
+        SelectionKind.Paragraph
     ];
 
     [Parameter]
@@ -60,7 +59,6 @@
             SelectionKind.Phrase => "C",
             SelectionKind.Sentence => "S",
             SelectionKind.Paragraph => "P",
-            SelectionKind.Page => "Pg",
             _ => mode.ToString()
         };
     }
@@ -73,7 +71,6 @@
             SelectionKind.Phrase => "Custom",
             SelectionKind.Sentence => "Sentence",
             SelectionKind.Paragraph => "Paragraph",
-            SelectionKind.Page => "Page",
             _ => mode.ToString()
         };
     }

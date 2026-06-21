@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Xml.Linq;
 using HtmlAgilityPack;
 using LanguageReader.Infrastructure.Features.News.Models;
-using LanguageReader.Shared.Features.News;
 
 namespace LanguageReader.Infrastructure.Features.News.Services;
 

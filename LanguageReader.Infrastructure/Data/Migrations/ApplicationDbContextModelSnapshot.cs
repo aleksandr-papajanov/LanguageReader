@@ -507,6 +507,35 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.ToTable("user_settings", (string)null);
                 });
 
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.Users.Entities.UserAccountEntity", b =>
+                {
+                    b.Property<string>("Username")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("username");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
+
+                    b.HasKey("Username");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("user_accounts", (string)null);
+                });
+
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.Vocabulary.Entities.RelatedWordEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -569,7 +598,7 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("paragraph_index");
 
-                    b.Property<Guid>("ReadingItemId")
+                    b.Property<Guid?>("ReadingItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("reading_item_id");
 
@@ -775,8 +804,7 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "Book")
                         .WithMany("VocabularyEntries")
                         .HasForeignKey("ReadingItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Book");
                 });

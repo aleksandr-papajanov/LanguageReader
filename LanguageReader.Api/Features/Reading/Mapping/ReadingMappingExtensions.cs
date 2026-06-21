@@ -1,5 +1,4 @@
 using LanguageReader.Infrastructure.Features.Reading.Entities;
-using LanguageReader.Api.Features.ReadingItems;
 
 namespace LanguageReader.Api.Features.Reading;
 

@@ -3,7 +3,6 @@ using LanguageReader.Infrastructure.Agents.Json.Models;
 using LanguageReader.Infrastructure.Agents.Json.Operations;
 using LanguageReader.Infrastructure.Common;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Ai.Models;
 
 namespace LanguageReader.Infrastructure.Features.Translation.Operations;
 
@@ -26,7 +25,7 @@ internal sealed class TranslationAiJsonOperation(
             input,
             SchemaName: "translation_result",
             JsonSchema: BuildSchema(request),
-            Model: null,
+            Model: "gpt-5-mini",
             request.SourceText.Length,
             request.OriginalText?.Length ?? 0,
             ExpectedJsonPropertyCount: 1);
@@ -58,6 +57,7 @@ Preserve the meaning, tone, and grammar implied by contextText.
 Return only the target-language wording, not explanations or dictionary forms.
 sourceLanguage is the language of selectedText.
 targetLanguage is the language you must translate into.
+Never return sourceLanguage text unless sourceLanguage and targetLanguage are the same language.
 """;
     }
 

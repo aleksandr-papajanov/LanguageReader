@@ -25,11 +25,6 @@ internal sealed class UpdateVocabularyVisibilityHandler(ApplicationDbContext dbC
             throw new NotFoundException($"Vocabulary entry '{request.VocabularyId}' was not found.");
         }
 
-        if (entry.Book is null)
-        {
-            throw new NotFoundException($"Book for vocabulary entry '{request.VocabularyId}' was not found.");
-        }
-
         entry.IsVisibleInVocabulary = request.IsVisibleInVocabulary;
         await dbContext.SaveChangesAsync(ct);
 

@@ -3,7 +3,6 @@ using LanguageReader.Infrastructure.Agents.Json.Models;
 using LanguageReader.Infrastructure.Agents.Json.Operations;
 using LanguageReader.Infrastructure.Common;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Ai.Models;
 using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
 
 namespace LanguageReader.Infrastructure.Features.Vocabulary.Operations;

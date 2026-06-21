@@ -3,48 +3,86 @@
 <AppListItem AdditionalClass="reading-item-row">
     <ChildContent>
         <div class="reading-item-row__layout">
-            <div class="reading-item-row__thumb">
-                @if (Item.Type == ReadingItemType.Article && !string.IsNullOrWhiteSpace(Item.ImageUrl))
+            <div class="reading-item-row__media">
+                <div class="reading-item-row__thumb">
+                    @if (Item.Type == ReadingItemType.Article && !string.IsNullOrWhiteSpace(Item.ImageUrl))
+                    {
+                        <AppImage Src="@Item.ImageUrl"
+                                  Alt="@Item.Title"
+                                  Decorative="true"
+                                  UseNewsprint="true"
+                                  FillContainer="true"
+                                  AdditionalClass="reading-item-row__thumb-media"
+                                  ImageClass="reading-item-row__thumb-image" />
+                    }
+                    else
+                    {
+                        <div class="reading-item-row__thumb-fallback @(Item.Type == ReadingItemType.Article ? "reading-item-row__thumb-fallback--article" : "reading-item-row__thumb-fallback--book")">
+                            <AppIcon Name="@(Item.Type == ReadingItemType.Article ? "newspaper" : "menu_book")" Size="28" />
+                        </div>
+                    }
+
+                </div>
+
+                @if (Item.ProgressPercent.HasValue)
                 {
-                    <AppImage Src="@Item.ImageUrl"
-                              Alt="@Item.Title"
-                              Decorative="true"
-                              UseNewsprint="true"
-                              FillContainer="true"
-                              AdditionalClass="reading-item-row__thumb-media"
-                              ImageClass="reading-item-row__thumb-image" />
-                }
-                else
-                {
-                    <div class="reading-item-row__thumb-fallback @(Item.Type == ReadingItemType.Article ? "reading-item-row__thumb-fallback--article" : "reading-item-row__thumb-fallback--book")">
-                        <AppIcon Name="@(Item.Type == ReadingItemType.Article ? "newspaper" : "menu_book")" Size="30" />
-                    </div>
+                    <ReadingProgressCompact Value="@Item.ProgressPercent.Value"
+                                            Status="@Item.ReadingStatus" />
                 }
             </div>
 
             <div class="reading-item-row__body">
-                <div class="reading-item-row__badges">
-                    @if (!string.IsNullOrWhiteSpace(GetStatusLabel()))
-                    {
-                        <AppBadge Tone="@GetStatusTone()">@GetStatusLabel()</AppBadge>
-                    }
+                <div class="reading-item-row__topline">
+                    <div class="reading-item-row__badges">
+                        @if (!string.IsNullOrWhiteSpace(GetStatusLabel()))
+                        {
+                            <AppBadge Tone="@GetStatusTone()">@GetStatusLabel()</AppBadge>
+                        }
 
-                    <AppBadge Tone="@(Item.Type == ReadingItemType.Article ? "warning" : "info")">@GetTypeLabel()</AppBadge>
+                        <AppBadge Tone="@(Item.Type == ReadingItemType.Article ? "warning" : "info")">@GetTypeLabel()</AppBadge>
 
-                    @if (Item.IsOwnedByCurrentUser || Item.IsPublic)
-                    {
-                        <AppBadge Tone="@(Item.IsOwnedByCurrentUser ? "success" : "default")">@(Item.IsOwnedByCurrentUser ? "Mine" : "Shared")</AppBadge>
-                    }
+                        @if (Item.IsOwnedByCurrentUser || Item.IsPublic)
+                        {
+                            <AppBadge Tone="@(Item.IsOwnedByCurrentUser ? "success" : "default")">@(Item.IsOwnedByCurrentUser ? "Mine" : "Shared")</AppBadge>
+                        }
 
-                    @if (Item.IsInUserLibrary)
-                    {
-                        <AppBadge Tone="@(Item.IsPublic ? "success" : "default")">@(Item.IsPublic ? "Public" : "Private")</AppBadge>
-                    }
+                        @if (Item.IsInUserLibrary)
+                        {
+                            <AppBadge Tone="@(Item.IsPublic ? "success" : "default")">@(Item.IsPublic ? "Public" : "Private")</AppBadge>
+                        }
 
-                    @if (Item.Type == ReadingItemType.Article && (!string.IsNullOrWhiteSpace(Item.SourceKey) || !string.IsNullOrWhiteSpace(Item.SourceName)))
-                    {
-                        <ReadingItemSourceBadge SourceKey="@Item.SourceKey" SourceName="@Item.SourceName" />
-                    }
+                        @if (Item.Type == ReadingItemType.Article && (!string.IsNullOrWhiteSpace(Item.SourceKey) || !string.IsNullOrWhiteSpace(Item.SourceName)))
+                        {
+                            <ReadingItemSourceBadge SourceKey="@Item.SourceKey"
+                                                    SourceName="@Item.SourceName" />
+                        }
+                    </div>
+
+                    <div class="reading-item-row__side-meta">
+                        <AppDateMeta Label="Created"
+                                     Value="@Item.CreatedAtUtc"
+                                     Format="ddd, d MMM" />
+
+                        @if (Item.LastOpenedAtUtc.HasValue)
+                        {
+                            <AppDateMeta Label="Last opened"
+                                         Value="@Item.LastOpenedAtUtc.Value"
+                                         Format="ddd, d MMM" />
+                        }
+
+                        @if (MenuItems.Count > 0)
+                        {
+                            <AppDropdownMenu ButtonIcon="more_horiz"
+                                             ButtonIconOnly="true"
+                                             ButtonTitle="More actions"
+                                             ButtonVariant="ghost"
+                                             ButtonSize="sm"
+                                             Align="end"
+                                             Disabled="@Busy"
+                                             Items="MenuItems"
+                                             ItemSelected="HandleMenuActionAsync" />
+                        }
+                    </div>
                 </div>
 
                 <strong class="reading-item-row__title">@Item.Title</strong>
@@ -59,59 +97,20 @@
                     <div class="reading-item-row__excerpt">@Item.Excerpt</div>
                 }
 
-                @if (Item.ProgressPercent.HasValue)
+                @if (GetPrimaryActionLabel() is { } primaryLabel)
                 {
-                    <div class="reading-item-row__progress">
-                        <AppProgressBar Value="@Item.ProgressPercent.Value" Size="sm" />
-                        <span class="reading-item-row__progress-label">@GetProgressLabel()</span>
+                    <div class="reading-item-row__primary-action">
+                        <AppButton Label="@primaryLabel"
+                                   Variant="@GetPrimaryActionVariant()"
+                                   Size="sm"
+                                   Icon="@GetPrimaryActionIcon()"
+                                   Disabled="@Busy"
+                                   OnClick="@(_ => HandlePrimaryActionAsync())" />
                     </div>
                 }
             </div>
         </div>
     </ChildContent>
-    <Actions>
-        <AppActionGroup>
-            @if (GetPrimaryActionLabel() is { } primaryLabel)
-            {
-                <AppButton Label="@primaryLabel"
-                           Variant="@GetPrimaryActionVariant()"
-                           Size="sm"
-                           Icon="@GetPrimaryActionIcon()"
-                           Disabled="@Busy"
-                           OnClick="@(_ => HandlePrimaryActionAsync())" />
-            }
-
-            @if (Item.CanPublish || Item.CanUnpublish)
-            {
-                <AppButton Label="@(Item.CanUnpublish ? "Unpublish" : "Publish")"
-                           Variant="secondary"
-                           Size="sm"
-                           Icon="public"
-                           Disabled="@Busy"
-                           OnClick="@(_ => VisibilityToggleSelected.InvokeAsync(Item))" />
-            }
-
-            @if (Item.CanDelete)
-            {
-                <AppButton Label="Delete"
-                           Variant="destructive"
-                           Size="sm"
-                           Icon="delete"
-                           Disabled="@Busy"
-                           OnClick="@(_ => DeleteSelected.InvokeAsync(Item))" />
-            }
-
-            @if (Item.CanOpenOriginal)
-            {
-                <AppButton Label="Original"
-                           Variant="ghost"
-                           Size="sm"
-                           Icon="open_in_new"
-                           Disabled="@Busy"
-                           OnClick="@(_ => OpenOriginalSelected.InvokeAsync(Item))" />
-            }
-        </AppActionGroup>
-    </Actions>
 </AppListItem>
 
 @code {
@@ -197,6 +196,31 @@
         return Item.ReadingStatus == ReadingItemReadingStatus.Completed ? "success" : "default";
     }
 
+    private IReadOnlyList<AppMenuItem> MenuItems
+    {
+        get
+        {
+            var items = new List<AppMenuItem>();
+
+            if (Item.CanPublish || Item.CanUnpublish)
+            {
+                items.Add(new AppMenuItem("visibility", Item.CanUnpublish ? "Unpublish" : "Publish", "public"));
+            }
+
+            if (Item.CanOpenOriginal)
+            {
+                items.Add(new AppMenuItem("original", "Open original", "open_in_new"));
+            }
+
+            if (Item.CanDelete)
+            {
+                items.Add(new AppMenuItem("delete", "Delete", "delete", Variant: "destructive"));
+            }
+
+            return items;
+        }
+    }
+
     private string GetDetails()
     {
         var details = new List<string>();
@@ -206,29 +230,12 @@
             details.Add(Item.Author);
         }
 
-        if (Item.PublishedAtUtc.HasValue)
-        {
-            details.Add(Item.PublishedAtUtc.Value.LocalDateTime.ToString("d MMM yyyy"));
-        }
-
         if (!string.IsNullOrWhiteSpace(Item.OriginalLanguage))
         {
             details.Add(Item.OriginalLanguage);
         }
 
-        if (Item.LastOpenedAtUtc.HasValue)
-        {
-            details.Add($"Last opened {Item.LastOpenedAtUtc.Value.LocalDateTime:g}");
-        }
-
         return string.Join(" • ", details);
-    }
-
-    private string GetProgressLabel()
-    {
-        return Item.ReadingStatus == ReadingItemReadingStatus.Completed
-            ? "Completed"
-            : $"{Math.Round(Item.ProgressPercent ?? 0)}% read";
     }
 
     private string? GetPrimaryActionLabel()
@@ -259,5 +266,16 @@
         }
 
         return Item.CanContinue ? "auto_stories" : "menu_book";
+    }
+
+    private Task HandleMenuActionAsync(string key)
+    {
+        return key switch
+        {
+            "visibility" => VisibilityToggleSelected.InvokeAsync(Item),
+            "delete" => DeleteSelected.InvokeAsync(Item),
+            "original" => OpenOriginalSelected.InvokeAsync(Item),
+            _ => Task.CompletedTask
+        };
     }
 }

@@ -5,9 +5,7 @@ public sealed class ReaderSelectionService
     public ReaderSelection? BuildFromOffset(
         ReaderParagraph paragraph,
         int offset,
-        SelectionKind mode,
-        IReadOnlyList<ReaderParagraph> currentPageParagraphs,
-        int pageStartParagraphIndex)
+        SelectionKind mode)
     {
         offset = Math.Clamp(offset, 0, paragraph.Text.Length);
 
@@ -24,7 +22,6 @@ public sealed class ReaderSelectionService
                 offset,
                 SelectionKind.Paragraph,
                 null),
-            SelectionKind.Page => BuildPageSelection(currentPageParagraphs, pageStartParagraphIndex),
             _ => null
         };
     }
@@ -50,39 +47,14 @@ public sealed class ReaderSelectionService
             null);
     }
 
-    public ReaderSelection BuildPageSelection(
-        IReadOnlyList<ReaderParagraph> currentPageParagraphs,
-        int pageStartParagraphIndex)
-    {
-        var text = string.Join(Environment.NewLine, currentPageParagraphs.Select(paragraph => paragraph.Text));
-        var endParagraphIndex = (currentPageParagraphs.LastOrDefault()?.Index ?? pageStartParagraphIndex) + 1;
-
-        return new ReaderSelection(
-            SelectionKind.Page,
-            text,
-            pageStartParagraphIndex,
-            0,
-            endParagraphIndex,
-            0,
-            SelectionKind.Page,
-            null);
-    }
-
     public ReaderSelection? ReselectFromAnchor(
         SelectionKind mode,
         int sourceParagraphIndex,
         int sourceOffset,
-        IReadOnlyList<ReaderParagraph> allParagraphs,
-        IReadOnlyList<ReaderParagraph> currentPageParagraphs,
-        int pageStartParagraphIndex)
+        IReadOnlyList<ReaderParagraph> allParagraphs)
     {
-        if (mode == SelectionKind.Page)
-        {
-            return BuildPageSelection(currentPageParagraphs, pageStartParagraphIndex);
-        }
-
         var paragraph = allParagraphs.FirstOrDefault(paragraph => paragraph.Index == sourceParagraphIndex)
-            ?? currentPageParagraphs.FirstOrDefault();
+            ?? allParagraphs.FirstOrDefault();
 
         if (paragraph is null)
         {

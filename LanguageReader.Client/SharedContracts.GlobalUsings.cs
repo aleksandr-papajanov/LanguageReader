@@ -1,17 +1,14 @@
 global using LanguageReader.Client.Features.Common.Components;
 global using LanguageReader.Client.Features.BookTranslations.Services;
-global using LanguageReader.Client.Features.Books.Models;
 global using LanguageReader.Client.Features.Books.Services;
 global using LanguageReader.Client.Features.Common.Services;
 global using LanguageReader.Client.Features.News.Services;
 global using LanguageReader.Client.Features.Reading.Services;
 global using LanguageReader.Client.Features.Reading.Models;
 global using LanguageReader.Client.Features.ReadingItems.Services;
-global using LanguageReader.Client.Features.Settings.Models;
 global using LanguageReader.Client.Features.Settings.Services;
 global using LanguageReader.Client.Features.Translation.Services;
 global using LanguageReader.Client.Features.Users.Services;
-global using LanguageReader.Client.Features.Vocabulary.Models;
 global using LanguageReader.Client.Features.Vocabulary.Services;
 global using LanguageReader.Shared.Features.Common;
 global using LanguageReader.Shared.Features.Books;

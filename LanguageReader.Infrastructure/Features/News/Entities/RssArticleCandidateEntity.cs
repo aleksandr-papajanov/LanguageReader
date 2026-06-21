@@ -1,5 +1,3 @@
-using LanguageReader.Shared.Features.News;
-
 namespace LanguageReader.Infrastructure.Features.News.Entities;
 
 public sealed class RssArticleCandidateEntity

@@ -17,6 +17,10 @@
                    Title="Next page"
                    Disabled="@IsNextDisabled"
                    OnClick="@(_ => NextClicked.InvokeAsync())" />
+
+        <AppProgressBar Value="@ProgressPercent"
+                        Size="sm"
+                        AdditionalClass="reader-dock-progress" />
     </div>
 </div>
 

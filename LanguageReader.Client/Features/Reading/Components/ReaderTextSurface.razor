@@ -48,21 +48,32 @@
             {
                 @if (chunk.SelectTranslation is not null)
                 {
-                    <ReaderTranslatedFragmentActions Translation="chunk.SelectTranslation"
-                                                     Mode="ReaderTranslatedFragmentActions.ReaderFragmentActionMode.SelectMarker"
-                                                     IsActive="@(ActiveTranslation?.Id == chunk.SelectTranslation.Id)"
-                                                     IsInVocabulary="@IsInVocabulary(chunk.SelectTranslation)"
-                                                     SelectClicked="TranslationSelected"
-                                                     DisplayToggleClicked="TranslationDisplayToggleSelected"
-                                                     VocabularyToggleClicked="TranslationVocabularyToggleSelected"
-                                                     OpenDetailsClicked="TranslationOpenDetailsSelected"
-                                                     DeleteClicked="TranslationDeleteSelected" />
+                    <span class="reader-translated-fragment">
+                        <ReaderTranslatedFragmentActions Translation="chunk.SelectTranslation"
+                                                         Mode="ReaderTranslatedFragmentActions.ReaderFragmentActionMode.SelectMarker"
+                                                         IsActive="@(ActiveTranslation?.Id == chunk.SelectTranslation.Id)"
+                                                         IsInVocabulary="@IsInVocabulary(chunk.SelectTranslation)"
+                                                         SelectClicked="TranslationSelected"
+                                                         UnselectClicked="TranslationUnselected"
+                                                         DisplayToggleClicked="TranslationDisplayToggleSelected"
+                                                         VocabularyToggleClicked="TranslationVocabularyToggleSelected"
+                                                         OpenDetailsClicked="TranslationOpenDetailsSelected"
+                                                         DeleteClicked="TranslationDeleteSelected" />
+                        @if (!string.IsNullOrEmpty(chunk.Text))
+                        {
+                            <span class="reader-translated-fragment__text"
+                                  data-original-start="@chunk.StartOffset"
+                                  data-original-end="@chunk.EndOffset"
+                                  data-original-text="@chunk.OriginalText"
+                                  data-translated="@chunk.IsTranslated.ToString().ToLowerInvariant()">@chunk.Text</span>
+                        }
+                    </span>
                 }
-
-                @if (!string.IsNullOrEmpty(chunk.Text))
+                else if (!string.IsNullOrEmpty(chunk.Text))
                 {
                     <span data-original-start="@chunk.StartOffset"
                           data-original-end="@chunk.EndOffset"
+                          data-original-text="@chunk.OriginalText"
                           data-translated="@chunk.IsTranslated.ToString().ToLowerInvariant()">@chunk.Text</span>
                 }
             }
@@ -73,6 +84,8 @@
 @code {
     private const double SelectionActionsWidth = 18 * 16;
     private const double TranslationPopupWidth = 11 * 16;
+    private const double SelectionActionsHeight = 34;
+    private const double TranslationPopupHeight = 38;
 
     private readonly List<ReaderRangeRect> overlayRects = [];
 
@@ -119,6 +132,9 @@
 
     [Parameter]
     public EventCallback<TranslatedRangeDto> TranslationSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<TranslatedRangeDto> TranslationUnselected { get; set; }
 
     [Parameter]
     public EventCallback<TranslatedRangeDto> TranslationDisplayToggleSelected { get; set; }
@@ -183,7 +199,7 @@
             lastScrollRequestKey = ScrollRequestKey;
 
             await JsRuntime.InvokeVoidAsync(
-                "languageReaderSelection.scrollToParagraphOffset",
+                "languageReaderSelection.scrollParagraphOffsetIntoViewIfNeeded",
                 readerPage,
                 ScrollParagraphIndex.Value,
                 ScrollOffset ?? 0);
@@ -238,15 +254,6 @@
         return visibleParagraphIndex.HasValue
             ? new ReadingPositionDto(readingItemId, visibleParagraphIndex.Value, 0)
             : null;
-    }
-
-    public ValueTask ScrollRangeStartIntoViewIfNeededAsync(int paragraphIndex, int startOffset)
-    {
-        return JsRuntime.InvokeVoidAsync(
-            "languageReaderSelection.scrollRangeStartIntoViewIfNeeded",
-            readerPage,
-            paragraphIndex,
-            startOffset);
     }
 
     private async Task HandleReaderClickAsync(MouseEventArgs args)
@@ -335,23 +342,6 @@
 
     private IEnumerable<ReaderRangeOverlay> BuildSelectionOverlays(ReaderSelection readerSelection)
     {
-        if (readerSelection.SelectionType == SelectionKind.Page)
-        {
-            foreach (var paragraph in Paragraphs)
-            {
-                yield return new ReaderRangeOverlay(
-                    "selection-page-" + paragraph.Index,
-                    "selection",
-                    "selection",
-                    paragraph.Index,
-                    0,
-                    paragraph.Text.Length,
-                    null);
-            }
-
-            yield break;
-        }
-
         yield return new ReaderRangeOverlay(
             "selection",
             IsTranslationLoading ? "selection-loading" : "selection",
@@ -369,24 +359,6 @@
         var layer = IsInVocabulary(range) ? "vocabulary" : "translation";
         var displayText = range.ShowOriginal ? null : range.TranslatedText;
 
-        if (range.SelectionKind == SelectionKind.Page)
-        {
-            foreach (var paragraph in Paragraphs.Where(paragraph =>
-                         paragraph.Index >= range.ParagraphIndex && paragraph.Index < range.EndOffset))
-            {
-                yield return new ReaderRangeOverlay(
-                    $"{kind}-{range.Id}-{paragraph.Index}",
-                    kind,
-                    layer,
-                    paragraph.Index,
-                    0,
-                    paragraph.Text.Length,
-                    displayText);
-            }
-
-            yield break;
-        }
-
         yield return new ReaderRangeOverlay(
             $"{kind}-{range.Id}",
             kind,
@@ -401,8 +373,7 @@
     {
         var translations = GetVisibleTranslations()
             .Where(range =>
-                range.SelectionKind != SelectionKind.Page
-                && range.ParagraphIndex == paragraph.Index)
+                range.ParagraphIndex == paragraph.Index)
             .ToList();
 
         return BuildTextChunks(paragraph, translations, 0, paragraph.Text.Length, null);
@@ -436,6 +407,7 @@
             {
                 chunks.Add(new ReaderTextChunk(
                     paragraph.Text[cursor..replacement.StartOffset],
+                    paragraph.Text[cursor..replacement.StartOffset],
                     cursor,
                     replacement.StartOffset,
                     false,
@@ -446,6 +418,7 @@
             {
                 chunks.Add(new ReaderTextChunk(
                     string.Empty,
+                    paragraph.Text[replacement.StartOffset..endOffset],
                     replacement.StartOffset,
                     replacement.StartOffset,
                     false,
@@ -458,6 +431,7 @@
 
             chunks.Add(new ReaderTextChunk(
                 replacement.TranslatedText,
+                paragraph.Text[replacement.StartOffset..endOffset],
                 replacement.StartOffset,
                 endOffset,
                 true,
@@ -469,6 +443,7 @@
         if (cursor < rangeEnd)
         {
             chunks.Add(new ReaderTextChunk(
+                paragraph.Text[cursor..rangeEnd],
                 paragraph.Text[cursor..rangeEnd],
                 cursor,
                 rangeEnd,
@@ -513,13 +488,6 @@
 
     private static bool Contains(TranslatedRangeDto parent, TranslatedRangeDto child)
     {
-        if (parent.SelectionKind == SelectionKind.Page)
-        {
-            return child.ReadingItemId == parent.ReadingItemId
-                && child.ParagraphIndex >= parent.ParagraphIndex
-                && child.ParagraphIndex < parent.EndOffset;
-        }
-
         return parent.ReadingItemId == child.ReadingItemId
             && parent.ParagraphIndex == child.ParagraphIndex
             && parent.StartOffset <= child.StartOffset
@@ -547,7 +515,7 @@
             : new TranslationActionAnchor(
                 ActiveTranslation,
                 anchorRect.Left,
-                Math.Max(0, anchorRect.Top - 34),
+                GetFloatingPanelTop(anchorRect, TranslationPopupHeight),
                 TranslationPopupWidth);
     }
 
@@ -569,8 +537,19 @@
             : new TranslationActionAnchor(
                 null,
                 anchorRect.Left,
-                Math.Max(0, anchorRect.Top - 36),
+                GetFloatingPanelTop(anchorRect, SelectionActionsHeight),
                 SelectionActionsWidth);
+    }
+
+    private static double GetFloatingPanelTop(ReaderRangeRect anchorRect, double panelHeight)
+    {
+        var aboveTop = anchorRect.Top - panelHeight - 8;
+        if (aboveTop >= 8)
+        {
+            return aboveTop;
+        }
+
+        return anchorRect.Top + anchorRect.Height + 8;
     }
 
     private bool IsInVocabulary(TranslatedRangeDto range)
@@ -585,8 +564,8 @@
         return VocabularyEntries.Any(entry =>
             entry.IsVisibleInVocabulary
             && entry.ReadingItemId == range.ReadingItemId
-            && entry.Position.ParagraphIndex == range.ParagraphIndex
-            && entry.Position.CharacterOffset == range.StartOffset
+            && entry.Position?.ParagraphIndex == range.ParagraphIndex
+            && entry.Position?.CharacterOffset == range.StartOffset
             && entry.SelectionKind == range.SelectionKind
             && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
     }
@@ -595,7 +574,6 @@
     {
         return range.SelectionKind switch
         {
-            SelectionKind.Page => 0,
             SelectionKind.Paragraph => 1,
             SelectionKind.Sentence => 2,
             SelectionKind.Phrase => 3,
@@ -645,6 +623,7 @@
 
     private sealed record ReaderTextChunk(
         string Text,
+        string OriginalText,
         int StartOffset,
         int EndOffset,
         bool IsTranslated,

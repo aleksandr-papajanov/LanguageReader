@@ -27,7 +27,6 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      Database__ConnectionString: Host=postgres;Port=5432;Database=language_reader;Username=language_reader;Password=language_reader_dev_password
       Authentication__RequireHttpsMetadata: "false"
     ports:
       - "8080:8080"

@@ -15,7 +15,7 @@
             @foreach (var item in Items)
             {
                 <AppButton Label="@item.Label"
-                           Variant="ghost"
+                           Variant="@item.Variant"
                            Size="sm"
                            Icon="@item.Icon"
                            Disabled="@item.Disabled"
@@ -49,6 +49,9 @@
     public bool OpenUpward { get; set; } = true;
 
     [Parameter]
+    public string Align { get; set; } = "start";
+
+    [Parameter]
     public bool Disabled { get; set; }
 
     [Parameter]
@@ -59,9 +62,25 @@
 
     private bool isOpen;
 
-    private string MenuClass => OpenUpward
-        ? "app-dropdown__menu app-dropdown__menu--up"
-        : "app-dropdown__menu";
+    private string MenuClass
+    {
+        get
+        {
+            var classes = new List<string> { "app-dropdown__menu" };
+
+            if (OpenUpward)
+            {
+                classes.Add("app-dropdown__menu--up");
+            }
+
+            if (Align == "end")
+            {
+                classes.Add("app-dropdown__menu--align-end");
+            }
+
+            return string.Join(" ", classes);
+        }
+    }
 
     private Task ToggleMenu(MouseEventArgs _)
     {

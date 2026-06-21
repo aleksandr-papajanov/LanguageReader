@@ -61,13 +61,13 @@ else if (entry is not null)
 
                     @if (entry.IsVisibleInVocabulary)
                     {
-                        <AppButton Label="Delete"
+                        <AppButton Label="Remove"
                                    Variant="destructive"
                                    Size="sm"
-                                   Icon="delete"
+                                   Icon="bookmark_remove"
                                    Disabled="@isBusy"
                                    AdditionalClass="word-details-hero__action-button"
-                                   OnClick="@(_ => DeleteEntryAsync())" />
+                                   OnClick="@(_ => RemoveFromVocabularyAsync())" />
                     }
                 </div>
             </div>
@@ -378,7 +378,7 @@ else if (entry is not null)
         });
     }
 
-    private async Task DeleteEntryAsync()
+    private async Task RemoveFromVocabularyAsync()
     {
         if (entry is null)
         {
@@ -426,7 +426,9 @@ else if (entry is not null)
     {
         return entry is null
             ? string.Empty
-            : $"{entry.SelectionKind} in {entry.ReadingItemTitle}";
+            : entry.Position is null
+                ? $"{entry.SelectionKind} from deleted reading item"
+                : $"{entry.SelectionKind} in {entry.ReadingItemTitle}";
     }
 
     private string GetLatestOperationModel()

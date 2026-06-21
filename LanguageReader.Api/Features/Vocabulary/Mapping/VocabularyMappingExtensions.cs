@@ -13,10 +13,12 @@ internal static class VocabularyMappingExtensions
             entry.Translation,
             entry.SourceLanguage ?? string.Empty,
             entry.TargetLanguage,
-            entry.Book!.Title,
+            entry.Book?.Title ?? "Deleted reading item",
             entry.ReadingItemId,
             entry.Username,
-            new ReadingPositionDto(entry.ReadingItemId, entry.ParagraphIndex, entry.CharacterOffset),
+            entry.ReadingItemId.HasValue
+                ? new ReadingPositionDto(entry.ReadingItemId.Value, entry.ParagraphIndex, entry.CharacterOffset)
+                : null,
             entry.SelectionKind,
             entry.WordDetails?.ToVocabularyWordDetailsDto(),
             entry.RelatedWords

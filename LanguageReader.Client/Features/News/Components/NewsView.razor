@@ -29,14 +29,32 @@
                  AriaLabel="News sources" />
     </div>
 
+    @if (isLoading)
+    {
+        <AppLoader Label="Loading news" />
+    }
+    else if (isSwitchingSource)
+    {
+        <AppLoader Label="Switching source" />
+    }
+    else if (items.Count == 0 && string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <AppAlert Tone="info"
+                  Title="No articles yet"
+                  Message="This source did not return any readable articles right now." />
+    }
+
     <AppSection Title="Latest news">
-        <ReadingItemList Items="items"
-                         EmptyMessage="No news items found."
-                         BusyItemId="busyItemId"
-                         PrimaryActionSelected="HandlePrimaryActionAsync"
-                         VisibilityToggleSelected="ToggleVisibilityAsync"
-                         DeleteSelected="DeleteSavedAsync"
-                         OpenOriginalSelected="OpenOriginalAsync" />
+        @if (!isLoading && !isSwitchingSource)
+        {
+            <ReadingItemList Items="items"
+                             EmptyMessage="No news items found."
+                             BusyItemId="busyItemId"
+                             PrimaryActionSelected="HandlePrimaryActionAsync"
+                             VisibilityToggleSelected="ToggleVisibilityAsync"
+                             DeleteSelected="DeleteSavedAsync"
+                             OpenOriginalSelected="OpenOriginalAsync" />
+        }
     </AppSection>
 </section>
 
@@ -46,13 +64,15 @@
     private string activeSourceKey = NewsSourceKeys.Svt;
     private Guid? busyItemId;
     private string? errorMessage;
+    private bool isLoading;
+    private bool isSwitchingSource;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAsync();
+        await LoadAsync(showInitialLoading: true);
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(bool showInitialLoading = false)
     {
         errorMessage = null;
 
@@ -60,6 +80,11 @@
         {
             items = [];
             return;
+        }
+
+        if (showInitialLoading)
+        {
+            isLoading = true;
         }
 
         try
@@ -75,6 +100,10 @@
         {
             items = [];
             errorMessage = exception.Message;
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 
@@ -199,6 +228,14 @@
         }
 
         activeSourceKey = sourceKey;
-        await LoadAsync();
+        isSwitchingSource = true;
+        try
+        {
+            await LoadAsync();
+        }
+        finally
+        {
+            isSwitchingSource = false;
+        }
     }
 }
