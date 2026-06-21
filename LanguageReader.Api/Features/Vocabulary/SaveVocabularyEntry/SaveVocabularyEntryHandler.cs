@@ -59,17 +59,19 @@ internal sealed class SaveVocabularyEntryHandler(
             normalizedCharacterOffset,
             word,
             ct);
-        var normalization = await vocabularyEnrichmentService.NormalizeAsync(
-            new VocabularyNormalizationRequest(
-                normalizedUsername,
-                word,
-                translation,
-                wordLanguage,
-                targetLanguage,
-                request.ContextSentence),
-            ct);
-        var dictionaryForm = normalization.DictionaryForm.Trim();
-        var canonicalWord = dictionaryForm;
+        var normalization = request.SelectionKind == SelectionKind.Word
+            ? await vocabularyEnrichmentService.NormalizeAsync(
+                new VocabularyNormalizationRequest(
+                    normalizedUsername,
+                    word,
+                    translation,
+                    wordLanguage,
+                    targetLanguage,
+                    request.ContextSentence),
+                ct)
+            : null;
+        var dictionaryForm = normalization?.DictionaryForm.Trim();
+        var canonicalWord = dictionaryForm ?? word;
 
         var entry = matchingRange?.VocabularyEntryId is Guid linkedEntryId
             ? await LoadOwnedEntryAsync(linkedEntryId, normalizedUsername, ct)
@@ -133,7 +135,10 @@ internal sealed class SaveVocabularyEntryHandler(
 
         EnsureBookExample(entry, request.ContextSentence, request.Position);
         await LinkTranslatedRangeAsync(entry, matchingRange, ct);
-        dbContext.AiOperations.Add(AiOperationMapper.ToEntity(normalization.Usage, normalizedUsername, vocabularyEntryId: entry.Id));
+        if (normalization is not null)
+        {
+            dbContext.AiOperations.Add(AiOperationMapper.ToEntity(normalization.Usage, normalizedUsername, vocabularyEntryId: entry.Id));
+        }
 
         await dbContext.SaveChangesAsync(ct);
 
@@ -283,13 +288,6 @@ internal sealed class SaveVocabularyEntryHandler(
         {
             entry.WordDetails.SeenForm = seenWord;
         }
-    }
-
-    private static string? NormalizeOptional(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value)
-            ? null
-            : value.Trim();
     }
 
     private async Task<VocabularyEntryEntity?> LoadOwnedEntryAsync(Guid id, string username, CancellationToken ct)

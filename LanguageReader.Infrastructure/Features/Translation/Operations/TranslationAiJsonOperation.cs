@@ -34,20 +34,19 @@ internal sealed class TranslationAiJsonOperation(
 
     private static string BuildInput(TranslateRequest request)
     {
-        var payload = new Dictionary<string, object?>
-        {
-            ["selectedText"] = request.SourceText.Trim(),
-            ["selectionKind"] = request.SelectionKind.ToString(),
-            ["sourceLanguage"] = string.IsNullOrWhiteSpace(request.SourceLanguage) ? "Unknown" : request.SourceLanguage.Trim(),
-            ["targetLanguage"] = request.TargetLanguage.Trim()
-        };
+        return $$"""
+Selected text:
+{{request.SourceText.Trim()}}
 
-        if (!string.IsNullOrWhiteSpace(request.OriginalText))
-        {
-            payload["contextText"] = request.OriginalText.Trim();
-        }
+Context:
+{{NormalizeContext(request)}}
 
-        return JsonSerializer.Serialize(payload, JsonOptions.Options);
+Source language:
+{{(string.IsNullOrWhiteSpace(request.SourceLanguage) ? "Unknown" : request.SourceLanguage.Trim())}}
+
+Target language:
+{{request.TargetLanguage.Trim()}}
+""";
     }
 
     private static string BuildInstructions()
@@ -101,6 +100,13 @@ targetLanguage is the language you must translate into.
         {
             throw new ValidationException("Select text before translating.");
         }
+    }
+
+    private static string NormalizeContext(TranslateRequest request)
+    {
+        return string.IsNullOrWhiteSpace(request.OriginalText)
+            ? request.SourceText.Trim()
+            : request.OriginalText.Trim();
     }
 
     internal sealed record Payload(string TranslatedText);

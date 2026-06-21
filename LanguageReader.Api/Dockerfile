@@ -16,5 +16,7 @@ RUN dotnet publish LanguageReader.Api/LanguageReader.Api.csproj --configuration 
 FROM runtime AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
 EXPOSE 8080
+
 ENTRYPOINT ["dotnet", "LanguageReader.Api.dll"]

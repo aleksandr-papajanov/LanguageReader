@@ -345,9 +345,7 @@ else if (content is not null)
                     readingItemDetails?.OriginalLanguage ?? content?.OriginalLanguage,
                     selection.SelectionType,
                     selection.SelectedText,
-                    selection.SelectionType is SelectionKind.Word or SelectionKind.Phrase
-                        ? selectionService.GetContextSentence(paragraphs, selection.ParagraphIndex, selection.StartOffset)
-                        : null,
+                    BuildTranslationContext(selection),
                     ReadingItemId,
                     CurrentPosition()));
 
@@ -567,6 +565,13 @@ else if (content is not null)
     private ReadingPositionDto CurrentPosition()
     {
         return new ReadingPositionDto(ReadingItemId, progress.ParagraphIndex, progress.CharacterOffset);
+    }
+
+    private string? BuildTranslationContext(ReaderSelection readerSelection)
+    {
+        return readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Phrase
+            ? selectionService.GetContextSentence(paragraphs, readerSelection.ParagraphIndex, readerSelection.StartOffset)
+            : readerSelection.SelectedText;
     }
 
     private async Task SaveCurrentPositionAsync()

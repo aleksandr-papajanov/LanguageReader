@@ -113,7 +113,6 @@ public sealed class FakeVocabularyEnrichmentService : IVocabularyEnrichmentBacke
             pricing.OutputUsdPerMillionTokens);
 
         return Task.FromResult(new VocabularyAutofillResult(
-            DictionaryForm: BuildDictionaryForm(normalizedWord),
             PrimaryTranslation: normalizedTranslation,
             Description: description,
             FrequencyScore: faker.Random.Int(42, 94),

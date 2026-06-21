@@ -19,7 +19,6 @@ internal sealed class TranslatedRangeConfiguration : IEntityTypeConfiguration<Tr
         entity.Property(range => range.EndOffset).HasColumnName("end_offset");
         entity.Property(range => range.OriginalText).HasColumnName("original_text").IsRequired();
         entity.Property(range => range.TranslatedText).HasColumnName("translated_text").IsRequired();
-        entity.Property(range => range.DictionaryForm).HasColumnName("dictionary_form");
         entity.Property(range => range.ResolvedSelectionKind).HasColumnName("resolved_selection_kind").HasConversion<string>().HasMaxLength(32);
         entity.Property(range => range.VocabularyEntryId).HasColumnName("vocabulary_entry_id");
         entity.Property(range => range.ShowOriginal).HasColumnName("show_original");

@@ -59,11 +59,6 @@ public sealed class TranslatedRangeEntity
     public string TranslatedText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional dictionary form for word selections.
-    /// </summary>
-    public string? DictionaryForm { get; set; }
-
-    /// <summary>
     /// Semantic kind resolved by AI for custom selections.
     /// </summary>
     public SelectionKind? ResolvedSelectionKind { get; set; }

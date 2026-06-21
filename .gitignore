@@ -36,3 +36,4 @@ appsettings.Development.json
 docs/
 scripts/
 AGENTS.md
+LanguageReader.Api/storage

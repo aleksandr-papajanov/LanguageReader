@@ -30,7 +30,7 @@ internal sealed class VocabularyAutofillAiJsonOperation(
             Model: null,
             request.Word.Length + request.Translation.Length,
             request.ContextSentence?.Length ?? 0,
-            ExpectedJsonPropertyCount: 10);
+            ExpectedJsonPropertyCount: 9);
     }
 
     private static string BuildInput(VocabularyAutofillRequest request)
@@ -74,7 +74,6 @@ Rules:
             additionalProperties = false,
             required = new[]
             {
-                "dictionaryForm",
                 "primaryTranslation",
                 "description",
                 "alternativeTranslations",
@@ -87,16 +86,10 @@ Rules:
             },
             properties = new
             {
-                dictionaryForm = new
-                {
-                    type = "string",
-                    description = $"Echo word exactly as the saved dictionary form in {wordLanguage}. Do not translate it.",
-                    minLength = 1
-                },
                 primaryTranslation = new
                 {
                     type = "string",
-                    description = $"The best short canonical translation of dictionaryForm in {translationLanguage}. Use the known translation only as guidance.",
+                    description = $"The best short canonical translation of word in {translationLanguage}. Use the known translation only as guidance.",
                     minLength = 1
                 },
                 description = new
@@ -139,7 +132,7 @@ Rules:
                 synonyms = new
                 {
                     type = "array",
-                    description = $"Synonyms of dictionaryForm in {wordLanguage}. Do not include translations.",
+                    description = $"Synonyms of word in {wordLanguage}. Do not include translations.",
                     minItems = 0,
                     maxItems = 4,
                     items = new
@@ -151,7 +144,7 @@ Rules:
                 antonyms = new
                 {
                     type = "array",
-                    description = $"Antonyms of dictionaryForm in {wordLanguage}. Do not include translations.",
+                    description = $"Antonyms of word in {wordLanguage}. Do not include translations.",
                     minItems = 0,
                     maxItems = 4,
                     items = new
@@ -202,7 +195,6 @@ Rules:
     }
 
     internal sealed record Payload(
-        string DictionaryForm,
         string PrimaryTranslation,
         string Description,
         IReadOnlyList<string> AlternativeTranslations,

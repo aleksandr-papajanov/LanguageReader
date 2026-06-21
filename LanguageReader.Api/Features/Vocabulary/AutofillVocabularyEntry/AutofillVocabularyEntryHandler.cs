@@ -40,18 +40,7 @@ internal sealed class AutofillVocabularyEntryHandler(
             entry.WordDetails.SeenForm = entry.Word;
         }
 
-        if (string.IsNullOrWhiteSpace(entry.WordDetails.DictionaryForm)
-            && !string.IsNullOrWhiteSpace(generated.DictionaryForm))
-        {
-            entry.WordDetails.DictionaryForm = generated.DictionaryForm.Trim();
-        }
-
-        if (!string.IsNullOrWhiteSpace(generated.DictionaryForm))
-        {
-            var normalizedDictionaryForm = generated.DictionaryForm.Trim();
-            entry.WordDetails.DictionaryForm = normalizedDictionaryForm;
-            entry.Word = normalizedDictionaryForm;
-        }
+        entry.WordDetails.DictionaryForm ??= entry.Word;
 
         if (!string.IsNullOrWhiteSpace(generated.PrimaryTranslation))
         {

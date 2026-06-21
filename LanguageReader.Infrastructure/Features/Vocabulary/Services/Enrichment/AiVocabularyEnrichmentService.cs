@@ -34,11 +34,6 @@ public sealed class AiVocabularyEnrichmentService(
         var result = await operationRunner.RunAsync(new VocabularyAutofillAiJsonOperation(request), cancellationToken);
         var payload = result.Payload;
 
-        if (string.IsNullOrWhiteSpace(payload.DictionaryForm))
-        {
-            throw new InfrastructureException("Vocabulary autofill must include dictionaryForm.");
-        }
-
         if (string.IsNullOrWhiteSpace(payload.PrimaryTranslation))
         {
             throw new InfrastructureException("Vocabulary autofill must include primaryTranslation.");
@@ -49,7 +44,6 @@ public sealed class AiVocabularyEnrichmentService(
             throw new InfrastructureException("Vocabulary autofill must include description.");
         }
 
-        var dictionaryForm = NormalizeRequiredText("dictionaryForm", payload.DictionaryForm);
         var primaryTranslation = NormalizeRequiredText("primaryTranslation", payload.PrimaryTranslation);
         var description = NormalizeRequiredText("description", payload.Description);
         var notes = NormalizeOptionalText(payload.Notes);
@@ -63,7 +57,6 @@ public sealed class AiVocabularyEnrichmentService(
             .ToList();
 
         return new VocabularyAutofillResult(
-            dictionaryForm,
             primaryTranslation,
             description,
             Math.Clamp(payload.FrequencyScore, 0, 100),
