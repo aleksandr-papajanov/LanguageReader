@@ -1,0 +1,21 @@
+{
+  "name": "LanguageReader",
+  "short_name": "Reader",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "theme_color": "#f7f4ed",
+  "background_color": "#f7f4ed",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

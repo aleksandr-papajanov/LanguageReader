@@ -7,7 +7,7 @@
 
     z-index: 1;
 
-    padding: 0.38rem 0.44rem calc(0.38rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.38rem 0.44rem calc(0.38rem + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 
     border: 1px solid rgba(23, 20, 17, 0.08);
     border-radius: 1.65rem;
@@ -30,7 +30,7 @@
     content: "";
     position: absolute;
     top: 0.45rem;
-    bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(0.45rem + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
     z-index: 2;
     width: 1.65rem;
     pointer-events: none;
