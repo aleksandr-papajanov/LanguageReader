@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-const string DevelopmentCorsPolicy = "DevelopmentCors";
+const string ClientCorsPolicy = "ClientCors";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,12 +40,27 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddFeatureHandlers();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(DevelopmentCorsPolicy, policy =>
+    var corsOptions = builder.Configuration
+        .GetSection(ClientCorsOptions.SectionName)
+        .Get<ClientCorsOptions>() ?? new ClientCorsOptions();
+
+    var allowedOrigins = corsOptions.AllowedOrigins
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .ToArray();
+
+    options.AddPolicy(ClientCorsPolicy, policy =>
     {
         policy
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .SetIsOriginAllowed(_ => builder.Environment.IsDevelopment());
+            .AllowAnyMethod();
+
+        if (builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+        {
+            policy.SetIsOriginAllowed(_ => true);
+            return;
+        }
+
+        policy.WithOrigins(allowedOrigins);
     });
 });
 builder.Services.AddEndpointsApiExplorer();
@@ -87,10 +102,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors(DevelopmentCorsPolicy);
 }
 
 app.UseHttpsRedirection();
+app.UseCors(ClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 

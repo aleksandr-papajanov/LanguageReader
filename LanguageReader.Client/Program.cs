@@ -8,8 +8,10 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-var clientUri = new Uri(builder.HostEnvironment.BaseAddress);
-var apiBaseAddress = new Uri($"{clientUri.Scheme}://{clientUri.Host}:5000");
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
+var apiBaseAddress = string.IsNullOrWhiteSpace(apiBaseUrl)
+    ? new Uri("http://localhost:5000")
+    : new Uri(apiBaseUrl, UriKind.Absolute);
 
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = apiBaseAddress });
 builder.Services.AddScoped<UserSession>();
