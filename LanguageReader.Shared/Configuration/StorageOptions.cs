@@ -24,5 +24,30 @@ public sealed class StorageOptions
     /// Future bucket name for object storage providers.
     /// </summary>
     public string? BucketName { get; init; }
+
+    /// <summary>
+    /// S3-compatible endpoint URL for Supabase Storage.
+    /// </summary>
+    public string? Endpoint { get; init; }
+
+    /// <summary>
+    /// S3 region from the Supabase Storage S3 settings page.
+    /// </summary>
+    public string? Region { get; init; }
+
+    /// <summary>
+    /// Server-side Supabase Storage S3 access key id.
+    /// </summary>
+    public string? AccessKeyId { get; init; }
+
+    /// <summary>
+    /// Server-side Supabase Storage S3 secret access key.
+    /// </summary>
+    public string? SecretAccessKey { get; init; }
+
+    /// <summary>
+    /// Use path-style addressing for S3-compatible providers.
+    /// </summary>
+    public bool ForcePathStyle { get; init; } = true;
 }
 

@@ -77,7 +77,16 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddStorage(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
-        services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddSingleton<IFileStorage>(serviceProvider =>
+        {
+            var storageOptions = serviceProvider.GetRequiredService<IOptions<StorageOptions>>().Value;
+            return storageOptions.Provider.Trim().ToLowerInvariant() switch
+            {
+                "local" => ActivatorUtilities.CreateInstance<LocalFileStorage>(serviceProvider),
+                "supabase" or "s3" => ActivatorUtilities.CreateInstance<SupabaseS3FileStorage>(serviceProvider),
+                _ => throw new InvalidOperationException($"Unsupported storage provider '{storageOptions.Provider}'.")
+            };
+        });
 
         return services;
     }
