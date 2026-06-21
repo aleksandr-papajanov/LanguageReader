@@ -6,10 +6,12 @@
 .reader-dock-bar {
     width: fit-content;
     max-width: 100%;
+    width: 100%;
 
     display: grid;
     grid-template-columns: auto minmax(5.8rem, auto) auto;
     align-items: center;
+    justify-content: space-between;
     gap: 0.22rem 0.55rem;
     padding: 0.2rem 0.3rem 0.34rem;
     border: 1px solid rgba(23, 20, 17, 0.08);

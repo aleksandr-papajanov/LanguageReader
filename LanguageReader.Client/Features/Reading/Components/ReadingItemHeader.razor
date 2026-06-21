@@ -62,9 +62,9 @@
                 }
             </div>
 
-            <div class="reader-article-header__aside">
-                @if (!string.IsNullOrWhiteSpace(Details.ImageUrl))
-                {
+            @if (!string.IsNullOrWhiteSpace(Details.ImageUrl))
+            {
+                <div class="reader-article-header__aside">
                     <AppImage Src="@Details.ImageUrl"
                               Alt="@Title"
                               Decorative="true"
@@ -72,34 +72,26 @@
                               AdditionalClass="reader-article-header__image-wrap"
                               Style="width: clamp(4.8rem, 14vw, 7rem); aspect-ratio: 1; height: auto; justify-self: start; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);"
                               ImageClass="reader-article-header__image" />
-                }
-
-                <ReaderBottomDock CurrentPage="@CurrentPage"
-                                  TotalPages="@TotalPages"
-                                  ProgressPercent="@ProgressPercent"
-                                  IsPreviousDisabled="@IsPreviousDisabled"
-                                  IsNextDisabled="@IsNextDisabled"
-                                  PreviousClicked="PreviousClicked"
-                                  NextClicked="NextClicked" />
-            </div>
+                </div>
+            }
         </div>
     }
     else
     {
         <div class="reader-meta">
             <h1 class="reader-title">@Title</h1>
-
-            <div class="reader-meta__aside">
-                <ReaderBottomDock CurrentPage="@CurrentPage"
-                                  TotalPages="@TotalPages"
-                                  ProgressPercent="@ProgressPercent"
-                                  IsPreviousDisabled="@IsPreviousDisabled"
-                                  IsNextDisabled="@IsNextDisabled"
-                                  PreviousClicked="PreviousClicked"
-                                  NextClicked="NextClicked" />
-            </div>
         </div>
     }
+</div>
+
+<div class="reader-progress-dock">
+    <ReaderBottomDock CurrentPage="@CurrentPage"
+                      TotalPages="@TotalPages"
+                      ProgressPercent="@ProgressPercent"
+                      IsPreviousDisabled="@IsPreviousDisabled"
+                      IsNextDisabled="@IsNextDisabled"
+                      PreviousClicked="PreviousClicked"
+                      NextClicked="NextClicked" />
 </div>
 
 @code {
@@ -133,4 +125,10 @@
     [Parameter]
     public EventCallback NextClicked { get; set; }
 
+    private bool IsCollapsed { get; set; }
+
+    private void ToggleCollapsed()
+    {
+        IsCollapsed = !IsCollapsed;
+    }
 }
