@@ -9,6 +9,7 @@
                type="@Type"
                value="@Value"
                placeholder="@Placeholder"
+               autocomplete="@Autocomplete"
                @oninput="OnInputChanged" />
     </div>
 </AppField>
@@ -37,6 +38,9 @@
 
     [Parameter]
     public string Type { get; set; } = "text";
+
+    [Parameter]
+    public string? Autocomplete { get; set; }
 
     [Parameter]
     public string? LeadingIcon { get; set; }

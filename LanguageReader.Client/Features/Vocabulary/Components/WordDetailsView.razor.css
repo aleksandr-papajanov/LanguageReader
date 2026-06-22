@@ -51,6 +51,44 @@
     font-weight: 700;
 }
 
+.word-details-hero--phrase .word-details-hero__title-row,
+.word-details-hero--sentence .word-details-hero__title-row,
+.word-details-hero--paragraph .word-details-hero__title-row {
+    align-items: flex-start;
+}
+
+.word-details-hero--phrase .word-details-hero__title,
+.word-details-hero--sentence .word-details-hero__title,
+.word-details-hero--paragraph .word-details-hero__title {
+    max-width: 56rem;
+}
+
+.word-details-hero--phrase .word-details-hero__title {
+    font-size: clamp(2.55rem, 5.5vw, 4rem);
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+}
+
+.word-details-hero--sentence .word-details-hero__title {
+    font-size: clamp(2rem, 4.2vw, 3.1rem);
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+}
+
+.word-details-hero--paragraph .word-details-hero__title {
+    font-size: clamp(1.45rem, 2.8vw, 2.15rem);
+    line-height: 1.18;
+    letter-spacing: -0.025em;
+}
+
+.word-details-hero--phrase .word-details-hero__subtitle,
+.word-details-hero--sentence .word-details-hero__subtitle,
+.word-details-hero--paragraph .word-details-hero__subtitle {
+    max-width: 46rem;
+    font-size: 0.98rem;
+    line-height: 1.45;
+}
+
 .word-details-hero__subtitle,
 .word-details-hero__eyebrow {
     margin: 0;

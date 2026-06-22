@@ -68,6 +68,7 @@
 
     [Parameter] public string? FieldClass { get; set; }
     [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public bool CompactTitle { get; set; }
 
     private string FormattedValue => FormatValue(Value);
 
@@ -75,6 +76,7 @@
         $"app-select-shell app-select-shell--{Size.ToLowerInvariant()} app-select-shell--{Variant.ToLowerInvariant()}" +
         $"{(string.IsNullOrWhiteSpace(LeadingIcon) ? string.Empty : " app-select-shell--with-icon")}" +
         $"{(Disabled ? " app-select-shell--disabled" : string.Empty)}" +
+        $"{(CompactTitle ? " app-select-shell--compact-title" : string.Empty)}" +
         $"{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
 
     private static string FormatValue(TValue? value)

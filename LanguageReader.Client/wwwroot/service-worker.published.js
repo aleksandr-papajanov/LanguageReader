@@ -24,19 +24,28 @@ const offlineAssetsExclude = [
     /^service-worker\.js$/,
     /^service-worker-assets\.js$/
 ];
+const offlineAssets = self.assetsManifest.assets
+    .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
+    .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)));
+const offlineAssetUrls = new Set(offlineAssets.map(asset => asset.url));
 
 self.addEventListener("install", event => event.waitUntil(onInstall()));
 self.addEventListener("activate", event => event.waitUntil(onActivate()));
 self.addEventListener("fetch", onFetch);
 
 async function onInstall() {
-    const assetsRequests = self.assetsManifest.assets
-        .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
-        .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
-        .map(asset => new Request(asset.url, { integrity: asset.hash, cache: "no-cache" }));
-
     const cache = await caches.open(cacheName);
-    await Promise.all(assetsRequests.map(request => cacheAsset(cache, request)));
+    const indexAsset = offlineAssets.find(asset => asset.url === "index.html");
+    if (!indexAsset) {
+        throw new Error("Unable to install service worker: index.html is missing from the asset manifest.");
+    }
+
+    await cacheRequiredAsset(cache, indexAsset);
+    await Promise.all(offlineAssets
+        .filter(asset => asset.url !== "index.html")
+        .map(asset => cacheOptionalAsset(cache, asset)));
+
+    self.skipWaiting();
 }
 
 async function onActivate() {
@@ -44,6 +53,7 @@ async function onActivate() {
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
         .map(key => caches.delete(key)));
+    await self.clients.claim();
 }
 
 function onFetch(event) {
@@ -61,11 +71,27 @@ function onFetch(event) {
         return;
     }
 
+    const assetUrl = getAssetUrl(requestUrl);
+    if (!offlineAssetUrls.has(assetUrl)) {
+        return;
+    }
+
     event.respondWith(serveCachedAsset(event.request));
 }
 
-async function cacheAsset(cache, request) {
+async function cacheRequiredAsset(cache, asset) {
+    const request = createAssetRequest(asset);
+    const response = await fetch(request);
+    if (!isUsableResponse(response)) {
+        throw new Error(`Unable to cache required asset '${asset.url}'.`);
+    }
+
+    await cache.put(request, response);
+}
+
+async function cacheOptionalAsset(cache, asset) {
     try {
+        const request = createAssetRequest(asset);
         const response = await fetch(request);
         if (isUsableResponse(response)) {
             await cache.put(request, response);
@@ -82,7 +108,7 @@ async function serveCachedIndex() {
         return cachedIndex;
     }
 
-    return fetchWithoutRedirectedResponse("index.html");
+    return fetch("index.html", { cache: "no-cache" });
 }
 
 async function serveCachedAsset(request) {
@@ -93,6 +119,14 @@ async function serveCachedAsset(request) {
     }
 
     return fetchWithoutRedirectedResponse(request);
+}
+
+function createAssetRequest(asset) {
+    return new Request(asset.url, { integrity: asset.hash, cache: "no-cache" });
+}
+
+function getAssetUrl(requestUrl) {
+    return requestUrl.pathname.replace(/^\//, "") || "index.html";
 }
 
 async function fetchWithoutRedirectedResponse(request) {

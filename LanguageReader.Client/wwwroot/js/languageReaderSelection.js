@@ -1,9 +1,11 @@
 const languageReaderRangeObservers = new Map();
 const languageReaderVisibilityObservers = new Map();
 const languageReaderScrollObservers = new Map();
+const languageReaderSelectionObservers = new Map();
 let languageReaderRangeObserverId = 0;
 let languageReaderVisibilityObserverId = 0;
 let languageReaderScrollObserverId = 0;
+let languageReaderSelectionObserverId = 0;
 
 window.languageReaderSelection = {
     getSelectedText: () => {
@@ -36,6 +38,10 @@ window.languageReaderSelection = {
             return null;
         }
 
+        if (rangeIntersectsTranslatedDisplay(root, range)) {
+            return null;
+        }
+
         const paragraphIndex = Number(startParagraph.dataset.paragraphIndex);
         const startOffset = getOriginalOffsetFromDomPosition(startParagraph, range.startContainer, range.startOffset);
         const endOffset = getOriginalOffsetFromDomPosition(endParagraph, range.endContainer, range.endOffset);
@@ -43,19 +49,40 @@ window.languageReaderSelection = {
             return null;
         }
 
+        const trimmedRange = trimOriginalRange(startParagraph, startOffset, endOffset);
+        if (!trimmedRange) {
+            return null;
+        }
+
         return {
             paragraphIndex,
-            startOffset,
-            endOffset,
-            selectedText: getOriginalTextForRange(startParagraph, startOffset, endOffset) || selection.toString()
+            startOffset: trimmedRange.startOffset,
+            endOffset: trimmedRange.endOffset,
+            selectedText: trimmedRange.selectedText
         };
     },
 
     clearSelectedText: () => {
-        const selection = window.getSelection();
-        if (selection) {
-            selection.removeAllRanges();
-        }
+        clearNativeSelection();
+    },
+
+    measureFloatingPanels: (root) => {
+        const marker = root?.querySelector(".reader-fragment-action--measure");
+        const selectionActions = root?.querySelector(".reader-selection-actions--measure");
+        const translationPopup = root?.querySelector(".reader-fragment-actions--measure");
+        const markerGap = getSelectMarkerGap(root);
+        const markerRect = marker?.getBoundingClientRect();
+        const selectionRect = selectionActions?.getBoundingClientRect();
+        const translationRect = translationPopup?.getBoundingClientRect();
+
+        return {
+            markerShift: (markerRect?.width || 0) + markerGap,
+            markerHeight: markerRect?.height || 0,
+            selectionActionsWidth: selectionRect?.width || 0,
+            selectionActionsHeight: selectionRect?.height || 0,
+            translationPopupWidth: translationRect?.width || 0,
+            translationPopupHeight: translationRect?.height || 0
+        };
     },
 
     getTextOffsetAtPoint: (root, clientX, clientY) => {
@@ -68,10 +95,18 @@ window.languageReaderSelection = {
             return null;
         }
 
+        if (isTranslatedDisplayPoint(paragraph, clientX, clientY)) {
+            return null;
+        }
+
         const range = getCaretRangeFromPoint(clientX, clientY);
         let offset = 0;
 
         if (range && paragraph.contains(range.startContainer)) {
+            if (isInsideTranslatedDisplay(paragraph, range.startContainer)) {
+                return null;
+            }
+
             offset = getOriginalOffsetFromDomPosition(paragraph, range.startContainer, range.startOffset);
         } else {
             offset = getClosestOriginalOffset(paragraph, clientX, clientY);
@@ -89,6 +124,7 @@ window.languageReaderSelection = {
         }
 
         const rootRect = root.getBoundingClientRect();
+        const excludedRects = getOverlayExclusionRects(root);
         const result = [];
 
         for (const item of ranges) {
@@ -107,19 +143,21 @@ window.languageReaderSelection = {
                     continue;
                 }
 
-                result.push({
-                    id: item.id,
-                    kind: item.kind,
-                    layer: item.layer,
-                    paragraphIndex: item.paragraphIndex,
-                    startOffset: item.startOffset,
-                    endOffset: item.endOffset,
-                    displayText: item.displayText || null,
-                    left: rect.left - rootRect.left + root.scrollLeft,
-                    top: rect.top - rootRect.top + root.scrollTop,
-                    width: rect.width,
-                    height: rect.height
-                });
+                for (const visibleRect of subtractExcludedRects(rect, excludedRects)) {
+                    result.push({
+                        id: item.id,
+                        kind: item.kind,
+                        layer: item.layer,
+                        paragraphIndex: item.paragraphIndex,
+                        startOffset: item.startOffset,
+                        endOffset: item.endOffset,
+                        displayText: item.displayText || null,
+                        left: visibleRect.left - rootRect.left + root.scrollLeft,
+                        top: visibleRect.top - rootRect.top + root.scrollTop,
+                        width: visibleRect.width,
+                        height: visibleRect.height
+                    });
+                }
             }
 
             range.detach();
@@ -141,7 +179,7 @@ window.languageReaderSelection = {
         scrollRectIntoViewIfNeeded(rect);
     },
 
-    getFirstVisibleParagraphIndex: (root) => {
+    getReaderProgressParagraphIndex: (root) => {
         if (!root) {
             return null;
         }
@@ -154,15 +192,30 @@ window.languageReaderSelection = {
         const metrics = getReaderViewportInsets();
         const viewportTop = metrics.top + 12;
         const viewportBottom = window.innerHeight - metrics.bottom - 12;
+        const pageEnd = root.querySelector("[data-reader-page-end]");
+        if (pageEnd && isElementEndVisible(pageEnd, viewportTop, viewportBottom + 24)) {
+            return Number(paragraphs[paragraphs.length - 1].dataset.paragraphIndex);
+        }
+
+        let lastPartiallyVisible = null;
+        let lastParagraphWithVisibleEnd = null;
 
         for (const paragraph of paragraphs) {
             const rect = paragraph.getBoundingClientRect();
             if (rect.bottom > viewportTop && rect.top < viewportBottom) {
-                return Number(paragraph.dataset.paragraphIndex);
+                lastPartiallyVisible = Number(paragraph.dataset.paragraphIndex);
+            }
+
+            if (rect.bottom >= viewportTop && rect.bottom <= viewportBottom) {
+                lastParagraphWithVisibleEnd = Number(paragraph.dataset.paragraphIndex);
             }
         }
 
-        return Number(paragraphs[paragraphs.length - 1].dataset.paragraphIndex);
+        return lastParagraphWithVisibleEnd ?? lastPartiallyVisible ?? Number(paragraphs[paragraphs.length - 1].dataset.paragraphIndex);
+    },
+
+    getFirstVisibleParagraphIndex: (root) => {
+        return window.languageReaderSelection.getReaderProgressParagraphIndex(root);
     },
 
     observeRangeRoot: (root, dotNetReference) => {
@@ -209,7 +262,7 @@ window.languageReaderSelection = {
             window.cancelAnimationFrame(frame);
 
             frame = window.requestAnimationFrame(() => {
-                const paragraphIndex = window.languageReaderSelection.getFirstVisibleParagraphIndex(root);
+                const paragraphIndex = window.languageReaderSelection.getReaderProgressParagraphIndex(root);
                 if (paragraphIndex === null || paragraphIndex === lastParagraphIndex) {
                     return;
                 }
@@ -242,6 +295,71 @@ window.languageReaderSelection = {
 
         observer.disconnect();
         languageReaderScrollObservers.delete(id);
+    },
+
+    observeNativeSelection: (root, dotNetReference) => {
+        if (!root) {
+            return "";
+        }
+
+        const id = `reader-selection-${++languageReaderSelectionObserverId}`;
+        let timeout = 0;
+        let lastSignature = "";
+
+        const notify = () => {
+            window.clearTimeout(timeout);
+
+            timeout = window.setTimeout(() => {
+                const selection = window.getSelection();
+                if (!selectionIntersectsRoot(root, selection)) {
+                    return;
+                }
+
+                const selectedRange = window.languageReaderSelection.getSelectedRange(root);
+                if (!selectedRange || !selectedRange.selectedText?.trim()) {
+                    dotNetReference.invokeMethodAsync("NotifyNativeSelectionRejectedAsync");
+                    return;
+                }
+
+                const signature = `${selectedRange.paragraphIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
+                if (signature === lastSignature) {
+                    return;
+                }
+
+                lastSignature = signature;
+                dotNetReference.invokeMethodAsync(
+                    "NotifyNativeSelectionChangedAsync",
+                    selectedRange.paragraphIndex,
+                    selectedRange.startOffset,
+                    selectedRange.endOffset,
+                    selectedRange.selectedText);
+            }, 220);
+        };
+
+        document.addEventListener("selectionchange", notify);
+        root.addEventListener("touchend", notify, { passive: true });
+        root.addEventListener("pointerup", notify, { passive: true });
+
+        languageReaderSelectionObservers.set(id, {
+            disconnect: () => {
+                window.clearTimeout(timeout);
+                document.removeEventListener("selectionchange", notify);
+                root.removeEventListener("touchend", notify);
+                root.removeEventListener("pointerup", notify);
+            }
+        });
+
+        return id;
+    },
+
+    unobserveNativeSelection: (id) => {
+        const observer = languageReaderSelectionObservers.get(id);
+        if (!observer) {
+            return;
+        }
+
+        observer.disconnect();
+        languageReaderSelectionObservers.delete(id);
     },
 
     observeVisibility: (element, dotNetReference) => {
@@ -285,11 +403,47 @@ window.languageReaderSelection = {
     }
 };
 
+function clearNativeSelection() {
+    const selection = window.getSelection();
+    if (!selection) {
+        return;
+    }
+
+    selection.removeAllRanges();
+    selection.empty?.();
+
+    window.requestAnimationFrame(() => {
+        const currentSelection = window.getSelection();
+        currentSelection?.removeAllRanges();
+        currentSelection?.empty?.();
+    });
+}
+
+function selectionIntersectsRoot(root, selection) {
+    if (!root || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return false;
+    }
+
+    for (let index = 0; index < selection.rangeCount; index++) {
+        if (rangeIntersectsNode(selection.getRangeAt(index), root)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function findParagraphAtPoint(root, clientX, clientY) {
     const directElement = document.elementFromPoint(clientX, clientY);
+    if (directElement?.closest?.("button,a,.reader-fragment-action,.reader-fragment-actions,.reader-selection-actions")) {
+        return null;
+    }
+
     const directParagraph = directElement?.closest?.("[data-paragraph-index]");
     if (directParagraph && root.contains(directParagraph)) {
-        return directParagraph;
+        return isPointInsideParagraphText(directParagraph, clientX, clientY)
+            ? directParagraph
+            : null;
     }
 
     const range = getCaretRangeFromPoint(clientX, clientY);
@@ -298,12 +452,134 @@ function findParagraphAtPoint(root, clientX, clientY) {
             ? range.startContainer
             : range.startContainer.parentElement;
         const paragraph = element?.closest?.("[data-paragraph-index]");
-        if (paragraph && root.contains(paragraph)) {
+        if (paragraph
+            && root.contains(paragraph)
+            && isPointInsideElement(paragraph, clientX, clientY)
+            && isPointInsideParagraphText(paragraph, clientX, clientY)) {
             return paragraph;
         }
     }
 
     return null;
+}
+
+function getSelectMarkerGap(root) {
+    if (!root) {
+        return 0;
+    }
+
+    const value = window.getComputedStyle(root).getPropertyValue("--reader-translation-marker-gap");
+    return Number.parseFloat(value) || 0;
+}
+
+function isPointInsideParagraphText(paragraph, clientX, clientY) {
+    const chunks = Array.from(paragraph.querySelectorAll("[data-original-start][data-original-end]"));
+
+    for (const chunk of chunks) {
+        if (chunk.dataset.translated === "true") {
+            continue;
+        }
+
+        const textNode = getTextNode(chunk);
+        if (!textNode) {
+            continue;
+        }
+
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+        const rects = Array.from(range.getClientRects());
+        range.detach();
+
+        if (rects.some(rect => isPointInsideTextRect(rect, clientX, clientY))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function isPointInsideTextRect(rect, clientX, clientY) {
+    const horizontalTolerance = 3;
+    const verticalTolerance = 3;
+
+    return clientX >= rect.left - horizontalTolerance
+        && clientX <= rect.right + horizontalTolerance
+        && clientY >= rect.top - verticalTolerance
+        && clientY <= rect.bottom + verticalTolerance;
+}
+
+function getOverlayExclusionRects(root) {
+    return Array.from(root.querySelectorAll(".reader-translated-fragment__marker"))
+        .flatMap(marker => Array.from(marker.getClientRects()))
+        .filter(rect => rect.width > 0 && rect.height > 0)
+        .map(rect => ({
+            left: rect.left,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height
+        }));
+}
+
+function subtractExcludedRects(rect, excludedRects) {
+    let visibleRects = [{
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height
+    }];
+
+    for (const excluded of excludedRects) {
+        visibleRects = visibleRects.flatMap(visible => subtractSingleRect(visible, excluded));
+        if (visibleRects.length === 0) {
+            break;
+        }
+    }
+
+    return visibleRects;
+}
+
+function subtractSingleRect(rect, excluded) {
+    const overlapLeft = Math.max(rect.left, excluded.left);
+    const overlapRight = Math.min(rect.right, excluded.right);
+    const overlapTop = Math.max(rect.top, excluded.top);
+    const overlapBottom = Math.min(rect.bottom, excluded.bottom);
+
+    if (overlapRight <= overlapLeft || overlapBottom <= overlapTop) {
+        return [rect];
+    }
+
+    const parts = [];
+    addVisibleRect(parts, rect.left, rect.top, overlapLeft, rect.bottom);
+    addVisibleRect(parts, overlapRight, rect.top, rect.right, rect.bottom);
+
+    return parts;
+}
+
+function addVisibleRect(parts, left, top, right, bottom) {
+    const width = right - left;
+    const height = bottom - top;
+    if (width <= 0.5 || height <= 0.5) {
+        return;
+    }
+
+    parts.push({ left, top, right, bottom, width, height });
+}
+
+function isPointInsideElement(element, clientX, clientY) {
+    const rect = element.getBoundingClientRect();
+    return clientX >= rect.left
+        && clientX <= rect.right
+        && clientY >= rect.top
+        && clientY <= rect.bottom;
+}
+
+function isElementEndVisible(element, viewportTop, viewportBottom) {
+    const rect = element.getBoundingClientRect();
+    return rect.bottom >= viewportTop && rect.bottom <= viewportBottom;
 }
 
 function getParagraphForNode(root, node) {
@@ -425,6 +701,50 @@ function findBoundary(paragraph, originalOffset, preferEnd) {
     };
 }
 
+function rangeIntersectsTranslatedDisplay(root, range) {
+    const translatedChunks = Array.from(root.querySelectorAll("[data-original-start][data-original-end][data-translated=\"true\"]"));
+
+    for (const chunk of translatedChunks) {
+        if (rangeIntersectsNode(range, chunk)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function rangeIntersectsNode(range, node) {
+    const nodeRange = document.createRange();
+    nodeRange.selectNodeContents(node);
+
+    try {
+        const startsBeforeNodeEnds = range.compareBoundaryPoints(Range.START_TO_END, nodeRange) < 0;
+        const endsAfterNodeStarts = range.compareBoundaryPoints(Range.END_TO_START, nodeRange) > 0;
+        return startsBeforeNodeEnds && endsAfterNodeStarts;
+    } finally {
+        nodeRange.detach();
+    }
+}
+
+function isTranslatedDisplayPoint(paragraph, clientX, clientY) {
+    const element = document.elementFromPoint(clientX, clientY);
+    if (!element) {
+        return false;
+    }
+
+    const chunk = element.closest?.("[data-original-start][data-original-end]");
+    return !!chunk && paragraph.contains(chunk) && chunk.dataset.translated === "true";
+}
+
+function isInsideTranslatedDisplay(paragraph, node) {
+    const element = node.nodeType === Node.TEXT_NODE
+        ? node.parentElement
+        : node;
+
+    const chunk = element?.closest?.("[data-original-start][data-original-end]");
+    return !!chunk && paragraph.contains(chunk) && chunk.dataset.translated === "true";
+}
+
 function getOriginalOffsetFromDomPosition(paragraph, targetNode, targetOffset) {
     const element = targetNode.nodeType === Node.TEXT_NODE
         ? targetNode.parentElement
@@ -472,8 +792,29 @@ function getOriginalTextForRange(paragraph, startOffset, endOffset) {
     return parts.join("");
 }
 
+function trimOriginalRange(paragraph, startOffset, endOffset) {
+    const selectedText = getOriginalTextForRange(paragraph, startOffset, endOffset);
+    if (!selectedText) {
+        return null;
+    }
+
+    const leadingWhitespace = selectedText.match(/^\s*/)?.[0].length ?? 0;
+    const trailingWhitespace = selectedText.match(/\s*$/)?.[0].length ?? 0;
+    const trimmedText = selectedText.slice(leadingWhitespace, selectedText.length - trailingWhitespace);
+    if (!trimmedText) {
+        return null;
+    }
+
+    return {
+        startOffset: startOffset + leadingWhitespace,
+        endOffset: endOffset - trailingWhitespace,
+        selectedText: trimmedText
+    };
+}
+
 function getClosestOriginalOffset(paragraph, clientX, clientY) {
-    const chunks = Array.from(paragraph.querySelectorAll("[data-original-start][data-original-end]"));
+    const chunks = Array.from(paragraph.querySelectorAll("[data-original-start][data-original-end]"))
+        .filter(chunk => chunk.dataset.translated !== "true");
     let closestOffset = Number(chunks[0]?.dataset.originalStart || 0);
     let closestDistance = Number.POSITIVE_INFINITY;
 

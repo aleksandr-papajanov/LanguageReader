@@ -27,7 +27,7 @@ else if (!string.IsNullOrWhiteSpace(error))
 }
 else if (content is not null)
 {
-    <div class="reader-shell">
+    <div class="reader-shell" @onclick="ClearSelectionAsync">
         <ReadingItemHeader Details="readingItemDetails"
                            Title="@content.Title"
                            OriginalLanguage="@content.OriginalLanguage"
@@ -53,7 +53,9 @@ else if (content is not null)
                            ActiveMode="activeMode"
                            VocabularyEntries="vocabularyEntries"
                            IsTranslationLoading="@isTranslating"
-                           IsSelectionTranslateDisabled="@(!HasActiveSelection || isTranslating || isSavingVocabulary)"
+                           IsSelectionTranslateDisabled="@(!CanTranslateSelection || isTranslating || isSavingVocabulary)"
+                           LoadingTranslationId="loadingTranslationId"
+                           LoadingTranslationAction="@loadingTranslationAction"
                            OffsetSelected="SelectFromOffsetTapAsync"
                            CustomRangeSelected="SelectCustomRangeAsync"
                            VisibleParagraphChanged="OnVisibleParagraphChangedAsync"
@@ -67,7 +69,8 @@ else if (content is not null)
                            TranslationOpenDetailsSelected="OpenTranslationVocabularyDetailsAsync"
                            TranslationDeleteSelected="DeleteTranslationAsync"
                            SelectionModeSelected="OnSelectionModeSelected"
-                           SelectionTranslateSelected="TranslateSelectionAsync" />
+                           SelectionTranslateSelected="TranslateSelectionAsync"
+                           ClearSelectionRequested="ClearSelectionAsync" />
     </div>
 }
 
@@ -104,6 +107,8 @@ else if (content is not null)
     private bool isLoading;
     private bool isTranslating;
     private bool isSavingVocabulary;
+    private Guid? loadingTranslationId;
+    private string? loadingTranslationAction;
 
     private int? scrollParagraphIndex;
     private int? scrollOffset;
@@ -111,11 +116,14 @@ else if (content is not null)
 
     private int? selectionAnchorParagraphIndex;
     private int? selectionAnchorOffset;
+    private int? lastRenderedLastPageSyncIndex;
 
     private SelectionKind activeMode = SelectionKind.Word;
     private CancellationTokenSource? timerCancellation;
 
-    private bool HasActiveSelection => selection is not null && !string.IsNullOrWhiteSpace(selection.SelectedText);
+    private bool CanTranslateSelection => selection is not null
+        && string.IsNullOrWhiteSpace(selection.TranslatedText)
+        && !string.IsNullOrWhiteSpace(selection.SelectedText);
 
     private IReadOnlyList<ReaderParagraph> CurrentPageParagraphs =>
         pages.Count == 0 ? [] : pages[progress.SafePageIndex(pages.Count)];
@@ -128,6 +136,18 @@ else if (content is not null)
         }
 
         await LoadReaderAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (content is null || !progress.IsLastPage || lastRenderedLastPageSyncIndex == progress.PageIndex)
+        {
+            return;
+        }
+
+        lastRenderedLastPageSyncIndex = progress.PageIndex;
+        await SaveProgressFromViewportAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadReaderAsync()
@@ -230,6 +250,7 @@ else if (content is not null)
         }
 
         progress = next;
+        lastRenderedLastPageSyncIndex = null;
         return InvokeAsync(StateHasChanged);
     }
 
@@ -237,6 +258,7 @@ else if (content is not null)
     {
         SelectFromOffset(tap.Paragraph, tap.Offset);
         progress = progress.MoveTo(tap.Paragraph.Index, tap.Offset, paragraphs.Count, pages.Count);
+        lastRenderedLastPageSyncIndex = null;
         return SaveCurrentPositionAsync();
     }
 
@@ -254,8 +276,15 @@ else if (content is not null)
             return Task.CompletedTask;
         }
 
+        if (IsExistingTranslationSelection(nextSelection))
+        {
+            ClearSelection();
+            return Task.CompletedTask;
+        }
+
         ApplySelection(nextSelection);
         progress = progress.MoveTo(nextSelection.ParagraphIndex, nextSelection.StartOffset, paragraphs.Count, pages.Count);
+        lastRenderedLastPageSyncIndex = null;
         return Task.CompletedTask;
     }
 
@@ -268,6 +297,12 @@ else if (content is not null)
 
         if (nextSelection is null)
         {
+            return;
+        }
+
+        if (IsExistingTranslationSelection(nextSelection))
+        {
+            ClearSelection();
             return;
         }
 
@@ -299,6 +334,12 @@ else if (content is not null)
             return Task.CompletedTask;
         }
 
+        if (IsExistingTranslationSelection(nextSelection))
+        {
+            ClearSelection();
+            return Task.CompletedTask;
+        }
+
         selection = nextSelection;
         RememberSelectionAnchor(selection);
 
@@ -318,8 +359,17 @@ else if (content is not null)
 
     private async Task TranslateSelectionAsync()
     {
-        if (selection is null)
+        var currentSelection = selection;
+        if (currentSelection is null
+            || !string.IsNullOrWhiteSpace(currentSelection.TranslatedText)
+            || string.IsNullOrWhiteSpace(currentSelection.SelectedText)
+            || IsExistingTranslationSelection(currentSelection))
         {
+            if (currentSelection is not null && IsExistingTranslationSelection(currentSelection))
+            {
+                ClearSelection();
+            }
+
             return;
         }
 
@@ -335,23 +385,23 @@ else if (content is not null)
                     Session.Username!,
                     settings.NativeLanguage ?? string.Empty,
                     readingItemDetails?.OriginalLanguage ?? content?.OriginalLanguage,
-                    selection.SelectionType,
-                    selection.SelectedText,
-                    BuildTranslationContext(selection),
+                    currentSelection.SelectionType,
+                    currentSelection.SelectedText,
+                    BuildTranslationContext(currentSelection),
                     ReadingItemId,
                     CurrentPosition()));
 
             var saved = await BookTranslationsApi.CreateBookTranslationAsync(
                 new CreateTranslatedRangeRequest(
                     ReadingItemId,
-                    selection.SelectedText,
+                    currentSelection.SelectedText,
                     result.Translation,
                     result.ResolvedSelectionKind,
-                    selection.ParagraphIndex,
-                    selection.StartOffset,
-                    selection.EndOffset,
+                    currentSelection.ParagraphIndex,
+                    currentSelection.StartOffset,
+                    currentSelection.EndOffset,
                     Session.Username!,
-                    selection.SelectionType,
+                    currentSelection.SelectionType,
                     result.Usage));
 
             ReplaceTranslatedRange(saved);
@@ -369,18 +419,20 @@ else if (content is not null)
 
     private async Task ToggleTranslationVocabularyAsync(TranslatedRangeDto range)
     {
-        var entry = GetVocabularyEntry(range, includeHidden: true);
-        if (entry is not null)
-        {
-            await SetVocabularyVisibilityAsync(entry, !entry.IsVisibleInVocabulary);
-            return;
-        }
+        BeginTranslationAction(range, TranslationActionKind.Vocabulary);
 
+        var entry = GetVocabularyEntry(range, includeHidden: true);
         isSavingVocabulary = true;
         translationError = null;
 
         try
         {
+            if (entry is not null)
+            {
+                await SetVocabularyVisibilityAsync(entry, !entry.IsVisibleInVocabulary);
+                return;
+            }
+
             settings ??= await SettingsApi.GetSettingsAsync(new GetUserSettingsRequest(Session.Username!));
 
             var sourceLanguage = readingItemDetails?.OriginalLanguage ?? content?.OriginalLanguage;
@@ -411,6 +463,7 @@ else if (content is not null)
         finally
         {
             isSavingVocabulary = false;
+            EndTranslationAction(range);
         }
     }
 
@@ -468,21 +521,46 @@ else if (content is not null)
 
     private async Task ToggleTranslationOriginalAsync(TranslatedRangeDto range)
     {
-        var updated = await BookTranslationsApi.UpdateBookTranslationDisplayAsync(
-            new UpdateTranslatedRangeDisplayRequest(ReadingItemId, range.Id, Session.Username!, !range.ShowOriginal));
+        BeginTranslationAction(range, TranslationActionKind.Display);
 
-        ReplaceTranslatedRange(updated);
-        SelectTranslatedRange(updated);
+        try
+        {
+            var updated = await BookTranslationsApi.UpdateBookTranslationDisplayAsync(
+                new UpdateTranslatedRangeDisplayRequest(ReadingItemId, range.Id, Session.Username!, !range.ShowOriginal));
+
+            ReplaceTranslatedRange(updated);
+            SelectTranslatedRange(updated);
+        }
+        catch (Exception exception)
+        {
+            translationError = exception.Message;
+        }
+        finally
+        {
+            EndTranslationAction(range);
+        }
     }
 
     private async Task DeleteTranslationAsync(TranslatedRangeDto range)
     {
-        await BookTranslationsApi.DeleteBookTranslationAsync(
-            new DeleteBookTranslationRequest(ReadingItemId, range.Id, Session.Username!));
+        BeginTranslationAction(range, TranslationActionKind.Delete);
 
-        translatedRanges.RemoveAll(item => item.Id == range.Id);
-        activeTranslation = null;
-        selection = null;
+        try
+        {
+            await BookTranslationsApi.DeleteBookTranslationAsync(
+                new DeleteBookTranslationRequest(ReadingItemId, range.Id, Session.Username!));
+
+            translatedRanges.RemoveAll(item => item.Id == range.Id);
+            ClearSelection();
+        }
+        catch (Exception exception)
+        {
+            translationError = exception.Message;
+        }
+        finally
+        {
+            EndTranslationAction(range);
+        }
     }
 
     private async Task PreviousPageAsync()
@@ -493,6 +571,7 @@ else if (content is not null)
         }
 
         progress = progress.MoveToPage(progress.PageIndex - 1, paragraphs.Count, pages.Count);
+        lastRenderedLastPageSyncIndex = null;
         selection = null;
         QueueScrollToCurrentPosition();
         await SaveCurrentPositionAsync();
@@ -506,6 +585,7 @@ else if (content is not null)
         }
 
         progress = progress.MoveToPage(progress.PageIndex + 1, paragraphs.Count, pages.Count);
+        lastRenderedLastPageSyncIndex = null;
         selection = null;
         QueueScrollToCurrentPosition();
         await SaveCurrentPositionAsync();
@@ -519,6 +599,43 @@ else if (content is not null)
 
         selectionAnchorParagraphIndex = readerSelection.ParagraphIndex;
         selectionAnchorOffset = readerSelection.AnchorOffset;
+    }
+
+    private bool IsExistingTranslationSelection(ReaderSelection readerSelection)
+    {
+        return translatedRanges.Any(range =>
+            range.ParagraphIndex == readerSelection.ParagraphIndex
+            && RangesOverlap(range.StartOffset, range.EndOffset, readerSelection.StartOffset, readerSelection.EndOffset)
+            && string.Equals(
+                NormalizeSelectionText(range.OriginalText),
+                NormalizeSelectionText(readerSelection.SelectedText),
+                StringComparison.Ordinal));
+    }
+
+    private static bool RangesOverlap(int firstStart, int firstEnd, int secondStart, int secondEnd)
+    {
+        return firstStart < secondEnd && secondStart < firstEnd;
+    }
+
+    private static string NormalizeSelectionText(string value)
+    {
+        return string.Join(
+            " ",
+            value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private Task ClearSelectionAsync()
+    {
+        ClearSelection();
+        return Task.CompletedTask;
+    }
+
+    private void ClearSelection()
+    {
+        selection = null;
+        activeTranslation = null;
+        selectionAnchorParagraphIndex = null;
+        selectionAnchorOffset = null;
     }
 
     private void ReplaceTranslatedRange(TranslatedRangeDto updated)
@@ -649,6 +766,21 @@ else if (content is not null)
         scrollRequestKey++;
     }
 
+    private void BeginTranslationAction(TranslatedRangeDto range, string action)
+    {
+        loadingTranslationId = range.Id;
+        loadingTranslationAction = action;
+    }
+
+    private void EndTranslationAction(TranslatedRangeDto range)
+    {
+        if (loadingTranslationId == range.Id)
+        {
+            loadingTranslationId = null;
+            loadingTranslationAction = null;
+        }
+    }
+
     private async Task GoBack()
     {
         await SaveProgressFromViewportAsync();
@@ -679,5 +811,12 @@ else if (content is not null)
         timerCancellation?.Cancel();
         timerCancellation?.Dispose();
         saveTimer.Dispose();
+    }
+
+    private static class TranslationActionKind
+    {
+        public const string Display = "display";
+        public const string Vocabulary = "vocabulary";
+        public const string Delete = "delete";
     }
 }

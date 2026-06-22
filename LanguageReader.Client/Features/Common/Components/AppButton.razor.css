@@ -54,6 +54,16 @@
     min-width: 0;
 }
 
+.app-button__spinner {
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    opacity: 0.82;
+    animation: app-button-spin 720ms linear infinite;
+}
+
 .app-button:hover:not(:disabled) {
     background: rgba(23, 20, 17, 0.03);
     border-color: var(--color-border-strong);
@@ -119,4 +129,10 @@
 
 .app-button .material-symbols-outlined {
     font-size: var(--icon-size-md) !important;
+}
+
+@keyframes app-button-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

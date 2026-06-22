@@ -1,9 +1,15 @@
 <button type="@Type"
         class="@CssClass"
-        disabled="@Disabled"
+        style="@Style"
+        disabled="@(Disabled || IsLoading)"
         title="@Title"
+        @onclick:stopPropagation="StopPropagation"
         @onclick="HandleClick">
-    @if (!string.IsNullOrWhiteSpace(Icon) && !IconTrailing)
+    @if (IsLoading)
+    {
+        <span class="app-button__spinner" aria-hidden="true"></span>
+    }
+    else if (!string.IsNullOrWhiteSpace(Icon) && !IconTrailing)
     {
         <AppIcon Name="@Icon" Size="@IconSize" />
     }
@@ -52,10 +58,19 @@
     public bool Disabled { get; set; }
 
     [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
     public string? Title { get; set; }
 
     [Parameter]
     public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public bool StopPropagation { get; set; }
 
     // start | center | end | between
     [Parameter]
@@ -74,10 +89,11 @@
     private string CssClass =>
         $"app-button app-button--{Variant} app-button--{Size} app-button--justify-{Justify} app-button--align-{Align}" +
         $"{(IconOnly ? " app-button--icon-only" : string.Empty)}" +
+        $"{(IsLoading ? " app-button--loading" : string.Empty)}" +
         $"{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
 
     private Task HandleClick(MouseEventArgs args)
     {
-        return Disabled ? Task.CompletedTask : OnClick.InvokeAsync(args);
+        return Disabled || IsLoading ? Task.CompletedTask : OnClick.InvokeAsync(args);
     }
 }

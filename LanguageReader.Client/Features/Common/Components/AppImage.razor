@@ -1,15 +1,35 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
 <div class="@WrapperClass" style="@WrapperStyle">
-    <img src="@Src"
-         alt="@ResolvedAlt"
-         class="@ImageClassName"
-         style="@ImageStyle"
-         loading="@Loading"
-         decoding="@Decoding"
-         draggable="false"
-         aria-hidden="@Decorative" />
+    @if (ShouldRenderImage)
+    {
+        <img src="@Src"
+             alt="@ResolvedAlt"
+             class="@MediaClassName"
+             style="@ImageStyle"
+             loading="@Loading"
+             decoding="@Decoding"
+             draggable="false"
+             aria-hidden="@Decorative" />
+    }
+    else
+    {
+        <canvas @ref="canvas"
+                class="@MediaClassName"
+                style="@ImageStyle"
+                role="@CanvasRole"
+                aria-label="@CanvasLabel"
+                aria-hidden="@Decorative"></canvas>
+    }
 </div>
 
 @code {
+    private ElementReference canvas;
+    private CancellationTokenSource? renderCancellation;
+    private string? renderedEffectKey;
+    private bool effectFailed;
+
     [Parameter, EditorRequired]
     public string Src { get; set; } = string.Empty;
 
@@ -23,7 +43,7 @@
     public bool Inline { get; set; }
 
     [Parameter]
-    public bool UseNewsprint { get; set; }
+    public AppImageEffect Effect { get; set; } = AppImageEffect.None;
 
     [Parameter]
     public bool FillContainer { get; set; }
@@ -52,7 +72,33 @@
     [Parameter]
     public string? MediaStyle { get; set; }
 
+    [Parameter]
+    public int HalftoneSize { get; set; } = 900;
+
+    [Parameter]
+    public int HalftoneCell { get; set; } = 3;
+
+    [Parameter]
+    public int HalftoneBlackCell { get; set; } = 6;
+
+    [Parameter]
+    public int HalftoneReferenceSize { get; set; } = 180;
+
+    [Parameter]
+    public double HalftoneUnderlayOpacity { get; set; } = 0.28;
+
+    [Parameter]
+    public double HalftoneUnderlayBlur { get; set; } = 0.8;
+
     private string ResolvedAlt => Decorative ? string.Empty : Alt;
+
+    private bool ShouldRenderImage => Effect == AppImageEffect.None || effectFailed;
+
+    private string? CanvasRole => Decorative ? null : "img";
+
+    private string? CanvasLabel => Decorative ? null : ResolvedAlt;
+
+    private string EffectKey => $"{Src}|{Effect}|{HalftoneSize}|{HalftoneCell}|{HalftoneBlackCell}|{HalftoneReferenceSize}|{HalftoneUnderlayOpacity}|{HalftoneUnderlayBlur}";
 
     private string WrapperClass
     {
@@ -65,9 +111,9 @@
                 classes.Add("app-image--inline");
             }
 
-            if (UseNewsprint)
+            if (Effect != AppImageEffect.None && !effectFailed)
             {
-                classes.Add("app-image--newsprint");
+                classes.Add($"app-image--effect-{Effect.ToString().ToLowerInvariant()}");
             }
 
             if (FillContainer)
@@ -86,7 +132,7 @@
         }
     }
 
-    private string ImageClassName => string.IsNullOrWhiteSpace(ImageClass)
+    private string MediaClassName => string.IsNullOrWhiteSpace(ImageClass)
         ? "app-image__media"
         : $"app-image__media {ImageClass}";
 
@@ -111,6 +157,58 @@
             }
 
             return styles.Count == 0 ? null : string.Join("; ", styles);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(renderedEffectKey, EffectKey, StringComparison.Ordinal))
+        {
+            effectFailed = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (ShouldRenderImage || string.IsNullOrWhiteSpace(Src) || string.Equals(renderedEffectKey, EffectKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        renderedEffectKey = EffectKey;
+        renderCancellation?.Cancel();
+        renderCancellation?.Dispose();
+        renderCancellation = new CancellationTokenSource();
+
+        var rendered = await JsRuntime.InvokeAsync<bool>(
+            "appImage.renderHalftone",
+            renderCancellation.Token,
+            canvas,
+            Src,
+            new
+            {
+                size = HalftoneSize,
+                cell = HalftoneCell,
+                blackCell = HalftoneBlackCell,
+                referenceSize = HalftoneReferenceSize,
+                underlayOpacity = HalftoneUnderlayOpacity,
+                underlayBlur = HalftoneUnderlayBlur
+            });
+
+        if (!rendered)
+        {
+            effectFailed = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        renderCancellation?.Cancel();
+        renderCancellation?.Dispose();
+        if (Effect != AppImageEffect.None && renderedEffectKey is not null && !effectFailed)
+        {
+            await JsRuntime.InvokeVoidAsync("appImage.dispose", canvas);
         }
     }
 }

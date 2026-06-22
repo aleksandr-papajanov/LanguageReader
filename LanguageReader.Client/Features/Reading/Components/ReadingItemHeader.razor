@@ -24,14 +24,6 @@
                                                SourceName="@Details.SourceName"
                                                Size="md" />
                     }
-
-                    <div class="reader-article-header__badges">
-                        <AppBadge Tone="warning">Article</AppBadge>
-                        <ReadingItemSourceBadge SourceKey="@Details.SourceKey"
-                                                SourceName="@Details.SourceName"
-                                                Href="@Details.OriginalUrl"
-                                                Title="Open original article" />
-                    </div>
                 </div>
 
                 <h1 class="reader-title">@Title</h1>
@@ -68,7 +60,7 @@
                     <AppImage Src="@Details.ImageUrl"
                               Alt="@Title"
                               Decorative="true"
-                              UseNewsprint="true"
+                              Effect="AppImageEffect.Halftone"
                               AdditionalClass="reader-article-header__image-wrap"
                               Style="width: clamp(4.8rem, 14vw, 7rem); aspect-ratio: 1; height: auto; justify-self: start; border-radius: var(--radius-md); box-shadow: var(--shadow-sm);"
                               ImageClass="reader-article-header__image" />

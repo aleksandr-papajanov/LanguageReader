@@ -1,38 +1,40 @@
+@using LanguageReader.Client.Features.Common.Services.Viewport
 @inject NavigationManager Navigation
+@inject IViewportService Viewport
+@implements IDisposable
 
 <AppListItem AdditionalClass="reading-item-row">
     <ChildContent>
-        <div class="reading-item-row__layout">
-            <div class="reading-item-row__media">
-                <div class="reading-item-row__thumb">
-                    @if (Item.Type == ReadingItemType.Article && !string.IsNullOrWhiteSpace(Item.ImageUrl))
-                    {
-                        <AppImage Src="@Item.ImageUrl"
-                                  Alt="@Item.Title"
-                                  Decorative="true"
-                                  UseNewsprint="true"
-                                  FillContainer="true"
-                                  AdditionalClass="reading-item-row__thumb-media"
-                                  ImageClass="reading-item-row__thumb-image" />
-                    }
-                    else
-                    {
-                        <div class="reading-item-row__thumb-fallback @(Item.Type == ReadingItemType.Article ? "reading-item-row__thumb-fallback--article" : "reading-item-row__thumb-fallback--book")">
-                            <AppIcon Name="@(Item.Type == ReadingItemType.Article ? "newspaper" : "menu_book")" Size="28" />
-                        </div>
-                    }
+        <article class="reading-item-row__layout">
+            <header class="reading-item-row__header">
+                <div class="reading-item-row__media">
+                    <div class="reading-item-row__thumb">
+                        @if (Item.Type == ReadingItemType.Article && !string.IsNullOrWhiteSpace(Item.ImageUrl))
+                        {
+                            <AppImage Src="@Item.ImageUrl"
+                                      Alt="@Item.Title"
+                                      Decorative="true"
+                                      Effect="AppImageEffect.Halftone"
+                                      FillContainer="true"
+                                      AdditionalClass="reading-item-row__thumb-media"
+                                      ImageClass="reading-item-row__thumb-image" />
+                        }
+                        else
+                        {
+                            <div class="reading-item-row__thumb-fallback @(Item.Type == ReadingItemType.Article ? "reading-item-row__thumb-fallback--article" : "reading-item-row__thumb-fallback--book")">
+                                <AppIcon Name="@(Item.Type == ReadingItemType.Article ? "newspaper" : "menu_book")" Size="28" />
+                            </div>
+                        }
+                    </div>
 
+                    @if (Item.ProgressPercent.HasValue)
+                    {
+                        <ReadingProgressCompact Value="@Item.ProgressPercent.Value"
+                                                Status="@Item.ReadingStatus" />
+                    }
                 </div>
 
-                @if (Item.ProgressPercent.HasValue)
-                {
-                    <ReadingProgressCompact Value="@Item.ProgressPercent.Value"
-                                            Status="@Item.ReadingStatus" />
-                }
-            </div>
-
-            <div class="reading-item-row__body">
-                <div class="reading-item-row__topline">
+                <div class="reading-item-row__header-main"> 
                     <div class="reading-item-row__badges">
                         @if (!string.IsNullOrWhiteSpace(GetStatusLabel()))
                         {
@@ -58,33 +60,55 @@
                         }
                     </div>
 
-                    <div class="reading-item-row__side-meta">
-                        <AppDateMeta Label="Created"
-                                     Value="@Item.CreatedAtUtc"
-                                     Format="ddd, d MMM" />
+                    <div class="reading-item-row__dates">
+                        <div class="reading-item-row__date">
+                            <AppIcon Name="calendar_today" Size="16" />
+                            <AppDateMeta Label="Created"
+                                         Value="@Item.CreatedAtUtc"
+                                         Format="ddd, d MMM" />
+                        </div>
 
                         @if (Item.LastOpenedAtUtc.HasValue)
                         {
-                            <AppDateMeta Label="Last opened"
-                                         Value="@Item.LastOpenedAtUtc.Value"
-                                         Format="ddd, d MMM" />
-                        }
-
-                        @if (MenuItems.Count > 0)
-                        {
-                            <AppDropdownMenu ButtonIcon="more_horiz"
-                                             ButtonIconOnly="true"
-                                             ButtonTitle="More actions"
-                                             ButtonVariant="ghost"
-                                             ButtonSize="sm"
-                                             Align="end"
-                                             Disabled="@Busy"
-                                             Items="MenuItems"
-                                             ItemSelected="HandleMenuActionAsync" />
+                            <div class="reading-item-row__date">
+                                <AppIcon Name="history" Size="16" />
+                                <AppDateMeta Label="Last opened"
+                                             Value="@Item.LastOpenedAtUtc.Value"
+                                             Format="ddd, d MMM" />
+                            </div>
                         }
                     </div>
                 </div>
 
+                <div class="reading-item-row__actions">
+                    @if (GetPrimaryActionLabel() is { } primaryLabel)
+                    {
+                        <AppButton Label="@primaryLabel"
+                                   AdditionalClass="reading-item-row__continue-button"
+                                   Variant="@GetPrimaryActionVariant()"
+                                   Size="sm"
+                                   Icon="@GetPrimaryActionIcon()"
+                                   IconOnly="@Viewport.Current.IsMobile"
+                                   Disabled="@Busy"
+                                   OnClick="@(_ => HandlePrimaryActionAsync())" />
+                    }
+
+                    @if (MenuItems.Count > 0)
+                    {
+                        <AppDropdownMenu ButtonIcon="more_horiz"
+                                         ButtonIconOnly="true"
+                                         ButtonTitle="More actions"
+                                         ButtonVariant="ghost"
+                                         ButtonSize="sm"
+                                         Align="end"
+                                         Disabled="@Busy"
+                                         Items="MenuItems"
+                                         ItemSelected="HandleMenuActionAsync" />
+                    }
+                </div>
+            </header>
+
+            <section class="reading-item-row__content">
                 <strong class="reading-item-row__title">@Item.Title</strong>
 
                 @if (!string.IsNullOrWhiteSpace(GetDetails()))
@@ -96,20 +120,8 @@
                 {
                     <div class="reading-item-row__excerpt">@Item.Excerpt</div>
                 }
-
-                @if (GetPrimaryActionLabel() is { } primaryLabel)
-                {
-                    <div class="reading-item-row__primary-action">
-                        <AppButton Label="@primaryLabel"
-                                   Variant="@GetPrimaryActionVariant()"
-                                   Size="sm"
-                                   Icon="@GetPrimaryActionIcon()"
-                                   Disabled="@Busy"
-                                   OnClick="@(_ => HandlePrimaryActionAsync())" />
-                    </div>
-                }
-            </div>
-        </div>
+            </section>
+        </article>
     </ChildContent>
 </AppListItem>
 
@@ -131,6 +143,21 @@
 
     [Parameter]
     public EventCallback<ReadingItemSummaryDto> OpenOriginalSelected { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Viewport.Changed += HandleViewportChanged;
+    }
+
+    private void HandleViewportChanged(ViewportState state)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Viewport.Changed -= HandleViewportChanged;
+    }
 
     private async Task HandlePrimaryActionAsync()
     {

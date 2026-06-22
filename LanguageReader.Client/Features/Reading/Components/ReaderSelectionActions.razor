@@ -1,23 +1,28 @@
-<ReaderFloatingPanel Style="@Style" AdditionalClass="reader-selection-actions">
+<ReaderFloatingPanel Style="@Style" AdditionalClass="@CssClass">
     <div class="reader-selection-modes" aria-label="Selection modes">
         @foreach (var mode in Modes)
         {
-            <button type="button"
-                    class="@GetModeClass(mode)"
-                    title="@SelectionModeLabelFor(mode)"
-                    @onclick="@(() => ModeSelected.InvokeAsync(mode))">
-                @SelectionModeShortLabelFor(mode)
-            </button>
+            <AppButton Variant="ghost"
+                       Size="sm"
+                       Label="@SelectionModeShortLabelFor(mode)"
+                       AdditionalClass="@GetModeClass(mode)"
+                       Title="@SelectionModeLabelFor(mode)"
+                       StopPropagation="true"
+                       OnClick="@(() => ModeSelected.InvokeAsync(mode))" />
         }
     </div>
 
-    <button type="button"
-            class="reader-selection-action"
-            title="Translate selection"
-            disabled="@IsTranslateDisabled"
-            @onclick="@(() => TranslateClicked.InvokeAsync())">
-        <AppIcon Name="translate" Size="15" />
-    </button>
+    <AppButton Variant="ghost"
+               Size="sm"
+               Icon="translate"
+               IconSize="15"
+               IconOnly="true"
+               AdditionalClass="reader-selection-action"
+               Title="Translate selection"
+               Disabled="@IsSelectionActionDisabled"
+               IsLoading="@IsTranslateLoading"
+               StopPropagation="true"
+               OnClick="@(() => TranslateClicked.InvokeAsync())" />
 </ReaderFloatingPanel>
 
 @code {
@@ -33,16 +38,27 @@
     public string? Style { get; set; }
 
     [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
     public SelectionKind ActiveMode { get; set; } = SelectionKind.Word;
 
     [Parameter]
     public bool IsTranslateDisabled { get; set; }
 
     [Parameter]
+    public bool IsTranslateLoading { get; set; }
+
+    [Parameter]
     public EventCallback<SelectionKind> ModeSelected { get; set; }
 
     [Parameter]
     public EventCallback TranslateClicked { get; set; }
+
+    private bool IsSelectionActionDisabled => IsTranslateDisabled || IsTranslateLoading;
+
+    private string CssClass =>
+        $"reader-selection-actions{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
 
     private string GetModeClass(SelectionKind mode)
     {

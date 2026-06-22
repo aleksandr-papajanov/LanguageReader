@@ -37,9 +37,13 @@
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
+    box-shadow: none;
+    transform: none;
 }
 
 .reader-fragment-action--select {
+    position: relative;
+    z-index: 3;
     display: inline-flex;
     gap: 0.22rem;
     min-height: 1.55rem;
@@ -52,18 +56,18 @@
     font-weight: 750;
     line-height: 1;
     vertical-align: text-bottom;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.62);
     background-clip: padding-box;
     isolation: isolate;
 }
 
-.reader-fragment-action--select,
-.reader-fragment-action--select * {
-    background-color: #fff;
+.reader-fragment-action:disabled {
+    opacity: 0.48;
+    cursor: default;
 }
 
 .reader-fragment-action--icon {
     width: 2rem;
+    min-width: 2rem;
     padding: 0;
 }
 
@@ -72,7 +76,7 @@
     border-color: rgba(146, 44, 44, 0.24);
 }
 
-.reader-fragment-action:hover,
+.reader-fragment-action:hover:not(:disabled),
 .reader-fragment-action:focus-visible {
     border-color: rgba(23, 20, 17, 0.48);
     color: var(--color-text);

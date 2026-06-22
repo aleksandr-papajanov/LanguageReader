@@ -13,6 +13,7 @@
     justify-content: center;
     min-width: 2.1rem;
     height: 2.1rem;
+    min-height: 2.1rem;
     padding: 0 0.55rem;
     border: 1px solid rgba(23, 20, 17, 0.14);
     border-radius: 0.8rem;
@@ -23,6 +24,8 @@
     font-weight: 700;
     line-height: 1;
     cursor: pointer;
+    box-shadow: none;
+    transform: none;
 }
 
 .reader-selection-mode--active {

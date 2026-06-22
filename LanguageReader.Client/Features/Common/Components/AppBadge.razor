@@ -5,12 +5,14 @@
        target="@Target"
        rel="@Rel"
        title="@Title">
-        @ChildContent
+        <span class="app-badge__content">@ChildContent</span>
     </a>
 }
 else
 {
-    <span class="@CssClass" title="@Title">@ChildContent</span>
+    <span class="@CssClass" title="@Title">
+        <span class="app-badge__content">@ChildContent</span>
+    </span>
 }
 
 @code {
@@ -19,6 +21,9 @@ else
 
     [Parameter]
     public bool PreserveCase { get; set; }
+
+    [Parameter]
+    public bool Compact { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -35,5 +40,8 @@ else
     [Parameter]
     public string Rel { get; set; } = "noreferrer";
 
-    private string CssClass => $"app-badge app-badge--{Tone}{(PreserveCase ? " app-badge--preserve-case" : string.Empty)}";
+    private string CssClass =>
+        $"app-badge app-badge--{Tone}" +
+        $"{(PreserveCase ? " app-badge--preserve-case" : string.Empty)}" +
+        $"{(Compact ? " app-badge--compact" : string.Empty)}";
 }

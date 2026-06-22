@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using LanguageReader.Client;
+using LanguageReader.Client.Features.Common.Services.Viewport;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -12,6 +13,7 @@ var apiBaseUrl = builder.HostEnvironment.IsDevelopment()
 var apiBaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = apiBaseAddress });
+builder.Services.AddScoped<IViewportService, ViewportService>();
 builder.Services.AddScoped<UserSession>();
 builder.Services.AddLanguageReaderApiClients();
 

@@ -1,45 +1,67 @@
 @if (Mode == ReaderFragmentActionMode.SelectMarker)
 {
-    <button type="button"
-            class="reader-fragment-action reader-fragment-action--select"
-            style="@Style"
-            title="@(IsActive ? "Unselect translated fragment" : "Select translated fragment")"
-            @onclick:stopPropagation="true"
-            @onclick="ToggleSelectionAsync">
-        <AppIcon Name="@(IsActive ? "close" : "ink_highlighter")" Size="15" />
-        <span>@(IsActive ? "Unselect" : "Select")</span>
-    </button>
+    <AppButton Variant="ghost"
+               Size="sm"
+               Icon="@(IsActive ? "close" : "ink_highlighter")"
+               IconSize="15"
+               IconOnly="true"
+               AdditionalClass="@SelectActionClass"
+               Style="@Style"
+               Title="@(IsActive ? "Unselect translated fragment" : "Select translated fragment")"
+               Disabled="@IsBusy"
+               IsLoading="@IsBusy"
+               StopPropagation="true"
+               OnClick="@ToggleSelectionAsync" />
 }
 else
 {
     <ReaderFloatingPanel Style="@Style" AdditionalClass="@CssClass">
         @if (IsInVocabulary)
         {
-            <button type="button"
-                    class="reader-fragment-action reader-fragment-action--icon"
-                    title="Open vocabulary entry"
-                    @onclick="@(() => OpenDetailsClicked.InvokeAsync(Translation))">
-                <AppIcon Name="dictionary" Size="15" />
-            </button>
+            <AppButton Variant="ghost"
+                       Size="sm"
+                       Icon="dictionary"
+                       IconSize="15"
+                       IconOnly="true"
+                       AdditionalClass="reader-fragment-action reader-fragment-action--icon"
+                       Title="Open vocabulary entry"
+                       Disabled="@IsBusy"
+                       StopPropagation="true"
+                       OnClick="@(() => OpenDetailsClicked.InvokeAsync(Translation))" />
         }
-        <button type="button"
-                class="reader-fragment-action reader-fragment-action--icon"
-                title="Show original or translation"
-                @onclick="@(() => DisplayToggleClicked.InvokeAsync(Translation))">
-            <AppIcon Name="visibility" Size="15" />
-        </button>
-        <button type="button"
-                class="reader-fragment-action reader-fragment-action--icon"
-                title="@(IsInVocabulary ? "Remove from vocabulary" : "Add to vocabulary")"
-                @onclick="@(() => VocabularyToggleClicked.InvokeAsync(Translation))">
-            <AppIcon Name="@(IsInVocabulary ? "bookmark_remove" : "bookmark_add")" Size="15" />
-        </button>
-        <button type="button"
-                class="reader-fragment-action reader-fragment-action--icon reader-fragment-action--danger"
-                title="Delete translation"
-                @onclick="@(() => DeleteClicked.InvokeAsync(Translation))">
-            <AppIcon Name="delete" Size="15" />
-        </button>
+        <AppButton Variant="ghost"
+                   Size="sm"
+                   Icon="visibility"
+                   IconSize="15"
+                   IconOnly="true"
+                   AdditionalClass="reader-fragment-action reader-fragment-action--icon"
+                   Title="Show original or translation"
+                   Disabled="@IsBusy"
+                   IsLoading="@IsDisplayLoading"
+                   StopPropagation="true"
+                   OnClick="@(() => DisplayToggleClicked.InvokeAsync(Translation))" />
+        <AppButton Variant="ghost"
+                   Size="sm"
+                   Icon="@(IsInVocabulary ? "bookmark_remove" : "bookmark_add")"
+                   IconSize="15"
+                   IconOnly="true"
+                   AdditionalClass="reader-fragment-action reader-fragment-action--icon"
+                   Title="@(IsInVocabulary ? "Remove from vocabulary" : "Add to vocabulary")"
+                   Disabled="@IsBusy"
+                   IsLoading="@IsVocabularyLoading"
+                   StopPropagation="true"
+                   OnClick="@(() => VocabularyToggleClicked.InvokeAsync(Translation))" />
+        <AppButton Variant="destructive"
+                   Size="sm"
+                   Icon="delete"
+                   IconSize="15"
+                   IconOnly="true"
+                   AdditionalClass="reader-fragment-action reader-fragment-action--icon reader-fragment-action--danger"
+                   Title="Delete translation"
+                   Disabled="@IsBusy"
+                   IsLoading="@IsDeleteLoading"
+                   StopPropagation="true"
+                   OnClick="@(() => DeleteClicked.InvokeAsync(Translation))" />
     </ReaderFloatingPanel>
 }
 
@@ -54,7 +76,22 @@ else
     public bool IsInVocabulary { get; set; }
 
     [Parameter]
+    public bool IsBusy { get; set; }
+
+    [Parameter]
+    public bool IsDisplayLoading { get; set; }
+
+    [Parameter]
+    public bool IsVocabularyLoading { get; set; }
+
+    [Parameter]
+    public bool IsDeleteLoading { get; set; }
+
+    [Parameter]
     public string? Style { get; set; }
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
 
     [Parameter]
     public ReaderFragmentActionMode Mode { get; set; } = ReaderFragmentActionMode.SelectMarker;
@@ -78,7 +115,10 @@ else
     public EventCallback<TranslatedRangeDto> DeleteClicked { get; set; }
 
     private string CssClass =>
-        $"reader-fragment-actions{(IsActive ? " reader-fragment-actions--active" : string.Empty)}{(IsInVocabulary ? " reader-fragment-actions--vocabulary" : string.Empty)}";
+        $"reader-fragment-actions{(IsActive ? " reader-fragment-actions--active" : string.Empty)}{(IsInVocabulary ? " reader-fragment-actions--vocabulary" : string.Empty)}{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+
+    private string SelectActionClass =>
+        "reader-fragment-action reader-fragment-action--select";
 
     public enum ReaderFragmentActionMode
     {

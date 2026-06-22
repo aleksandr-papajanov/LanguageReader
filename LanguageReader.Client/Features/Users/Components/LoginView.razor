@@ -22,6 +22,7 @@
                   Value="@username"
                   ValueChanged="OnUsernameChanged"
                   LeadingIcon="person"
+                  Autocomplete="off"
                   Placeholder="" />
 
     @if (mode == AuthMode.Register)
@@ -64,12 +65,13 @@
                Icon="@(mode == AuthMode.Register ? "person_add" : "arrow_forward")"
                AdditionalClass="login-view__submit"
                Disabled="@isBusy"
+               IsLoading="@isBusy"
                OnClick="SubmitAsync" />
 </AppPanel>
 
 @code {
     private AuthMode mode = AuthMode.Login;
-    private string username = "admin";
+    private string username = string.Empty;
     private string email = string.Empty;
     private string password = string.Empty;
     private string confirmPassword = string.Empty;

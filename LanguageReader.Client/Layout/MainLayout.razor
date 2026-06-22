@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject IViewportService Viewport
+@implements IDisposable
 
 <div class="app-layout">
     <header class="app-layout__top">
@@ -22,3 +24,27 @@
         </div>
     </footer>
 </div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        Viewport.Changed += HandleViewportChanged;
+        await Viewport.InitializeAsync();
+        StateHasChanged();
+    }
+
+    private void HandleViewportChanged(ViewportState state)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Viewport.Changed -= HandleViewportChanged;
+    }
+}

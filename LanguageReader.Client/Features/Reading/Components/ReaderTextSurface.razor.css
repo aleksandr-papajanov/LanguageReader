@@ -1,4 +1,5 @@
 .reader-page {
+    --reader-translation-marker-gap: 6px;
     position: relative;
     min-height: 44rem;
     padding: clamp(1.75rem, 3vw, 3rem);
@@ -6,6 +7,10 @@
     border-radius: var(--radius-md);
     background: #fff;
     overflow: visible;
+}
+
+.reader-page--measuring {
+    visibility: hidden;
 }
 
 .reader-page p {
@@ -16,23 +21,32 @@
     font-family: var(--font-reading);
     font-size: clamp(1.08rem, 1rem + 0.22vw, 1.2rem);
     line-height: 1.86;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.reader-page--custom-selection p span[data-translated="false"] {
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 .reader-page p span[data-translated="true"] {
     color: #231e1a;
     font-weight: 600;
-}
-
-.reader-page p .reader-translated-fragment {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.28rem;
-    max-width: 100%;
-    vertical-align: baseline;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .reader-page p .reader-translated-fragment__text {
     min-width: 0;
+    margin-left: var(--reader-translation-marker-shift, 0);
+    vertical-align: baseline;
+}
+
+.reader-page__end {
+    display: block;
+    width: 100%;
+    height: 1px;
 }
 
 .reader-range-layer {
@@ -56,6 +70,33 @@
 
 .reader-fragment-action-layer ::deep .reader-selection-actions {
     pointer-events: auto;
+}
+
+.reader-floating-measurements {
+    position: absolute;
+    left: 0;
+    top: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.reader-floating-measurements ::deep .reader-floating-panel,
+.reader-floating-measurements ::deep .reader-fragment-action--measure {
+    left: 0;
+    top: 0;
+    pointer-events: none;
+}
+
+.reader-fragment-action-layer ::deep .reader-fragment-action--select {
+    position: absolute;
+    pointer-events: auto;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.reader-fragment-action-layer ::deep .reader-fragment-action--measure {
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .reader-range-fill,

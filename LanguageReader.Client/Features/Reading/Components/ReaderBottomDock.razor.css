@@ -1,22 +1,20 @@
 .reader-bottom-dock {
     display: flex;
     justify-content: center;
+    width: 100%;
 }
 
 .reader-dock-bar {
-    width: fit-content;
-    max-width: 100%;
     width: 100%;
 
     display: grid;
-    grid-template-columns: auto minmax(5.8rem, auto) auto;
+    grid-template-columns: auto minmax(5.8rem, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 0.22rem 0.55rem;
-    padding: 0.2rem 0.3rem 0.34rem;
+    padding: 0.18rem 0.26rem 0.3rem;
     border: 1px solid rgba(23, 20, 17, 0.08);
     border-radius: 1.15rem;
-    background: rgba(255, 255, 255, 0.62);
+    background: rgba(255, 255, 255, 0.74);
 }
 
 .reader-dock-label {
@@ -32,4 +30,9 @@
     grid-column: 1 / -1;
     width: 100%;
     min-width: 7rem;
+}
+
+.reader-dock-bar ::deep .app-button--icon-only.app-button--sm {
+    width: 2.35rem;
+    min-height: 2.35rem;
 }

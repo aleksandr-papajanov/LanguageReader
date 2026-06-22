@@ -20,18 +20,21 @@ else if (!string.IsNullOrWhiteSpace(error))
 else if (entry is not null)
 {
     <div class="word-details-page">
-        <AppPanel AdditionalClass="word-details-hero">
+        <AppPanel AdditionalClass="@HeroClass">
             <div class="word-details-hero__header">
                 <div class="word-details-hero__title-block">
                     <div class="word-details-hero__title-row">
                         <h1 class="word-details-hero__title">@entry.Word</h1>
-                        <AppButton Variant="ghost"
-                                   Size="sm"
-                                   Icon="volume_up"
-                                   IconOnly="true"
-                                   Title="Pronunciation is not available yet"
-                                   Disabled="true"
-                                   AdditionalClass="word-details-hero__icon-button" />
+                        @if (IsWordEntry)
+                        {
+                            <AppButton Variant="ghost"
+                                       Size="sm"
+                                       Icon="volume_up"
+                                       IconOnly="true"
+                                       Title="Pronunciation is not available yet"
+                                       Disabled="true"
+                                       AdditionalClass="word-details-hero__icon-button" />
+                        }
                     </div>
 
                     <p class="word-details-hero__subtitle">@entry.Translation</p>
@@ -274,6 +277,16 @@ else if (entry is not null)
     private string? error;
 
     private bool IsWordEntry => entry?.SelectionKind == SelectionKind.Word;
+
+    private string HeroClass =>
+        entry?.SelectionKind switch
+        {
+            SelectionKind.Word => "word-details-hero word-details-hero--word",
+            SelectionKind.Phrase => "word-details-hero word-details-hero--phrase",
+            SelectionKind.Sentence => "word-details-hero word-details-hero--sentence",
+            SelectionKind.Paragraph => "word-details-hero word-details-hero--paragraph",
+            _ => "word-details-hero"
+        };
 
     protected override async Task OnParametersSetAsync()
     {

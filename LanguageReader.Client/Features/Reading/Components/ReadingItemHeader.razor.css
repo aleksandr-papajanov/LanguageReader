@@ -11,11 +11,12 @@
     width: 100%;
     min-width: 0;
 
-    padding: 0.45rem 0;
+    padding: 0.35rem 0;
     margin: 0 0 var(--space-4);
 
     background: color-mix(in srgb, var(--color-background) 92%, white 8%);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }
 
 .reader-progress-dock > * {

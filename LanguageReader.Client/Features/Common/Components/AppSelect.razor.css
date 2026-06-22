@@ -34,6 +34,9 @@
         0 8px 18px rgba(23, 20, 17, 0.035);
 
     cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     transition:
         background-color 140ms ease,
@@ -156,4 +159,8 @@
 .app-select option {
     background: #fff;
     color: var(--color-text);
+}
+
+.app-select-shell--compact-title .app-select {
+    max-width: 100%;
 }
