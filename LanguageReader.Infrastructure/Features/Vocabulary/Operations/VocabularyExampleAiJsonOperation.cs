@@ -10,6 +10,10 @@ namespace LanguageReader.Infrastructure.Features.Vocabulary.Operations;
 internal sealed class VocabularyExampleAiJsonOperation(
     VocabularyExampleGenerationRequest request) : IAiJsonOperation<VocabularyExampleAiJsonOperation.Payload>
 {
+    private const string OperationName = "Vocabulary example generation";
+    private const string SchemaName = "vocabulary_example";
+    private const string Model = "gpt-5-mini";
+
     public AiOperationKind Kind => AiOperationKind.VocabularyExampleGeneration;
 
     public string ProviderName => "OpenAI";
@@ -18,15 +22,14 @@ internal sealed class VocabularyExampleAiJsonOperation(
     {
         Validate(request);
 
-        var input = BuildInput(request);
         return new AiJsonOperationRequest(
             Kind,
-            "Vocabulary example generation",
+            OperationName,
             BuildInstructions(),
-            input,
-            SchemaName: "vocabulary_example",
+            BuildInput(request),
+            SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
-            Model: null,
+            Model: Model,
             request.Word.Length + request.Translation.Length,
             request.ContextSentence?.Length ?? 0,
             ExpectedJsonPropertyCount: 2);
@@ -34,31 +37,20 @@ internal sealed class VocabularyExampleAiJsonOperation(
 
     private static string BuildInput(VocabularyExampleGenerationRequest request)
     {
-        var payload = new Dictionary<string, object?>
-        {
-            ["word"] = request.Word.Trim(),
-            ["knownTranslation"] = request.Translation.Trim(),
-            ["wordLanguage"] = request.WordLanguage.Trim(),
-            ["translationLanguage"] = request.TranslationLanguage.Trim()
-        };
+        return $"""
+Task: generate one example sentence for a vocabulary entry.
 
-        if (!string.IsNullOrWhiteSpace(request.ContextSentence))
-        {
-            payload["contextSentence"] = request.ContextSentence.Trim();
-        }
-
-        return JsonSerializer.Serialize(payload, JsonOptions.Options);
+Word: {request.Word.Trim()}
+Word language: {request.WordLanguage.Trim()}
+Known translation: {request.Translation.Trim()}
+Translation language: {request.TranslationLanguage.Trim()}
+""";
     }
 
     private static string BuildInstructions()
     {
         return """
-Generate one learner-friendly example sentence for a saved word.
-
-Rules:
-- Write one natural example sentence using the selected word correctly.
-- If contextSentence exists, stay close to its meaning and register without copying it verbatim.
-- Provide one short learner-friendly translation or paraphrase.
+Create concise learner-friendly vocabulary examples.
 """;
     }
 
@@ -77,14 +69,16 @@ Rules:
                 text = new
                 {
                     type = "string",
-                    description = $"One natural learner-friendly example sentence in {wordLanguage} that uses the selected word correctly.",
-                    minLength = 1
+                    description = $"One natural learner-friendly sentence in {wordLanguage} using the word correctly.",
+                    minLength = 1,
+                    maxLength = 180
                 },
                 translation = new
                 {
                     type = "string",
-                    description = $"Translation of the generated example sentence in {translationLanguage}.",
-                    minLength = 1
+                    description = $"Translation of the generated sentence in {translationLanguage}.",
+                    minLength = 1,
+                    maxLength = 220
                 }
             }
         };

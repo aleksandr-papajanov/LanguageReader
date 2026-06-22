@@ -21,11 +21,6 @@
     font-family: var(--font-reading);
     font-size: clamp(1.08rem, 1rem + 0.22vw, 1.2rem);
     line-height: 1.86;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.reader-page--custom-selection p span[data-translated="false"] {
     -webkit-user-select: text;
     user-select: text;
 }

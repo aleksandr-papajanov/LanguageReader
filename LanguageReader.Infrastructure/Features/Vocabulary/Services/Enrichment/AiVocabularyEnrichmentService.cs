@@ -21,10 +21,12 @@ public sealed class AiVocabularyEnrichmentService(
         CancellationToken cancellationToken = default)
     {
         var rules = normalizationRuleProvider.GetRules(request.SourceLanguage);
-        var result = await operationRunner.RunAsync(new VocabularyNormalizationAiJsonOperation(request, rules), cancellationToken);
-        var dictionaryForm = NormalizeRequiredText("dictionaryForm", result.Payload.DictionaryForm);
+        var result = await operationRunner.RunAsync(new VocabularyCandidateAiJsonOperation(request, rules), cancellationToken);
+        var dictionaryForm = result.Payload.IsLexicalUnit
+            ? NormalizeRequiredText("dictionaryForm", result.Payload.DictionaryForm)
+            : string.Empty;
 
-        return new VocabularyNormalizationResult(dictionaryForm, result.Usage);
+        return new VocabularyNormalizationResult(result.Payload.IsLexicalUnit, dictionaryForm, result.Usage);
     }
 
     public async Task<VocabularyAutofillResult> AutofillAsync(

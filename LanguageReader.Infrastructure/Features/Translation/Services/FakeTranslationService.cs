@@ -35,13 +35,11 @@ public sealed class FakeTranslationService : ITranslationBackend
 
         var sourceText = request.SourceText.Trim();
         var faker = CreateFaker(request.TargetLanguage, sourceText);
-        var resolvedSelectionKind = ResolveSelectionKind(request, sourceText);
-        var translatedText = resolvedSelectionKind switch
+        var translatedText = request.SelectionKind switch
         {
             SelectionKind.Word => GenerateWordTranslation(sourceText, request.OriginalText, faker),
             SelectionKind.Sentence => GenerateSentenceTranslation(faker),
             SelectionKind.Paragraph => GenerateParagraphTranslation(faker),
-            SelectionKind.Phrase => GenerateSentenceTranslation(faker),
             _ => GenerateSentenceTranslation(faker)
         };
 
@@ -57,7 +55,6 @@ public sealed class FakeTranslationService : ITranslationBackend
 
         return Task.FromResult(request.ToTranslationResultDto(
             translatedText,
-            resolvedSelectionKind,
             usage));
     }
 
@@ -108,24 +105,6 @@ public sealed class FakeTranslationService : ITranslationBackend
     {
         return string.Join(" ", Enumerable.Range(0, faker.Random.Int(2, 4))
             .Select(_ => faker.Lorem.Sentence(faker.Random.Int(8, 14))));
-    }
-
-    private static SelectionKind ResolveSelectionKind(TranslateRequest request, string sourceText)
-    {
-        if (request.SelectionKind != SelectionKind.Phrase)
-        {
-            return request.SelectionKind;
-        }
-
-        var tokens = sourceText
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        return tokens.Length switch
-        {
-            0 => SelectionKind.Phrase,
-            <= 3 when tokens.All(token => token.Any(char.IsLetter)) => SelectionKind.Word,
-            _ => SelectionKind.Phrase
-        };
     }
 
     private static string BuildTranslationInput(string sourceText, string? contextSentence, string? sourceLanguage, string targetLanguage)

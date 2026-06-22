@@ -20,7 +20,6 @@ public sealed class BookTranslationsApiClient(ApiClient api)
         var body = new CreateTranslatedRangeRequestBody(
             request.OriginalText,
             request.TranslatedText,
-            request.ResolvedSelectionKind,
             request.ParagraphIndex,
             request.StartOffset,
             request.EndOffset,

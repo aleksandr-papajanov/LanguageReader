@@ -15,10 +15,9 @@ internal static class BookTranslationMappingExtensions
             range.EndOffset,
             range.OriginalText,
             range.TranslatedText,
-            range.ResolvedSelectionKind ?? range.SelectionKind,
             range.VocabularyEntryId,
             range.ShowOriginal,
-            range.SelectionKind,
+            range.Kind,
             range.CreatedAtUtc);
     }
 }

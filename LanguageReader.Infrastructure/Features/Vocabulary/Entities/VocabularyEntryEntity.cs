@@ -1,7 +1,5 @@
 using LanguageReader.Infrastructure.Features.Ai.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
-using System.ComponentModel.DataAnnotations.Schema;
-
 
 namespace LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 
@@ -50,13 +48,6 @@ public sealed class VocabularyEntryEntity
     /// </summary>
     public Guid? ReadingItemId { get; set; }
 
-    [NotMapped]
-    public Guid? BookId
-    {
-        get => ReadingItemId;
-        set => ReadingItemId = value;
-    }
-
     /// <summary>
     /// Paragraph index for returning to the source.
     /// </summary>
@@ -68,9 +59,9 @@ public sealed class VocabularyEntryEntity
     public int CharacterOffset { get; set; }
 
     /// <summary>
-    /// Type of source fragment saved to vocabulary.
+    /// Semantic kind saved to vocabulary.
     /// </summary>
-    public SelectionKind SelectionKind { get; set; } = SelectionKind.Word;
+    public SavedTextKind Kind { get; set; } = SavedTextKind.LexicalUnit;
 
     /// <summary>
     /// Creation timestamp.
@@ -80,14 +71,7 @@ public sealed class VocabularyEntryEntity
     /// <summary>
     /// Associated reading item navigation property.
     /// </summary>
-    public ReadingItemEntity? Book { get; set; }
-
-    [NotMapped]
-    public ReadingItemEntity? ReadingItem
-    {
-        get => Book;
-        set => Book = value;
-    }
+    public ReadingItemEntity? ReadingItem { get; set; }
 
     /// <summary>
     /// Word-specific enrichment details.

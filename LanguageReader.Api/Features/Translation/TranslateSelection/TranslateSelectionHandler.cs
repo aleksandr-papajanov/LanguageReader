@@ -17,7 +17,7 @@ internal sealed class TranslateSelectionHandler(
             ? settings.NativeLanguage ?? string.Empty
             : request.TargetLanguage;
         var sourceLanguage = string.IsNullOrWhiteSpace(request.SourceLanguage)
-            ? await ResolveSourceLanguageAsync(request.ReadingItemId, ct)
+            ? await ResolveSourceLanguageAsync(request.ReadingItemId, ct) ?? string.Empty
             : request.SourceLanguage;
 
         var normalizedRequest = request with

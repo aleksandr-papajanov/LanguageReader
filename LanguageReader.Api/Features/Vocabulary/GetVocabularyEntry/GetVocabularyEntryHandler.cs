@@ -11,12 +11,12 @@ internal sealed class GetVocabularyEntryHandler(ApplicationDbContext dbContext)
         var normalizedUsername = UsernameHelper.Require(request.Username);
         var entry = await dbContext.VocabularyEntries
             .AsNoTracking()
-            .Include(item => item.Book)
+            .Include(item => item.ReadingItem)
             .Include(item => item.WordDetails)
             .Include(item => item.RelatedWords)
             .Include(item => item.AiOperations)
             .Include(item => item.Examples)
-                .ThenInclude(example => example.Book)
+                .ThenInclude(example => example.ReadingItem)
             .FirstOrDefaultAsync(item => item.Id == request.VocabularyId && item.Username == normalizedUsername, ct);
 
         if (entry is null)

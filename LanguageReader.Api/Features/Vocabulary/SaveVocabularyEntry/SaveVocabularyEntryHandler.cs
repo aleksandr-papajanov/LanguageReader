@@ -1,3 +1,5 @@
+using LanguageReader.Api.Features.Vocabulary.Services;
+using LanguageReader.Api.Features.Common.Services;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
@@ -12,7 +14,8 @@ namespace LanguageReader.Api.Features.Vocabulary;
 
 internal sealed class SaveVocabularyEntryHandler(
     ApplicationDbContext dbContext,
-    IVocabularyEnrichmentService vocabularyEnrichmentService)
+    IVocabularyEnrichmentService vocabularyEnrichmentService,
+    VocabularyAutofillApplicator autofillApplicator)
 {
     public async Task<VocabularyEntryDto> HandleAsync(SaveVocabularyEntryRequest request, CancellationToken ct)
     {
@@ -49,17 +52,8 @@ internal sealed class SaveVocabularyEntryHandler(
         var sourceLanguage = string.IsNullOrWhiteSpace(request.SourceLanguage) ? null : request.SourceLanguage.Trim();
         var targetLanguage = request.TargetLanguage.Trim();
         var wordLanguage = string.IsNullOrWhiteSpace(sourceLanguage) ? targetLanguage : sourceLanguage;
-        var normalizedParagraphIndex = Math.Max(0, request.Position.ParagraphIndex);
-        var normalizedCharacterOffset = Math.Max(0, request.Position.CharacterOffset);
-        var matchingRange = await FindMatchingTranslatedRangeAsync(
-            request.ReadingItemId,
-            normalizedUsername,
-            request.SelectionKind,
-            normalizedParagraphIndex,
-            normalizedCharacterOffset,
-            word,
-            ct);
-        var normalization = request.SelectionKind == SelectionKind.Word
+        var shouldResolveCandidate = request.SelectionKind is SelectionKind.Word or SelectionKind.Unknown;
+        var candidate = shouldResolveCandidate
             ? await vocabularyEnrichmentService.NormalizeAsync(
                 new VocabularyNormalizationRequest(
                     normalizedUsername,
@@ -70,16 +64,31 @@ internal sealed class SaveVocabularyEntryHandler(
                     request.ContextSentence),
                 ct)
             : null;
-        var dictionaryForm = normalization?.DictionaryForm.Trim();
+        var kind = request.SelectionKind == SelectionKind.Word || candidate?.IsLexicalUnit == true
+            ? SavedTextKind.LexicalUnit
+            : SavedTextKindMapper.FromSelectionKind(request.SelectionKind);
+        var normalizedParagraphIndex = Math.Max(0, request.Position.ParagraphIndex);
+        var normalizedCharacterOffset = Math.Max(0, request.Position.CharacterOffset);
+        var matchingRange = await FindMatchingTranslatedRangeAsync(
+            request.ReadingItemId,
+            normalizedUsername,
+            kind,
+            normalizedParagraphIndex,
+            normalizedCharacterOffset,
+            word,
+            ct);
+        var dictionaryForm = kind == SavedTextKind.LexicalUnit && !string.IsNullOrWhiteSpace(candidate?.DictionaryForm)
+            ? candidate.DictionaryForm.Trim()
+            : null;
         var canonicalWord = dictionaryForm ?? word;
 
         var entry = matchingRange?.VocabularyEntryId is Guid linkedEntryId
             ? await LoadOwnedEntryAsync(linkedEntryId, normalizedUsername, ct)
             : null;
 
-        entry ??= await FindExistingWordEntryAsync(
+        entry ??= await FindExistingEntryAsync(
             normalizedUsername,
-            request.SelectionKind,
+            kind,
             wordLanguage,
             targetLanguage,
             dictionaryForm,
@@ -119,8 +128,8 @@ internal sealed class SaveVocabularyEntryHandler(
             entry.TargetLanguage = targetLanguage;
             entry.ParagraphIndex = normalizedParagraphIndex;
             entry.CharacterOffset = normalizedCharacterOffset;
-            entry.SelectionKind = request.SelectionKind;
-            entry.Book = readingItem;
+            entry.Kind = kind;
+            entry.ReadingItem = readingItem;
         }
         else
         {
@@ -131,13 +140,28 @@ internal sealed class SaveVocabularyEntryHandler(
             }
         }
 
-        EnsureWordDetails(entry, word, dictionaryForm, request.SelectionKind);
+        EnsureWordDetails(entry, word, dictionaryForm, kind);
 
         EnsureBookExample(entry, request.ContextSentence, request.Position);
         await LinkTranslatedRangeAsync(entry, matchingRange, ct);
-        if (normalization is not null)
+        if (candidate is not null)
         {
-            dbContext.AiOperations.Add(AiOperationMapper.ToEntity(normalization.Usage, normalizedUsername, vocabularyEntryId: entry.Id));
+            dbContext.AiOperations.Add(AiOperationMapper.ToEntity(candidate.Usage, normalizedUsername, vocabularyEntryId: entry.Id));
+        }
+
+        if (kind == SavedTextKind.LexicalUnit)
+        {
+            var generated = await vocabularyEnrichmentService.AutofillAsync(
+                new VocabularyAutofillRequest(
+                    normalizedUsername,
+                    entry.Word,
+                    entry.Translation,
+                    wordLanguage,
+                    targetLanguage,
+                    request.ContextSentence),
+                ct);
+
+            autofillApplicator.Apply(entry, generated, ct);
         }
 
         await dbContext.SaveChangesAsync(ct);
@@ -156,6 +180,7 @@ internal sealed class SaveVocabularyEntryHandler(
         }
 
         matchingRange.VocabularyEntryId = entry.Id;
+        matchingRange.Kind = entry.Kind;
 
         await dbContext.Entry(matchingRange)
             .Collection(range => range.AiOperations)
@@ -170,7 +195,7 @@ internal sealed class SaveVocabularyEntryHandler(
     private async Task<TranslatedRangeEntity?> FindMatchingTranslatedRangeAsync(
         Guid readingItemId,
         string username,
-        SelectionKind selectionKind,
+        SavedTextKind kind,
         int paragraphIndex,
         int characterOffset,
         string word,
@@ -183,7 +208,7 @@ internal sealed class SaveVocabularyEntryHandler(
                 && range.ReadingItemId == readingItemId
                 && range.ParagraphIndex == paragraphIndex
                 && range.StartOffset == characterOffset
-                && range.SelectionKind == selectionKind
+                && range.Kind == kind
                 && range.OriginalText == word,
                 ct);
 
@@ -203,9 +228,9 @@ internal sealed class SaveVocabularyEntryHandler(
                 ct);
     }
 
-    private async Task<VocabularyEntryEntity?> FindExistingWordEntryAsync(
+    private async Task<VocabularyEntryEntity?> FindExistingEntryAsync(
         string username,
-        SelectionKind selectionKind,
+        SavedTextKind kind,
         string wordLanguage,
         string targetLanguage,
         string? dictionaryForm,
@@ -215,20 +240,20 @@ internal sealed class SaveVocabularyEntryHandler(
         string canonicalWord,
         CancellationToken ct)
     {
-        if (selectionKind == SelectionKind.Word && !string.IsNullOrWhiteSpace(dictionaryForm))
+        if (kind == SavedTextKind.LexicalUnit && !string.IsNullOrWhiteSpace(dictionaryForm))
         {
             var normalizedDictionaryForm = dictionaryForm.Trim();
             var existingByDictionaryForm = await dbContext.VocabularyEntries
-                .Include(item => item.Book)
+                .Include(item => item.ReadingItem)
                 .Include(item => item.WordDetails)
                 .Include(item => item.RelatedWords)
                 .Include(item => item.AiOperations)
                 .Include(item => item.Examples)
-                    .ThenInclude(example => example.Book)
+                    .ThenInclude(example => example.ReadingItem)
                 .OrderByDescending(item => item.CreatedAtUtc)
                 .FirstOrDefaultAsync(existing =>
                     existing.Username == username
-                    && existing.SelectionKind == SelectionKind.Word
+                    && existing.Kind == SavedTextKind.LexicalUnit
                     && existing.TargetLanguage == targetLanguage
                     && (existing.SourceLanguage ?? existing.TargetLanguage) == wordLanguage
                     && ((existing.WordDetails != null && existing.WordDetails.DictionaryForm == normalizedDictionaryForm)
@@ -244,19 +269,19 @@ internal sealed class SaveVocabularyEntryHandler(
         var loweredCanonicalWord = canonicalWord.ToLowerInvariant();
 
         return await dbContext.VocabularyEntries
-            .Include(item => item.Book)
+            .Include(item => item.ReadingItem)
             .Include(item => item.WordDetails)
             .Include(item => item.RelatedWords)
             .Include(item => item.AiOperations)
             .Include(item => item.Examples)
-                .ThenInclude(example => example.Book)
+                .ThenInclude(example => example.ReadingItem)
                 .FirstOrDefaultAsync(existing =>
                     existing.Username == username
                     && existing.ReadingItemId == readingItemId
                     && existing.Word.ToLower() == loweredCanonicalWord
                 && existing.ParagraphIndex == paragraphIndex
                 && existing.CharacterOffset == characterOffset
-                && existing.SelectionKind == selectionKind
+                && existing.Kind == kind
                 && existing.TargetLanguage == targetLanguage,
                 ct);
     }
@@ -265,9 +290,9 @@ internal sealed class SaveVocabularyEntryHandler(
         VocabularyEntryEntity entry,
         string seenWord,
         string? dictionaryForm,
-        SelectionKind selectionKind)
+        SavedTextKind kind)
     {
-        if (selectionKind != SelectionKind.Word)
+        if (kind != SavedTextKind.LexicalUnit)
         {
             return;
         }
@@ -293,18 +318,18 @@ internal sealed class SaveVocabularyEntryHandler(
     private async Task<VocabularyEntryEntity?> LoadOwnedEntryAsync(Guid id, string username, CancellationToken ct)
     {
         return await dbContext.VocabularyEntries
-            .Include(item => item.Book)
+            .Include(item => item.ReadingItem)
             .Include(item => item.WordDetails)
             .Include(item => item.RelatedWords)
             .Include(item => item.AiOperations)
             .Include(item => item.Examples)
-                .ThenInclude(example => example.Book)
+                .ThenInclude(example => example.ReadingItem)
             .FirstOrDefaultAsync(item => item.Id == id && item.Username == username, ct);
     }
 
     private static void EnsureBookExample(VocabularyEntryEntity entry, string? contextSentence, ReadingPositionDto position)
     {
-        if (entry.SelectionKind != SelectionKind.Word || string.IsNullOrWhiteSpace(contextSentence))
+        if (entry.Kind != SavedTextKind.LexicalUnit || string.IsNullOrWhiteSpace(contextSentence))
         {
             return;
         }

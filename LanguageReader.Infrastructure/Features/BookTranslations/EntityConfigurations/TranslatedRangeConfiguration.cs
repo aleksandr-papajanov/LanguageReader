@@ -8,7 +8,12 @@ internal sealed class TranslatedRangeConfiguration : IEntityTypeConfiguration<Tr
 {
     public void Configure(EntityTypeBuilder<TranslatedRangeEntity> entity)
     {
-        entity.ToTable("translated_ranges");
+        entity.ToTable("translated_ranges", table =>
+        {
+            table.HasCheckConstraint(
+                "ck_translated_ranges_kind",
+                "kind IN ('LexicalUnit', 'Text')");
+        });
         entity.HasKey(range => range.Id);
 
         entity.Property(range => range.Id).HasColumnName("id");
@@ -19,16 +24,15 @@ internal sealed class TranslatedRangeConfiguration : IEntityTypeConfiguration<Tr
         entity.Property(range => range.EndOffset).HasColumnName("end_offset");
         entity.Property(range => range.OriginalText).HasColumnName("original_text").IsRequired();
         entity.Property(range => range.TranslatedText).HasColumnName("translated_text").IsRequired();
-        entity.Property(range => range.ResolvedSelectionKind).HasColumnName("resolved_selection_kind").HasConversion<string>().HasMaxLength(32);
         entity.Property(range => range.VocabularyEntryId).HasColumnName("vocabulary_entry_id");
         entity.Property(range => range.ShowOriginal).HasColumnName("show_original");
-        entity.Property(range => range.SelectionKind).HasColumnName("selection_kind").HasConversion<string>().HasMaxLength(32).HasDefaultValue(SelectionKind.Word);
+        entity.Property(range => range.Kind).HasColumnName("kind").HasConversion<string>().HasMaxLength(32).HasDefaultValue(SavedTextKind.LexicalUnit);
         entity.Property(range => range.CreatedAtUtc).HasColumnName("created_at_utc");
 
         entity.HasIndex(range => new { range.Username, range.ReadingItemId });
         entity.HasIndex(range => new { range.ReadingItemId, range.ParagraphIndex });
 
-        entity.HasOne(range => range.Book)
+        entity.HasOne(range => range.ReadingItem)
             .WithMany(item => item.TranslatedRanges)
             .HasForeignKey(range => range.ReadingItemId)
             .OnDelete(DeleteBehavior.Cascade);

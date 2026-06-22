@@ -81,7 +81,7 @@ else
 
     private static string GetEntryCardClass(VocabularyEntryDto entry)
     {
-        return entry.SelectionKind == SelectionKind.Word
+        return entry.Kind == SavedTextKind.LexicalUnit
             ? "vocabulary-entry-card"
             : "vocabulary-entry-card vocabulary-entry-card--fragment";
     }

@@ -14,7 +14,6 @@ internal static class CreateBookTranslationEndpoint
                 route.ReadingItemId,
                 body.OriginalText,
                 body.TranslatedText,
-                body.ResolvedSelectionKind,
                 body.ParagraphIndex,
                 body.StartOffset,
                 body.EndOffset,

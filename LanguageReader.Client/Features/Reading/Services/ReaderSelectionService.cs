@@ -37,13 +37,13 @@ public sealed class ReaderSelectionService
         }
 
         return new ReaderSelection(
-            SelectionKind.Phrase,
+            SelectionKind.Unknown,
             paragraph.Text[startOffset..endOffset],
             paragraph.Index,
             startOffset,
             endOffset,
             startOffset,
-            SelectionKind.Phrase,
+            SelectionKind.Unknown,
             null);
     }
 

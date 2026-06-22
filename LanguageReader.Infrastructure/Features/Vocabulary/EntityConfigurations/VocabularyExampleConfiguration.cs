@@ -28,7 +28,7 @@ internal sealed class VocabularyExampleConfiguration : IEntityTypeConfiguration<
             .HasForeignKey(example => example.VocabularyEntryId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        entity.HasOne(example => example.Book)
+        entity.HasOne(example => example.ReadingItem)
             .WithMany()
             .HasForeignKey(example => example.ReadingItemId)
             .OnDelete(DeleteBehavior.SetNull);

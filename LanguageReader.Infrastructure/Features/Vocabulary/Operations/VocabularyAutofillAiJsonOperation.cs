@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using LanguageReader.Infrastructure.Agents.Json.Models;
 using LanguageReader.Infrastructure.Agents.Json.Operations;
@@ -10,6 +11,10 @@ namespace LanguageReader.Infrastructure.Features.Vocabulary.Operations;
 internal sealed class VocabularyAutofillAiJsonOperation(
     VocabularyAutofillRequest request) : IAiJsonOperation<VocabularyAutofillAiJsonOperation.Payload>
 {
+    private const string OperationName = "Vocabulary autofill";
+    private const string SchemaName = "vocabulary_autofill";
+    private const string Model = "gpt-5-mini";
+
     public AiOperationKind Kind => AiOperationKind.VocabularyAutofill;
 
     public string ProviderName => "OpenAI";
@@ -18,15 +23,14 @@ internal sealed class VocabularyAutofillAiJsonOperation(
     {
         Validate(request);
 
-        var input = BuildInput(request);
         return new AiJsonOperationRequest(
             Kind,
-            "Vocabulary autofill",
+            OperationName,
             BuildInstructions(),
-            input,
-            SchemaName: "vocabulary_autofill",
+            BuildInput(request),
+            SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
-            Model: "gpt-5-mini",
+            Model: Model,
             request.Word.Length + request.Translation.Length,
             request.ContextSentence?.Length ?? 0,
             ExpectedJsonPropertyCount: 9);
@@ -34,33 +38,29 @@ internal sealed class VocabularyAutofillAiJsonOperation(
 
     private static string BuildInput(VocabularyAutofillRequest request)
     {
-        var payload = new Dictionary<string, object?>
-        {
-            ["word"] = request.Word.Trim(),
-            ["knownTranslation"] = request.Translation.Trim(),
-            ["wordLanguage"] = request.WordLanguage.Trim(),
-            ["translationLanguage"] = request.TranslationLanguage.Trim()
-        };
+        var context = string.IsNullOrWhiteSpace(request.ContextSentence)
+            ? "none"
+            : request.ContextSentence.Trim();
 
-        if (!string.IsNullOrWhiteSpace(request.ContextSentence))
-        {
-            payload["contextSentence"] = request.ContextSentence.Trim();
-        }
+        return $"""
+Task: enrich vocabulary entry.
 
-        return JsonSerializer.Serialize(payload, JsonOptions.Options);
+Word: {request.Word.Trim()}
+Word language: {request.WordLanguage.Trim()}
+Known translation: {request.Translation.Trim()}
+Translation language: {request.TranslationLanguage.Trim()}
+Context: {context}
+
+Rules:
+- Word is already dictionary form.
+- Use context and known translation only for nuance.
+""";
     }
 
     private static string BuildInstructions()
     {
         return """
-Enrich one saved vocabulary dictionary form for a language learner.
-
-Rules:
-- Treat word as already normalized to the best dictionary form.
-- Base every field on word, not on an inflected seen form.
-- Use contextSentence only for learner-friendly nuance and examples.
-- Write learner-facing explanations, descriptions, notes, and translations in translationLanguage.
-- Keep source-language fields only where the schema explicitly asks for source-language words.
+You create concise vocabulary data for language learners.
 """;
     }
 
@@ -75,97 +75,104 @@ Rules:
             additionalProperties = false,
             required = new[]
             {
-                "primaryTranslation",
-                "description",
-                "alternativeTranslations",
                 "partOfSpeech",
-                "frequencyScore",
-                "notes",
+                "primaryTranslation",
+                "alternativeTranslations",
+                "description",
                 "synonyms",
                 "antonyms",
-                "related"
+                "related",
+                "frequencyScore",
+                "notes"
             },
             properties = new
             {
+                partOfSpeech = new
+                {
+                    type = "string",
+                    description = "Short English part-of-speech label: noun, verb, adjective, adverb, phrase, preposition, conjunction, pronoun, interjection, etc.",
+                    minLength = 1,
+                    maxLength = 24
+                },
                 primaryTranslation = new
                 {
                     type = "string",
-                    description = $"The best short canonical translation of word in {translationLanguage}. Use the known translation only as guidance.",
-                    minLength = 1
-                },
-                description = new
-                {
-                    type = "string",
-                    description = $"One short learner-friendly definition written entirely in {translationLanguage}. Do not use {wordLanguage} except for the word itself if needed.",
-                    minLength = 1
+                    description = $"Best short canonical translation in {translationLanguage}. Use the known translation as guidance, but correct it if needed.",
+                    minLength = 1,
+                    maxLength = 80
                 },
                 alternativeTranslations = new
                 {
                     type = "array",
-                    description = $"Other possible short translations in {translationLanguage}. Do not repeat primaryTranslation.",
+                    description = $"Other short translations in {translationLanguage}. Do not repeat primaryTranslation.",
                     minItems = 0,
                     maxItems = 3,
                     items = new
                     {
                         type = "string",
-                        minLength = 1
+                        minLength = 1,
+                        maxLength = 80
                     }
                 },
-                partOfSpeech = new
+                description = new
                 {
                     type = "string",
-                    description = "A short part-of-speech label in English, for example noun, verb, adjective, adverb, phrase, preposition, conjunction, pronoun, or interjection.",
+                    description = $"Short learner-friendly definition in {translationLanguage}. Do not use {wordLanguage} except for the word itself if needed.",
                     minLength = 1,
-                    maxLength = 24
+                    maxLength = 220
+                },
+                synonyms = new
+                {
+                    type = "array",
+                    description = $"Synonyms in {wordLanguage}. Do not include translations. Leave empty only when no good items exist.",
+                    minItems = 0,
+                    maxItems = 4,
+                    items = new
+                    {
+                        type = "string",
+                        minLength = 1,
+                        maxLength = 64
+                    }
+                },
+                antonyms = new
+                {
+                    type = "array",
+                    description = $"Antonyms in {wordLanguage}. Do not include translations. Leave empty only when no good items exist.",
+                    minItems = 0,
+                    maxItems = 4,
+                    items = new
+                    {
+                        type = "string",
+                        minLength = 1,
+                        maxLength = 64
+                    }
+                },
+                related = new
+                {
+                    type = "array",
+                    description = $"Closely related words or expressions in {wordLanguage}. Do not include translations. Leave empty only when no good items exist.",
+                    minItems = 0,
+                    maxItems = 4,
+                    items = new
+                    {
+                        type = "string",
+                        minLength = 1,
+                        maxLength = 64
+                    }
                 },
                 frequencyScore = new
                 {
                     type = "integer",
-                    description = "Estimated everyday frequency from 0 to 100. 0 means extremely rare, 100 means extremely common.",
+                    description = "Estimated everyday frequency from 0 to 100. 0 = extremely rare, 100 = extremely common.",
                     minimum = 0,
                     maximum = 100
                 },
                 notes = new
                 {
                     type = "string",
-                    description = $"One practical learner note in {translationLanguage}. Use an empty string if there is nothing useful to add."
+                    description = $"One practical learner note in {translationLanguage}. Empty string if there is nothing useful to add.",
+                    maxLength = 220
                 },
-                synonyms = new
-                {
-                    type = "array",
-                    description = $"Synonyms of word in {wordLanguage}. Do not include translations.",
-                    minItems = 0,
-                    maxItems = 4,
-                    items = new
-                    {
-                        type = "string",
-                        minLength = 1
-                    }
-                },
-                antonyms = new
-                {
-                    type = "array",
-                    description = $"Antonyms of word in {wordLanguage}. Do not include translations.",
-                    minItems = 0,
-                    maxItems = 4,
-                    items = new
-                    {
-                        type = "string",
-                        minLength = 1
-                    }
-                },
-                related = new
-                {
-                    type = "array",
-                    description = $"Closely related words or expressions in {wordLanguage}. Do not include translations.",
-                    minItems = 0,
-                    maxItems = 4,
-                    items = new
-                    {
-                        type = "string",
-                        minLength = 1
-                    }
-                }
             }
         };
 

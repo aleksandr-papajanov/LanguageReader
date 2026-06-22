@@ -9,6 +9,10 @@ namespace LanguageReader.Infrastructure.Features.Translation.Operations;
 internal sealed class TranslationAiJsonOperation(
     TranslateRequest request) : IAiJsonOperation<TranslationAiJsonOperation.Payload>
 {
+    private const string OperationName = "Translation";
+    private const string SchemaName = "translation_result";
+    private const string Model = "gpt-5-mini";
+
     public AiOperationKind Kind => AiOperationKind.Translation;
 
     public string ProviderName => "OpenAI";
@@ -17,15 +21,14 @@ internal sealed class TranslationAiJsonOperation(
     {
         ValidateRequest(request);
 
-        var input = BuildInput(request);
         return new AiJsonOperationRequest(
             Kind,
-            "Translation",
+            OperationName,
             BuildInstructions(),
-            input,
-            SchemaName: "translation_result",
+            BuildInput(request),
+            SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
-            Model: "gpt-5-mini",
+            Model: Model,
             request.SourceText.Length,
             request.OriginalText?.Length ?? 0,
             ExpectedJsonPropertyCount: 1);
@@ -33,57 +36,46 @@ internal sealed class TranslationAiJsonOperation(
 
     private static string BuildInput(TranslateRequest request)
     {
-        return $$"""
-Selected text:
-{{request.SourceText.Trim()}}
+        return $"""
+Task: translate selected text for in-place reading.
 
-Context:
-{{NormalizeContext(request)}}
+Selected text: {request.SourceText.Trim()}
+Context: {NormalizeContext(request)}
+Source language: {request.SourceLanguage.Trim()}
+Target language: {request.TargetLanguage.Trim()}
 
-Source language:
-{{(string.IsNullOrWhiteSpace(request.SourceLanguage) ? "Unknown" : request.SourceLanguage.Trim())}}
-
-Target language:
-{{request.TargetLanguage.Trim()}}
+Rules:
+- Use the context to resolve ambiguity.
+- Return the context-specific meaning, not dictionary form.
 """;
     }
 
     private static string BuildInstructions()
     {
         return """
-Translate selectedText for a language learner.
-Always translate it as it should naturally fit in contextText.
-Preserve the meaning, tone, and grammar implied by contextText.
-Return only the target-language wording, not explanations or dictionary forms.
-sourceLanguage is the language of selectedText.
-targetLanguage is the language you must translate into.
-Never return sourceLanguage text unless sourceLanguage and targetLanguage are the same language.
+Translate for language learners.
 """;
     }
 
     private static string BuildSchema(TranslateRequest request)
     {
-        var sourceLanguage = string.IsNullOrWhiteSpace(request.SourceLanguage)
-            ? "the source language"
-            : request.SourceLanguage.Trim();
-        var targetLanguage = request.TargetLanguage.Trim();
-
-        var properties = new Dictionary<string, object>
-        {
-            ["translatedText"] = new
-            {
-                type = "string",
-                description = $"Natural translation of the selected text from {sourceLanguage} into {targetLanguage}.",
-                minLength = 1
-            }
-        };
-
         var schema = new
         {
             type = "object",
             additionalProperties = false,
             required = new[] { "translatedText" },
-            properties
+            properties = new
+            {
+                translatedText = new
+                {
+                    type = "string",
+                    description = BuildTranslationDescription(
+                        request.SelectionKind,
+                        request.SourceLanguage.Trim(),
+                        request.TargetLanguage.Trim()),
+                    minLength = 1
+                }
+            }
         };
 
         return JsonSerializer.Serialize(schema, JsonOptions.Options);
@@ -107,6 +99,20 @@ Never return sourceLanguage text unless sourceLanguage and targetLanguage are th
         return string.IsNullOrWhiteSpace(request.OriginalText)
             ? request.SourceText.Trim()
             : request.OriginalText.Trim();
+    }
+
+    private static string BuildTranslationDescription(
+        SelectionKind selectionKind,
+        string sourceLanguage,
+        string targetLanguage)
+    {
+        return selectionKind switch
+        {
+            SelectionKind.Word => $"Context-specific meaning of the selected word from {sourceLanguage}, translated into {targetLanguage}.",
+            SelectionKind.Sentence => $"Natural sentence translation from {sourceLanguage} into {targetLanguage}.",
+            SelectionKind.Paragraph => $"Natural paragraph translation from {sourceLanguage} into {targetLanguage}.",
+            _ => $"Natural custom-fragment translation from {sourceLanguage} into {targetLanguage}."
+        };
     }
 
     internal sealed record Payload(string TranslatedText);

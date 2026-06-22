@@ -11,9 +11,8 @@ public sealed record TranslatedRangeDto(
     int EndOffset,
     string OriginalText,
     string TranslatedText,
-    SelectionKind ResolvedSelectionKind,
     Guid? VocabularyEntryId,
     bool ShowOriginal,
-    SelectionKind SelectionKind,
+    SavedTextKind Kind,
     DateTimeOffset CreatedAtUtc);
 

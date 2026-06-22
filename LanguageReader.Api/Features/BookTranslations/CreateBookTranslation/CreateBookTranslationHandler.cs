@@ -1,3 +1,4 @@
+using LanguageReader.Api.Features.Common.Services;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
@@ -34,6 +35,7 @@ internal sealed class CreateBookTranslationHandler(ApplicationDbContext dbContex
             throw new ForbiddenException("You do not have access to this reading item.");
         }
 
+        var kind = SavedTextKindMapper.FromSelectionKind(request.SelectionKind);
         var range = new TranslatedRangeEntity
         {
             Id = Guid.NewGuid(),
@@ -44,9 +46,8 @@ internal sealed class CreateBookTranslationHandler(ApplicationDbContext dbContex
             EndOffset = request.EndOffset,
             OriginalText = request.OriginalText.Trim(),
             TranslatedText = request.TranslatedText.Trim(),
-            ResolvedSelectionKind = request.ResolvedSelectionKind ?? request.SelectionKind,
             ShowOriginal = false,
-            SelectionKind = request.SelectionKind,
+            Kind = kind,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
 

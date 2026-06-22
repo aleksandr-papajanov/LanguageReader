@@ -21,7 +21,7 @@ internal sealed class ReadingProgressConfiguration : IEntityTypeConfiguration<Re
 
         entity.HasIndex(progress => new { progress.Username, progress.ReadingItemId }).IsUnique();
 
-        entity.HasOne(progress => progress.Book)
+        entity.HasOne(progress => progress.ReadingItem)
             .WithMany(item => item.ReadingProgresses)
             .HasForeignKey(progress => progress.ReadingItemId)
             .OnDelete(DeleteBehavior.Cascade);

@@ -120,10 +120,9 @@
         1,
         string.Empty,
         string.Empty,
-        SelectionKind.Word,
         null,
         false,
-        SelectionKind.Word,
+        SavedTextKind.LexicalUnit,
         DateTimeOffset.UnixEpoch);
 
     private readonly List<ReaderRangeRect> overlayRects = [];
@@ -216,7 +215,7 @@
     private ReaderSelection? previousSelection;
 
     private string ReaderPageClass =>
-        $"reader-page{(ActiveMode == SelectionKind.Phrase ? " reader-page--custom-selection" : string.Empty)}{(floatingMeasurements is null ? " reader-page--measuring" : string.Empty)}";
+        $"reader-page{(floatingMeasurements is null ? " reader-page--measuring" : string.Empty)}";
 
     protected override void OnParametersSet()
     {
@@ -321,12 +320,6 @@
         int endOffset,
         string selectedText)
     {
-        if (ActiveMode != SelectionKind.Phrase)
-        {
-            await IgnoreCustomSelectionAsync();
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(selectedText))
         {
             return;
@@ -368,24 +361,21 @@
 
     private async Task HandleReaderClickAsync(MouseEventArgs args)
     {
-        if (ActiveMode == SelectionKind.Phrase)
+        var selectedRange = await JsRuntime.InvokeAsync<ReaderCustomSelectionRange?>(
+            "languageReaderSelection.getSelectedRange",
+            readerPage);
+
+        if (selectedRange is not null && !string.IsNullOrWhiteSpace(selectedRange.SelectedText))
         {
-            var selectedRange = await JsRuntime.InvokeAsync<ReaderCustomSelectionRange?>(
-                "languageReaderSelection.getSelectedRange",
-                readerPage);
-
-            if (selectedRange is not null && !string.IsNullOrWhiteSpace(selectedRange.SelectedText))
+            if (ShouldIgnoreCustomSelection(selectedRange))
             {
-                if (ShouldIgnoreCustomSelection(selectedRange))
-                {
-                    await IgnoreCustomSelectionAsync();
-                    return;
-                }
-
-                await CustomRangeSelected.InvokeAsync(selectedRange);
-                await JsRuntime.InvokeVoidAsync("languageReaderSelection.clearSelectedText");
+                await IgnoreCustomSelectionAsync();
                 return;
             }
+
+            await CustomRangeSelected.InvokeAsync(selectedRange);
+            await JsRuntime.InvokeVoidAsync("languageReaderSelection.clearSelectedText");
+            return;
         }
 
         var hit = await JsRuntime.InvokeAsync<ReaderDomTextHit?>(
@@ -742,7 +732,7 @@
             && entry.ReadingItemId == range.ReadingItemId
             && entry.Position?.ParagraphIndex == range.ParagraphIndex
             && entry.Position?.CharacterOffset == range.StartOffset
-            && entry.SelectionKind == range.SelectionKind
+            && entry.Kind == range.Kind
             && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -759,12 +749,10 @@
 
     private static int GetTranslationLayerPriority(TranslatedRangeDto range)
     {
-        return range.SelectionKind switch
+        return range.Kind switch
         {
-            SelectionKind.Paragraph => 1,
-            SelectionKind.Sentence => 2,
-            SelectionKind.Phrase => 3,
-            SelectionKind.Word => 4,
+            SavedTextKind.Text => 3,
+            SavedTextKind.LexicalUnit => 4,
             _ => 5
         };
     }

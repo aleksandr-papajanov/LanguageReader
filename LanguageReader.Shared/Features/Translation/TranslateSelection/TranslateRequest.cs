@@ -3,7 +3,7 @@ namespace LanguageReader.Shared.Features.Translation;
 public sealed record TranslateRequest(
     string Username,
     string TargetLanguage,
-    string? SourceLanguage,
+    string SourceLanguage,
     SelectionKind SelectionKind,
     string SourceText,
     string? OriginalText,

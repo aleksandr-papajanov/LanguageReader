@@ -13,13 +13,13 @@ internal static class VocabularyMappingExtensions
             entry.Translation,
             entry.SourceLanguage ?? string.Empty,
             entry.TargetLanguage,
-            entry.Book?.Title ?? "Deleted reading item",
+            entry.ReadingItem?.Title ?? "Deleted reading item",
             entry.ReadingItemId,
             entry.Username,
             entry.ReadingItemId.HasValue
                 ? new ReadingPositionDto(entry.ReadingItemId.Value, entry.ParagraphIndex, entry.CharacterOffset)
                 : null,
-            entry.SelectionKind,
+            entry.Kind,
             entry.WordDetails?.ToVocabularyWordDetailsDto(),
             entry.RelatedWords
                 .OrderBy(item => item.SortOrder)
@@ -65,7 +65,7 @@ internal static class VocabularyMappingExtensions
             example.IsFromBook,
             example.CreatedAtUtc,
             example.ReadingItemId,
-            example.Book?.Title,
+            example.ReadingItem?.Title,
             example.ReadingItemId.HasValue && example.ParagraphIndex.HasValue && example.CharacterOffset.HasValue
                 ? new ReadingPositionDto(example.ReadingItemId.Value, example.ParagraphIndex.Value, example.CharacterOffset.Value)
                 : null);

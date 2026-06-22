@@ -1,5 +1,4 @@
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 
@@ -20,13 +19,6 @@ public sealed class VocabularyExampleEntity
 
     public Guid? ReadingItemId { get; set; }
 
-    [NotMapped]
-    public Guid? BookId
-    {
-        get => ReadingItemId;
-        set => ReadingItemId = value;
-    }
-
     public int? ParagraphIndex { get; set; }
 
     public int? CharacterOffset { get; set; }
@@ -35,12 +27,5 @@ public sealed class VocabularyExampleEntity
 
     public VocabularyEntryEntity? VocabularyEntry { get; set; }
 
-    public ReadingItemEntity? Book { get; set; }
-
-    [NotMapped]
-    public ReadingItemEntity? ReadingItem
-    {
-        get => Book;
-        set => Book = value;
-    }
+    public ReadingItemEntity? ReadingItem { get; set; }
 }

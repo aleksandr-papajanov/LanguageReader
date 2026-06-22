@@ -8,7 +8,12 @@ internal sealed class VocabularyEntryConfiguration : IEntityTypeConfiguration<Vo
 {
     public void Configure(EntityTypeBuilder<VocabularyEntryEntity> entity)
     {
-        entity.ToTable("vocabulary_entries");
+        entity.ToTable("vocabulary_entries", table =>
+        {
+            table.HasCheckConstraint(
+                "ck_vocabulary_entries_kind",
+                "kind IN ('LexicalUnit', 'Text')");
+        });
         entity.HasKey(entry => entry.Id);
 
         entity.Property(entry => entry.Id).HasColumnName("id");
@@ -21,13 +26,13 @@ internal sealed class VocabularyEntryConfiguration : IEntityTypeConfiguration<Vo
         entity.Property(entry => entry.ReadingItemId).HasColumnName("reading_item_id");
         entity.Property(entry => entry.ParagraphIndex).HasColumnName("paragraph_index");
         entity.Property(entry => entry.CharacterOffset).HasColumnName("character_offset");
-        entity.Property(entry => entry.SelectionKind).HasColumnName("selection_kind").HasConversion<string>().HasMaxLength(32);
+        entity.Property(entry => entry.Kind).HasColumnName("kind").HasConversion<string>().HasMaxLength(32);
         entity.Property(entry => entry.CreatedAtUtc).HasColumnName("created_at_utc");
 
         entity.HasIndex(entry => entry.Username);
         entity.HasIndex(entry => entry.ReadingItemId);
 
-        entity.HasOne(entry => entry.Book)
+        entity.HasOne(entry => entry.ReadingItem)
             .WithMany(item => item.VocabularyEntries)
             .HasForeignKey(entry => entry.ReadingItemId)
             .OnDelete(DeleteBehavior.SetNull);

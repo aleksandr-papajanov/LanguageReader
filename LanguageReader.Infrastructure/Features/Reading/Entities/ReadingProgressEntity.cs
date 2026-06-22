@@ -1,5 +1,4 @@
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LanguageReader.Infrastructure.Features.Reading.Entities;
 
@@ -22,13 +21,6 @@ public sealed class ReadingProgressEntity
     /// Reading item identifier.
     /// </summary>
     public Guid ReadingItemId { get; set; }
-
-    [NotMapped]
-    public Guid BookId
-    {
-        get => ReadingItemId;
-        set => ReadingItemId = value;
-    }
 
     /// <summary>
     /// Percentage from 0 to 100.
@@ -53,13 +45,6 @@ public sealed class ReadingProgressEntity
     /// <summary>
     /// Associated reading item navigation property.
     /// </summary>
-    public ReadingItemEntity? Book { get; set; }
-
-    [NotMapped]
-    public ReadingItemEntity? ReadingItem
-    {
-        get => Book;
-        set => Book = value;
-    }
+    public ReadingItemEntity? ReadingItem { get; set; }
 }
 

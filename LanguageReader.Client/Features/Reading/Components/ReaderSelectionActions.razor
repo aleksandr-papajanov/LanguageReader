@@ -29,7 +29,6 @@
     private static readonly SelectionKind[] Modes =
     [
         SelectionKind.Word,
-        SelectionKind.Phrase,
         SelectionKind.Sentence,
         SelectionKind.Paragraph
     ];
@@ -72,7 +71,6 @@
         return mode switch
         {
             SelectionKind.Word => "W",
-            SelectionKind.Phrase => "C",
             SelectionKind.Sentence => "S",
             SelectionKind.Paragraph => "P",
             _ => mode.ToString()
@@ -84,7 +82,6 @@
         return mode switch
         {
             SelectionKind.Word => "Word",
-            SelectionKind.Phrase => "Custom",
             SelectionKind.Sentence => "Sentence",
             SelectionKind.Paragraph => "Paragraph",
             _ => mode.ToString()

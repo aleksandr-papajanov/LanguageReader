@@ -10,7 +10,7 @@ public sealed record VocabularyEntryDto(
     Guid? ReadingItemId,
     string Username,
     ReadingPositionDto? Position,
-    SelectionKind SelectionKind,
+    SavedTextKind Kind,
     VocabularyWordDetailsDto? WordDetails,
     IReadOnlyList<RelatedWordDto> RelatedWords,
     IReadOnlyList<VocabularyExampleDto> Examples,

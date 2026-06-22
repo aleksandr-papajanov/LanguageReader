@@ -52,7 +52,8 @@ public sealed class FakeVocabularyEnrichmentService : IVocabularyEnrichmentBacke
         cancellationToken.ThrowIfCancellationRequested();
         Validate(request.Text, request.Translation, request.SourceLanguage, request.TargetLanguage);
 
-        var dictionaryForm = BuildDictionaryForm(request.Text);
+        var isLexicalUnit = IsShortLexicalCandidate(request.Text);
+        var dictionaryForm = isLexicalUnit ? BuildDictionaryForm(request.Text) : string.Empty;
         var pricing = AiPricingCatalog.GetPricing("FakeAI", "fake-bogus-v2");
         var usage = AiOperationUsageFactory.Create(
             AiOperationKind.VocabularyNormalization,
@@ -63,7 +64,7 @@ public sealed class FakeVocabularyEnrichmentService : IVocabularyEnrichmentBacke
             pricing.InputUsdPerMillionTokens,
             pricing.OutputUsdPerMillionTokens);
 
-        return Task.FromResult(new VocabularyNormalizationResult(dictionaryForm, usage));
+        return Task.FromResult(new VocabularyNormalizationResult(isLexicalUnit, dictionaryForm, usage));
     }
 
     public Task<VocabularyAutofillResult> AutofillAsync(
@@ -211,6 +212,16 @@ public sealed class FakeVocabularyEnrichmentService : IVocabularyEnrichmentBacke
     private static string BuildDictionaryForm(string word)
     {
         return word.Trim().ToLowerInvariant();
+    }
+
+    private static bool IsShortLexicalCandidate(string text)
+    {
+        var tokens = text
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(token => token.Any(char.IsLetter))
+            .ToArray();
+
+        return tokens.Length is > 0 and <= 3;
     }
 
     private static string BuildExampleSentence(string word, string? contextSentence, Faker faker)

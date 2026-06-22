@@ -109,7 +109,7 @@ else if (activeEntry is not null)
         {
             entries.Clear();
             entries.AddRange((await Api.GetVocabularyAsync(new GetVocabularyRequest(Session.Username!, false)))
-                .Where(item => item.SelectionKind == SelectionKind.Word && item.IsVisibleInVocabulary));
+                .Where(item => item.Kind == SavedTextKind.LexicalUnit && item.IsVisibleInVocabulary));
             BuildBookOptions();
 
             SelectNextCardImmediate();

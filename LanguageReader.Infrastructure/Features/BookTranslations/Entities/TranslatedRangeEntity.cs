@@ -1,8 +1,6 @@
 using LanguageReader.Infrastructure.Features.Ai.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
-using System.ComponentModel.DataAnnotations.Schema;
-
 
 namespace LanguageReader.Infrastructure.Features.BookTranslations.Entities;
 
@@ -25,13 +23,6 @@ public sealed class TranslatedRangeEntity
     /// Source reading item identifier.
     /// </summary>
     public Guid ReadingItemId { get; set; }
-
-    [NotMapped]
-    public Guid BookId
-    {
-        get => ReadingItemId;
-        set => ReadingItemId = value;
-    }
 
     /// <summary>
     /// Paragraph index in parsed book content.
@@ -59,11 +50,6 @@ public sealed class TranslatedRangeEntity
     public string TranslatedText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Semantic kind resolved by AI for custom selections.
-    /// </summary>
-    public SelectionKind? ResolvedSelectionKind { get; set; }
-
-    /// <summary>
     /// Linked vocabulary entry identifier when this translation is saved to vocabulary.
     /// </summary>
     public Guid? VocabularyEntryId { get; set; }
@@ -74,9 +60,9 @@ public sealed class TranslatedRangeEntity
     public bool ShowOriginal { get; set; }
 
     /// <summary>
-    /// Selection granularity used to create the range.
+    /// Semantic kind used by backend storage.
     /// </summary>
-    public SelectionKind SelectionKind { get; set; }
+    public SavedTextKind Kind { get; set; }
 
     /// <summary>
     /// Creation timestamp.
@@ -86,14 +72,7 @@ public sealed class TranslatedRangeEntity
     /// <summary>
     /// Associated reading item navigation property.
     /// </summary>
-    public ReadingItemEntity? Book { get; set; }
-
-    [NotMapped]
-    public ReadingItemEntity? ReadingItem
-    {
-        get => Book;
-        set => Book = value;
-    }
+    public ReadingItemEntity? ReadingItem { get; set; }
 
     /// <summary>
     /// Linked vocabulary entry navigation property.

@@ -23,7 +23,6 @@ public sealed class AiTranslationService(
 
         return request.ToTranslationResultDto(
             result.Payload.TranslatedText,
-            request.SelectionKind,
             result.Usage);
     }
 }

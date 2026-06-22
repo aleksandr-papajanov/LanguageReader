@@ -91,6 +91,7 @@ else if (content is not null)
     private readonly List<ReaderParagraph> paragraphs = [];
     private readonly List<TranslatedRangeDto> translatedRanges = [];
     private readonly List<VocabularyEntryDto> vocabularyEntries = [];
+    private readonly Dictionary<Guid, SelectionKind> readerSelectionKinds = [];
     private readonly ReaderSelectionService selectionService = new();
     private ReaderProgressState progress = ReaderProgressState.Empty(ParagraphsPerPage);
 
@@ -384,7 +385,7 @@ else if (content is not null)
                 new TranslateRequest(
                     Session.Username!,
                     settings.NativeLanguage ?? string.Empty,
-                    readingItemDetails?.OriginalLanguage ?? content?.OriginalLanguage,
+                    readingItemDetails?.OriginalLanguage ?? content?.OriginalLanguage ?? string.Empty,
                     currentSelection.SelectionType,
                     currentSelection.SelectedText,
                     BuildTranslationContext(currentSelection),
@@ -396,14 +397,13 @@ else if (content is not null)
                     ReadingItemId,
                     currentSelection.SelectedText,
                     result.Translation,
-                    result.ResolvedSelectionKind,
                     currentSelection.ParagraphIndex,
                     currentSelection.StartOffset,
                     currentSelection.EndOffset,
                     Session.Username!,
                     currentSelection.SelectionType,
                     result.Usage));
-
+            RememberReaderSelectionKind(saved.Id, currentSelection.SelectionType);
             ReplaceTranslatedRange(saved);
             SelectTranslatedRange(saved);
         }
@@ -437,7 +437,7 @@ else if (content is not null)
 
             var sourceLanguage = readingItemDetails?.OriginalLanguage ?? content?.OriginalLanguage;
             var targetLanguage = settings.NativeLanguage ?? string.Empty;
-            var vocabularySelectionKind = range.ResolvedSelectionKind;
+            var vocabularySelectionKind = GetReaderSelectionKind(range);
 
             var saved = await VocabularyApi.SaveVocabularyAsync(new SaveVocabularyEntryRequest(
                 Session.Username!,
@@ -447,14 +447,12 @@ else if (content is not null)
                 targetLanguage,
                 ReadingItemId,
                 new ReadingPositionDto(ReadingItemId, range.ParagraphIndex, range.StartOffset),
-                vocabularySelectionKind == SelectionKind.Word
-                    ? selectionService.GetContextSentence(paragraphs, range.ParagraphIndex, range.StartOffset)
-                    : null,
+                selectionService.GetContextSentence(paragraphs, range.ParagraphIndex, range.StartOffset),
                 true,
                 vocabularySelectionKind));
 
             ReplaceVocabularyEntry(saved);
-            ReplaceTranslatedRange(range with { VocabularyEntryId = saved.Id });
+            ReplaceTranslatedRange(range with { VocabularyEntryId = saved.Id, Kind = saved.Kind });
         }
         catch (Exception exception)
         {
@@ -500,7 +498,7 @@ else if (content is not null)
             range.StartOffset,
             range.EndOffset,
             range.StartOffset,
-            range.SelectionKind,
+            GetReaderSelectionKind(range),
             range.TranslatedText);
 
         RememberSelectionAnchor(selection);
@@ -675,8 +673,25 @@ else if (content is not null)
                 (includeHidden || entry.IsVisibleInVocabulary)
                 && entry.Position?.ParagraphIndex == range.ParagraphIndex
                 && entry.Position?.CharacterOffset == range.StartOffset
-                && entry.SelectionKind == range.SelectionKind
+                && entry.Kind == range.Kind
                 && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void RememberReaderSelectionKind(Guid translatedRangeId, SelectionKind selectionKind)
+    {
+        readerSelectionKinds[translatedRangeId] = selectionKind;
+    }
+
+    private SelectionKind GetReaderSelectionKind(TranslatedRangeDto range)
+    {
+        if (readerSelectionKinds.TryGetValue(range.Id, out var selectionKind))
+        {
+            return selectionKind;
+        }
+
+        return range.Kind == SavedTextKind.LexicalUnit
+            ? SelectionKind.Word
+            : SelectionKind.Paragraph;
     }
 
     private ReadingPositionDto CurrentPosition()
@@ -686,7 +701,7 @@ else if (content is not null)
 
     private string? BuildTranslationContext(ReaderSelection readerSelection)
     {
-        return readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Phrase
+        return readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Unknown
             ? selectionService.GetContextSentence(paragraphs, readerSelection.ParagraphIndex, readerSelection.StartOffset)
             : readerSelection.SelectedText;
     }

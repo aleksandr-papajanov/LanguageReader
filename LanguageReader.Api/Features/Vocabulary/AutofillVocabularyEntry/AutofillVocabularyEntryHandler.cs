@@ -1,6 +1,6 @@
+using LanguageReader.Api.Features.Vocabulary.Services;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Ai;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
 using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
@@ -10,13 +10,14 @@ namespace LanguageReader.Api.Features.Vocabulary;
 
 internal sealed class AutofillVocabularyEntryHandler(
     ApplicationDbContext dbContext,
-    IVocabularyEnrichmentService enrichmentService)
+    IVocabularyEnrichmentService enrichmentService,
+    VocabularyAutofillApplicator autofillApplicator)
 {
     public async Task<VocabularyEntryDto> HandleAsync(AutofillVocabularyEntryRequest request, CancellationToken ct)
     {
         var entry = await LoadOwnedEntryAsync(request.VocabularyId, request.Username, ct);
 
-        if (entry.SelectionKind != SelectionKind.Word)
+        if (entry.Kind != SavedTextKind.LexicalUnit)
         {
             throw new ValidationException("Autofill is only available for saved words.");
         }
@@ -30,55 +31,7 @@ internal sealed class AutofillVocabularyEntryHandler(
                 entry.TargetLanguage,
                 entry.Examples.FirstOrDefault(example => example.IsFromBook)?.Text),
             ct);
-        entry.WordDetails ??= new VocabularyWordDetailsEntity
-        {
-            VocabularyEntryId = entry.Id
-        };
-
-        if (string.IsNullOrWhiteSpace(entry.WordDetails.SeenForm))
-        {
-            entry.WordDetails.SeenForm = entry.Word;
-        }
-
-        entry.WordDetails.DictionaryForm ??= entry.Word;
-
-        if (!string.IsNullOrWhiteSpace(generated.PrimaryTranslation))
-        {
-            entry.Translation = generated.PrimaryTranslation.Trim();
-        }
-
-        entry.WordDetails.Description = generated.Description;
-        entry.WordDetails.FrequencyScore = generated.FrequencyScore;
-        entry.WordDetails.PartOfSpeech = generated.PartOfSpeech;
-        entry.WordDetails.Notes = generated.Notes;
-
-        await dbContext.RelatedWords
-            .Where(x => x.VocabularyEntryId == entry.Id)
-            .ExecuteDeleteAsync(ct);
-
-        var seeds = generated.AlternativeTranslations
-            .Select(item => new VocabularyRelatedWordSeed(item, RelatedWordType.AlternativeTranslation))
-            .Concat(generated.RelatedWords)
-            .Where(item => !string.IsNullOrWhiteSpace(item.Word))
-            .DistinctBy(item => (item.Word.Trim().ToLowerInvariant(), item.Type))
-            .ToList();
-
-        for (var index = 0; index < seeds.Count; index++)
-        {
-            var relatedWord = seeds[index];
-
-            dbContext.RelatedWords.Add(new RelatedWordEntity
-            {
-                Id = Guid.NewGuid(),
-                VocabularyEntryId = entry.Id,
-                Word = relatedWord.Word.Trim(),
-                Type = relatedWord.Type,
-                SortOrder = index,
-                CreatedAtUtc = DateTimeOffset.UtcNow
-            });
-        }
-
-        dbContext.AiOperations.Add(AiOperationMapper.ToEntity(generated.Usage, entry.Username, vocabularyEntryId: entry.Id));
+        autofillApplicator.Apply(entry, generated, ct);
 
         await dbContext.SaveChangesAsync(ct);
         return entry.ToVocabularyEntryDto();
@@ -88,12 +41,12 @@ internal sealed class AutofillVocabularyEntryHandler(
     {
         var normalizedUsername = UsernameHelper.Require(username);
         var entry = await dbContext.VocabularyEntries
-            .Include(item => item.Book)
+            .Include(item => item.ReadingItem)
             .Include(item => item.WordDetails)
             .Include(item => item.RelatedWords)
             .Include(item => item.AiOperations)
             .Include(item => item.Examples)
-                .ThenInclude(example => example.Book)
+                .ThenInclude(example => example.ReadingItem)
             .FirstOrDefaultAsync(item => item.Id == id && item.Username == normalizedUsername, ct);
 
         if (entry is null)

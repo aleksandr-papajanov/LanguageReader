@@ -51,17 +51,6 @@ else if (entry is not null)
                                AdditionalClass="@GetBookmarkButtonClass()"
                                OnClick="@(_ => ToggleVocabularyAsync())" />
 
-                    @if (IsWordEntry)
-                    {
-                        <AppButton Label="Autofill"
-                                   Variant="secondary"
-                                   Size="sm"
-                                   Icon="auto_awesome"
-                                   Disabled="@isBusy"
-                                   AdditionalClass="word-details-hero__action-button"
-                                   OnClick="@(_ => AutofillAsync())" />
-                    }
-
                     @if (entry.IsVisibleInVocabulary)
                     {
                         <AppButton Label="Remove"
@@ -276,15 +265,13 @@ else if (entry is not null)
     private bool isBusy;
     private string? error;
 
-    private bool IsWordEntry => entry?.SelectionKind == SelectionKind.Word;
+    private bool IsWordEntry => entry?.Kind == SavedTextKind.LexicalUnit;
 
     private string HeroClass =>
-        entry?.SelectionKind switch
+        entry?.Kind switch
         {
-            SelectionKind.Word => "word-details-hero word-details-hero--word",
-            SelectionKind.Phrase => "word-details-hero word-details-hero--phrase",
-            SelectionKind.Sentence => "word-details-hero word-details-hero--sentence",
-            SelectionKind.Paragraph => "word-details-hero word-details-hero--paragraph",
+            SavedTextKind.LexicalUnit => "word-details-hero word-details-hero--word",
+            SavedTextKind.Text => "word-details-hero word-details-hero--paragraph",
             _ => "word-details-hero"
         };
 
@@ -334,22 +321,6 @@ else if (entry is not null)
                     entry.Id,
                     Session.Username!,
                     !entry.IsVisibleInVocabulary));
-        });
-    }
-
-    private async Task AutofillAsync()
-    {
-        if (entry is null || !IsWordEntry)
-        {
-            return;
-        }
-
-        await RunBusyAsync(async () =>
-        {
-            entry = await Api.AutofillVocabularyEntryAsync(
-                new AutofillVocabularyEntryRequest(
-                    entry.Id,
-                    Session.Username!));
         });
     }
 
@@ -440,8 +411,13 @@ else if (entry is not null)
         return entry is null
             ? string.Empty
             : entry.Position is null
-                ? $"{entry.SelectionKind} from deleted reading item"
-                : $"{entry.SelectionKind} in {entry.ReadingItemTitle}";
+                ? $"{FormatKind(entry.Kind)} from deleted reading item"
+                : $"{FormatKind(entry.Kind)} in {entry.ReadingItemTitle}";
+    }
+
+    private static string FormatKind(SavedTextKind kind)
+    {
+        return kind == SavedTextKind.LexicalUnit ? "Word" : "Text";
     }
 
     private string GetLatestOperationModel()

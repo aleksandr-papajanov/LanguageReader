@@ -29,7 +29,7 @@ internal sealed class AddVocabularyExampleHandler(
             throw new NotFoundException($"Vocabulary entry '{request.VocabularyId}' was not found.");
         }
 
-        if (entry.SelectionKind != SelectionKind.Word)
+        if (entry.Kind != SavedTextKind.LexicalUnit)
         {
             throw new ValidationException("Generated usage examples are only available for saved words.");
         }
@@ -58,12 +58,12 @@ internal sealed class AddVocabularyExampleHandler(
         await dbContext.SaveChangesAsync(ct);
 
         var updatedEntry = await dbContext.VocabularyEntries
-            .Include(item => item.Book)
+            .Include(item => item.ReadingItem)
             .Include(item => item.WordDetails)
             .Include(item => item.RelatedWords)
             .Include(item => item.AiOperations)
             .Include(item => item.Examples)
-                .ThenInclude(example => example.Book)
+                .ThenInclude(example => example.ReadingItem)
             .FirstAsync(
                 item => item.Id == request.VocabularyId && item.Username == normalizedUsername,
                 ct);

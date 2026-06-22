@@ -10,12 +10,12 @@ internal sealed class UpdateVocabularyVisibilityHandler(ApplicationDbContext dbC
     {
         var normalizedUsername = UsernameHelper.Require(request.Username);
         var entry = await dbContext.VocabularyEntries
-            .Include(entry => entry.Book)
+            .Include(entry => entry.ReadingItem)
             .Include(entry => entry.WordDetails)
             .Include(entry => entry.RelatedWords)
             .Include(entry => entry.AiOperations)
             .Include(entry => entry.Examples)
-                .ThenInclude(example => example.Book)
+                .ThenInclude(example => example.ReadingItem)
             .FirstOrDefaultAsync(
             entry => entry.Id == request.VocabularyId && entry.Username == normalizedUsername,
             ct);
