@@ -8,3 +8,18 @@
 .settings-panel .app-inline-error {
     margin-top: calc(var(--space-2) * -1);
 }
+
+.settings-stats-panel {
+    margin-top: var(--space-4);
+}
+
+.settings-stats-panel__title,
+.settings-stats-panel__copy {
+    margin: 0;
+}
+
+.settings-stats-panel__copy {
+    margin-top: 0.35rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-secondary);
+}

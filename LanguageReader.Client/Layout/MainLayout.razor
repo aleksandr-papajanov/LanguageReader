@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IViewportService Viewport
+@inject ThemeService Theme
 @implements IDisposable
 
 <div class="app-layout">
@@ -35,6 +36,7 @@
 
         Viewport.Changed += HandleViewportChanged;
         await Viewport.InitializeAsync();
+        await Theme.InitializeAsync();
         StateHasChanged();
     }
 

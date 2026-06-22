@@ -1,7 +1,7 @@
 .top-row {
     min-height: 4.1rem;
     padding: env(safe-area-inset-top, 0px) 0 0;
-    background: rgba(252, 251, 248, 0.82);
+    background: color-mix(in srgb, var(--color-bg) 82%, transparent);
     border-bottom: 1px solid color-mix(in srgb, var(--color-border-strong) 42%, transparent);
     justify-content: space-between;
     display: flex;
@@ -38,6 +38,10 @@
     color: var(--color-text);
     font-size: 0.95rem;
     font-weight: 600;
+}
+
+.top-row ::deep(.session-status__theme-toggle) {
+    flex: 0 0 auto;
 }
 
 .session-link {

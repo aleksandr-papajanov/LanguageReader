@@ -7,7 +7,7 @@
     padding: 0.28rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.72);
+    background: color-mix(in srgb, var(--color-surface-strong) 72%, transparent);
     box-shadow: var(--shadow-sm);
 }
 
@@ -29,12 +29,12 @@
 }
 
 .app-tab:hover {
-    background: rgba(23, 20, 17, 0.03);
+    background: color-mix(in srgb, var(--color-text) 3%, transparent);
 }
 
 .app-tab--active {
     border-color: var(--color-border);
-    background: rgba(255, 255, 255, 0.92);
+    background: color-mix(in srgb, var(--color-surface-strong) 92%, transparent);
     color: var(--color-text);
 }
 

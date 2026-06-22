@@ -22,6 +22,24 @@
       "problemMatcher": []
     },
     {
+      "label": "dev: build api",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "LanguageReader.Api/LanguageReader.Api.csproj"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "dev: build",
       "type": "process",
       "command": "dotnet",

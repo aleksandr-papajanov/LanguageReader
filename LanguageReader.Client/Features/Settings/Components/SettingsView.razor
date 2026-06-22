@@ -1,5 +1,6 @@
 @inject SettingsApiClient Api
 @inject UserSession Session
+@inject NavigationManager Navigation
 
 <AppHeading Title="Settings"
             Subtitle="Reader and translation preferences." />
@@ -44,6 +45,18 @@ else
                    Icon="save"
                    OnClick="SaveAsync" />
     </AppPanel>
+
+    <AppPanel AdditionalClass="settings-panel settings-stats-panel">
+        <div>
+            <h3 class="settings-stats-panel__title">Statistics</h3>
+            <p class="settings-stats-panel__copy">Review AI operation usage and cost across translation and vocabulary workflows.</p>
+        </div>
+
+        <AppButton Label="Open statistics"
+                   Variant="secondary"
+                   Icon="monitoring"
+                   OnClick="OpenStatsAsync" />
+    </AppPanel>
 }
 
 @code {
@@ -63,5 +76,11 @@ else
     private async Task SaveAsync(MouseEventArgs _)
     {
         await state.SaveAsync(Api, Session.Username!);
+    }
+
+    private Task OpenStatsAsync(MouseEventArgs _)
+    {
+        Navigation.NavigateTo("stats");
+        return Task.CompletedTask;
     }
 }

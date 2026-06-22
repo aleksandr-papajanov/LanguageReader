@@ -8,6 +8,7 @@
       "program": "${workspaceFolder}/LanguageReader.Api/bin/Debug/net9.0/LanguageReader.Api.dll",
       "args": [],
       "cwd": "${workspaceFolder}/LanguageReader.Api",
+      "preLaunchTask": "dev: build api",
       "stopAtEntry": false,
       "console": "integratedTerminal",
       "env": {

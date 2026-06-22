@@ -7,7 +7,7 @@
     padding: 0.16rem 0.58rem;
     border: 1px solid var(--color-border);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
+    background: color-mix(in srgb, var(--color-surface-strong) 72%, transparent);
     color: var(--color-text-soft);
     font-size: var(--text-caption);
     font-weight: 700;
@@ -25,26 +25,26 @@ a.app-badge:focus-visible {
 }
 
 .app-badge--success {
-    border-color: rgba(46, 106, 69, 0.24);
-    background: rgba(46, 106, 69, 0.08);
+    border-color: color-mix(in srgb, var(--color-success) 24%, transparent);
+    background: var(--color-success-soft);
     color: var(--color-success);
 }
 
 .app-badge--warning {
-    border-color: rgba(138, 100, 19, 0.2);
-    background: rgba(138, 100, 19, 0.08);
+    border-color: color-mix(in srgb, var(--color-warning) 20%, transparent);
+    background: var(--color-warning-soft);
     color: var(--color-warning);
 }
 
 .app-badge--info {
-    border-color: rgba(38, 92, 140, 0.22);
-    background: rgba(38, 92, 140, 0.08);
-    color: #265c8c;
+    border-color: color-mix(in srgb, var(--color-info, #4e8fc4) 22%, transparent);
+    background: color-mix(in srgb, var(--color-info, #4e8fc4) 10%, transparent);
+    color: var(--color-info, #4e8fc4);
 }
 
 .app-badge--error {
-    border-color: rgba(141, 47, 47, 0.2);
-    background: rgba(141, 47, 47, 0.08);
+    border-color: color-mix(in srgb, var(--color-error) 20%, transparent);
+    background: var(--color-error-soft);
     color: var(--color-error);
 }
 

@@ -4,6 +4,7 @@ using LanguageReader.Api.Features.News;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Api.Features.Reading;
 using LanguageReader.Api.Features.Settings;
+using LanguageReader.Api.Features.Stats;
 using LanguageReader.Api.Features.Translation;
 using LanguageReader.Api.Features.Users;
 using LanguageReader.Api.Features.Vocabulary;
@@ -39,6 +40,7 @@ internal static class FeatureRegistration
 
         services.AddScoped<GetUserSettingsHandler>();
         services.AddScoped<UpdateUserSettingsHandler>();
+        services.AddScoped<GetAiOperationsStatsHandler>();
         services.AddScoped<TranslateSelectionHandler>();
         services.AddScoped<PasswordHashService>();
         services.AddScoped<CreateSessionHandler>();

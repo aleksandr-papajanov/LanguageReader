@@ -1,4 +1,4 @@
-using LanguageReader.Infrastructure.Features.Ai.Entities;
+using LanguageReader.Api.Features.Common.Mapping;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 
 namespace LanguageReader.Api.Features.Vocabulary;
@@ -69,33 +69,5 @@ internal static class VocabularyMappingExtensions
             example.ReadingItemId.HasValue && example.ParagraphIndex.HasValue && example.CharacterOffset.HasValue
                 ? new ReadingPositionDto(example.ReadingItemId.Value, example.ParagraphIndex.Value, example.CharacterOffset.Value)
                 : null);
-    }
-
-    public static AiOperationDto ToAiOperationDto(this AiOperationEntity operation)
-    {
-        return new AiOperationDto(
-            operation.Id,
-            operation.Kind,
-            operation.Provider,
-            operation.Model,
-            operation.InputTokens,
-            operation.OutputTokens,
-            operation.TotalTokens,
-            operation.InputCostUsd,
-            operation.OutputCostUsd,
-            operation.TotalCostUsd,
-            operation.CreatedAtUtc);
-    }
-
-    public static AiUsageSummaryDto ToAiUsageSummaryDto(this IEnumerable<AiOperationEntity> operations)
-    {
-        var items = operations.ToList();
-
-        return new AiUsageSummaryDto(
-            items.Count,
-            items.Sum(item => item.InputTokens),
-            items.Sum(item => item.OutputTokens),
-            items.Sum(item => item.TotalTokens),
-            items.Sum(item => item.TotalCostUsd));
     }
 }

@@ -62,7 +62,7 @@ public sealed class TranslatedRangeEntity
     /// <summary>
     /// Semantic kind used by backend storage.
     /// </summary>
-    public SavedTextKind Kind { get; set; }
+    public SavedTextKind Kind { get; set; } = SavedTextKind.LexicalUnit;
 
     /// <summary>
     /// Creation timestamp.

@@ -4,6 +4,7 @@ using LanguageReader.Api.Features.News;
 using LanguageReader.Api.Features.Reading;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Api.Features.Settings;
+using LanguageReader.Api.Features.Stats;
 using LanguageReader.Api.Features.SystemInfo;
 using LanguageReader.Api.Features.Translation;
 using LanguageReader.Api.Features.Users;
@@ -24,6 +25,7 @@ internal static class FeatureEndpointRegistration
         api.MapNewsEndpoints();
         api.MapReadingEndpoints();
         api.MapSettingsEndpoints();
+        api.MapStatsEndpoints();
         api.MapTranslationEndpoints();
         api.MapVocabularyEndpoints();
         api.MapBookTranslationsEndpoints();

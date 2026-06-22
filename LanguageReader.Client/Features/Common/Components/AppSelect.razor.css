@@ -12,11 +12,15 @@
     appearance: none;
     -webkit-appearance: none;
 
-    border: 1px solid rgba(23, 20, 17, 0.11);
+    border: 1px solid color-mix(in srgb, var(--color-text) 11%, transparent);
     border-radius: var(--radius-sm);
 
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82)),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--color-surface-strong) 96%, transparent),
+            color-mix(in srgb, var(--color-surface-strong) 82%, transparent)
+        ),
         var(--color-surface-strong);
 
     color: var(--color-text);
@@ -30,8 +34,8 @@
     line-height: 1.1;
 
     box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.7),
-        0 8px 18px rgba(23, 20, 17, 0.035);
+        0 1px 0 color-mix(in srgb, var(--color-bg-elevated) 70%, transparent),
+        0 8px 18px color-mix(in srgb, var(--color-text) 3.5%, transparent);
 
     cursor: pointer;
     overflow: hidden;
@@ -50,15 +54,15 @@
 }
 
 .app-select:hover:not(:disabled) {
-    border-color: rgba(23, 20, 17, 0.18);
+    border-color: color-mix(in srgb, var(--color-text) 18%, transparent);
 }
 
 .app-select:focus {
     outline: none;
     border-color: var(--color-border-strong);
     box-shadow:
-        0 0 0 0.18rem rgba(23, 20, 17, 0.08),
-        0 10px 22px rgba(23, 20, 17, 0.055);
+        0 0 0 0.18rem color-mix(in srgb, var(--color-text) 8%, transparent),
+        0 10px 22px color-mix(in srgb, var(--color-text) 5.5%, transparent);
 }
 
 .app-select:disabled {
@@ -139,25 +143,29 @@
 
 .app-select-shell--strong .app-select {
     background:
-        linear-gradient(180deg, rgba(23, 20, 17, 0.96), rgba(23, 20, 17, 0.9)),
-        #171411;
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--color-text) 96%, transparent),
+            color-mix(in srgb, var(--color-text) 90%, transparent)
+        ),
+        var(--color-text);
 
-    border-color: #171411;
-    color: #fbfaf7;
+    border-color: var(--color-text);
+    color: var(--color-bg);
 }
 
 .app-select-shell--strong .app-select:hover:not(:disabled),
 .app-select-shell--strong .app-select:focus {
-    border-color: #26211d;
+    border-color: var(--color-text-soft);
 }
 
 .app-select-shell--strong .app-select__leading-icon,
 .app-select-shell--strong .app-select__chevron {
-    color: #fbfaf7;
+    color: var(--color-bg);
 }
 
 .app-select option {
-    background: #fff;
+    background: var(--color-surface-strong);
     color: var(--color-text);
 }
 

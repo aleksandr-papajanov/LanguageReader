@@ -7,6 +7,7 @@ global using LanguageReader.Shared.Features.News;
 global using LanguageReader.Shared.Features.Reading;
 global using LanguageReader.Shared.Features.ReadingItems;
 global using LanguageReader.Shared.Features.Settings;
+global using LanguageReader.Shared.Features.Stats;
 global using LanguageReader.Shared.Features.Translation;
 global using LanguageReader.Shared.Features.Users;
 global using LanguageReader.Shared.Features.Vocabulary;

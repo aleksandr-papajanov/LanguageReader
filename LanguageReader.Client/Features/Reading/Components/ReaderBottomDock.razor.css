@@ -12,9 +12,9 @@
     align-items: center;
     gap: 0.22rem 0.55rem;
     padding: 0.18rem 0.26rem 0.3rem;
-    border: 1px solid rgba(23, 20, 17, 0.08);
+    border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
     border-radius: 1.15rem;
-    background: rgba(255, 255, 255, 0.74);
+    background: color-mix(in srgb, var(--color-surface-strong) 74%, transparent);
 }
 
 .reader-dock-label {

@@ -1,0 +1,181 @@
+@inject StatsApiClient Api
+@inject UserSession Session
+
+<AppHeading Title="Statistics"
+            Subtitle="AI operation usage across translation and vocabulary workflows." />
+
+@if (!Session.IsSignedIn)
+{
+    <SignInPrompt />
+}
+else
+{
+    <AppPanel AdditionalClass="stats-filter-panel">
+        <AppTextInput Id="stats-from"
+                      Label="From"
+                      Type="date"
+                      Value="@fromDate"
+                      ValueChanged="OnFromDateChanged"
+                      LeadingIcon="calendar_month" />
+
+        <AppTextInput Id="stats-to"
+                      Label="To"
+                      Type="date"
+                      Value="@toDate"
+                      ValueChanged="OnToDateChanged"
+                      LeadingIcon="event" />
+
+        <AppButton Label="Apply"
+                   Variant="primary"
+                   Icon="filter_alt"
+                   Disabled="@isLoading"
+                   IsLoading="@isLoading"
+                   OnClick="@(_ => LoadStatsAsync())" />
+
+        <AppButton Label="Reset"
+                   Variant="ghost"
+                   Icon="restart_alt"
+                   Disabled="@isLoading"
+                   OnClick="@(_ => ResetAsync())" />
+    </AppPanel>
+
+    @if (isLoading && stats is null)
+    {
+        <AppLoader Label="Loading AI operations" />
+    }
+    else if (!string.IsNullOrWhiteSpace(error))
+    {
+        <AppAlert Title="Statistics could not be loaded."
+                  Message="@error" />
+    }
+    else if (stats is not null)
+    {
+        <div class="stats-content">
+            <AppAiUsagePanel Title="AI Operations"
+                             Summary="stats.Summary"
+                             Operations="stats.Operations" />
+
+            <AppSection Title="Operation Log"
+                        Subtitle="Newest operations in the selected range.">
+                <ChildContent>
+                    @if (stats.Operations.Count == 0)
+                    {
+                        <p class="stats-empty">No AI operations found for this range.</p>
+                    }
+                    else
+                    {
+                        <div class="stats-operation-list">
+                            @foreach (var operation in stats.Operations)
+                            {
+                                <article class="stats-operation">
+                                    <div class="stats-operation__main">
+                                        <AppBadge PreserveCase="true">@FormatKind(operation.Kind)</AppBadge>
+                                        <strong class="stats-operation__model">@operation.Provider / @operation.Model</strong>
+                                        <span class="stats-operation__date">@operation.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
+                                    </div>
+
+                                    <div class="stats-operation__numbers">
+                                        <span>@operation.InputTokens in</span>
+                                        <span>@operation.OutputTokens out</span>
+                                        <strong>$@operation.TotalCostUsd.ToString("0.000000")</strong>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </ChildContent>
+            </AppSection>
+        </div>
+    }
+}
+
+@code {
+    private GetAiOperationsStatsResponse? stats;
+    private string fromDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
+    private string toDate = DateTime.Today.ToString("yyyy-MM-dd");
+    private string? error;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        await LoadStatsAsync();
+    }
+
+    private Task OnFromDateChanged(string value)
+    {
+        fromDate = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnToDateChanged(string value)
+    {
+        toDate = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task ResetAsync()
+    {
+        fromDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
+        toDate = DateTime.Today.ToString("yyyy-MM-dd");
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        if (!Session.IsSignedIn)
+        {
+            return;
+        }
+
+        isLoading = true;
+        error = null;
+
+        try
+        {
+            stats = await Api.GetAiOperationsStatsAsync(
+                new GetAiOperationsStatsRequest(
+                    Session.Username!,
+                    ParseStartDate(fromDate),
+                    ParseEndDate(toDate)));
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static DateTimeOffset? ParseStartDate(string value)
+    {
+        return DateTime.TryParse(value, out var date)
+            ? new DateTimeOffset(date.Date, TimeZoneInfo.Local.GetUtcOffset(date.Date)).ToUniversalTime()
+            : null;
+    }
+
+    private static DateTimeOffset? ParseEndDate(string value)
+    {
+        return DateTime.TryParse(value, out var date)
+            ? new DateTimeOffset(date.Date.AddDays(1), TimeZoneInfo.Local.GetUtcOffset(date.Date.AddDays(1))).ToUniversalTime()
+            : null;
+    }
+
+    private static string FormatKind(AiOperationKind kind)
+    {
+        return kind switch
+        {
+            AiOperationKind.VocabularyNormalization => "Vocabulary Normalization",
+            AiOperationKind.VocabularyClassification => "Vocabulary Classification",
+            AiOperationKind.VocabularyAutofill => "Vocabulary Autofill",
+            AiOperationKind.VocabularyExampleGeneration => "Vocabulary Example",
+            _ => kind.ToString()
+        };
+    }
+}

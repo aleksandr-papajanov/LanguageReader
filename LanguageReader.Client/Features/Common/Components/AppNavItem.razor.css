@@ -50,24 +50,24 @@
 
 .app-nav-item-host ::deep .app-nav-item:hover::before {
     opacity: 1;
-    background: rgba(23, 20, 17, 0.035);
+    background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
 }
 
 .app-nav-item-host ::deep .app-nav-item--active {
     color: var(--color-text);
-    background: rgba(255, 255, 255, 0.9);
+    background: color-mix(in srgb, var(--color-surface-strong) 90%, transparent);
     border-color: color-mix(in srgb, var(--color-border-strong) 64%, transparent);
     box-shadow:
-        0 8px 20px rgba(23, 20, 17, 0.06),
-        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+        0 8px 20px color-mix(in srgb, var(--color-text) 6%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--color-bg-elevated) 75%, transparent);
 }
 
 .app-nav-item-host ::deep .app-nav-item--active::before {
     opacity: 1;
     background: linear-gradient(
         135deg,
-        rgba(23, 20, 17, 0.04),
-        rgba(23, 20, 17, 0.015)
+        color-mix(in srgb, var(--color-text) 4%, transparent),
+        color-mix(in srgb, var(--color-text) 1.5%, transparent)
     );
 }
 

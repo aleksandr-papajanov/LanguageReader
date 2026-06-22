@@ -1,0 +1,63 @@
+<section class="@CssClass">
+    <div class="app-ai-usage-panel__header">
+        <p class="app-ai-usage-panel__label">@Title</p>
+        @if (Operations.Count > 0)
+        {
+            <AppBadge PreserveCase="true">@LatestOperationModel</AppBadge>
+        }
+    </div>
+
+    <div class="app-ai-usage-panel__grid">
+        <div class="app-ai-usage-panel__metric">
+            <span class="app-ai-usage-panel__metric-label">Input Tokens</span>
+            <strong class="app-ai-usage-panel__metric-value">@Summary.InputTokens</strong>
+        </div>
+
+        <div class="app-ai-usage-panel__metric">
+            <span class="app-ai-usage-panel__metric-label">Output Tokens</span>
+            <strong class="app-ai-usage-panel__metric-value">@Summary.OutputTokens</strong>
+        </div>
+
+        <div class="app-ai-usage-panel__metric">
+            <span class="app-ai-usage-panel__metric-label">Total Cost (USD)</span>
+            <strong class="app-ai-usage-panel__metric-value">$@Summary.TotalCostUsd.ToString("0.000000")</strong>
+        </div>
+    </div>
+
+    <p class="app-ai-usage-panel__summary">
+        @Summary.OperationCount operations
+        @if (Operations.Count > 0)
+        {
+            <span>&nbsp;•&nbsp;Last used @Operations.MaxBy(item => item.CreatedAtUtc)!.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
+        }
+    </p>
+</section>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "AI Activity";
+
+    [Parameter]
+    public AiUsageSummaryDto Summary { get; set; } = new(0, 0, 0, 0, 0);
+
+    [Parameter]
+    public IReadOnlyList<AiOperationDto> Operations { get; set; } = [];
+
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(AdditionalClass)
+        ? "app-panel app-ai-usage-panel"
+        : $"app-panel app-ai-usage-panel {AdditionalClass}";
+
+    private string LatestOperationModel
+    {
+        get
+        {
+            var latest = Operations.MaxBy(item => item.CreatedAtUtc);
+            return latest is null
+                ? "No activity"
+                : $"{latest.Provider} / {latest.Model}";
+        }
+    }
+}

@@ -216,40 +216,8 @@ else if (entry is not null)
             </AppSection>
         }
 
-        <AppPanel AdditionalClass="word-details-ai-panel">
-            <div class="word-details-ai-panel__header">
-                <p class="word-details-block__label">AI Activity</p>
-                @if (entry.Operations.Count > 0)
-                {
-                    <AppBadge PreserveCase="true">@GetLatestOperationModel()</AppBadge>
-                }
-            </div>
-
-            <div class="word-details-ai-grid">
-                <div class="word-details-ai-metric">
-                    <span class="word-details-ai-metric__label">Input Tokens</span>
-                    <strong class="word-details-ai-metric__value">@entry.UsageSummary.InputTokens</strong>
-                </div>
-
-                <div class="word-details-ai-metric">
-                    <span class="word-details-ai-metric__label">Output Tokens</span>
-                    <strong class="word-details-ai-metric__value">@entry.UsageSummary.OutputTokens</strong>
-                </div>
-
-                <div class="word-details-ai-metric">
-                    <span class="word-details-ai-metric__label">Total Cost (USD)</span>
-                    <strong class="word-details-ai-metric__value">$@entry.UsageSummary.TotalCostUsd.ToString("0.000000")</strong>
-                </div>
-            </div>
-
-            <p class="word-details-ai-panel__summary">
-                @entry.UsageSummary.OperationCount operations
-                @if (entry.Operations.Count > 0)
-                {
-                    <span>&nbsp;•&nbsp;Last used @entry.Operations.MaxBy(item => item.CreatedAtUtc)!.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
-                }
-            </p>
-        </AppPanel>
+        <AppAiUsagePanel Summary="entry.UsageSummary"
+                         Operations="entry.Operations" />
     </div>
 }
 
@@ -418,17 +386,6 @@ else if (entry is not null)
     private static string FormatKind(SavedTextKind kind)
     {
         return kind == SavedTextKind.LexicalUnit ? "Word" : "Text";
-    }
-
-    private string GetLatestOperationModel()
-    {
-        if (entry is null || entry.Operations.Count == 0)
-        {
-            return "No activity";
-        }
-
-        var latestOperation = entry.Operations.MaxBy(item => item.CreatedAtUtc)!;
-        return $"{latestOperation.Provider} / {latestOperation.Model}";
     }
 
     private string GetBookmarkButtonClass()

@@ -5,7 +5,7 @@
     padding: clamp(1.75rem, 3vw, 3rem);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    background: #fff;
+    background: var(--color-bg-elevated);
     overflow: visible;
 }
 
@@ -17,7 +17,7 @@
     position: relative;
     z-index: 1;
     margin: 0 0 1.35rem;
-    color: #231e1a;
+    color: var(--color-text);
     font-family: var(--font-reading);
     font-size: clamp(1.08rem, 1rem + 0.22vw, 1.2rem);
     line-height: 1.86;
@@ -26,7 +26,7 @@
 }
 
 .reader-page p span[data-translated="true"] {
-    color: #231e1a;
+    color: var(--color-text);
     font-weight: 600;
     -webkit-user-select: none;
     user-select: none;
@@ -115,38 +115,38 @@
 
 .reader-range-fill--selection,
 .reader-range-fill--selection-loading {
-    background: rgba(52, 105, 190, 0.14);
+    background: color-mix(in srgb, var(--color-info, #4e8fc4) 18%, transparent);
 }
 
 .reader-range-fill--translation,
 .reader-range-fill--active-translation.reader-range-fill--translation {
-    background: rgba(216, 174, 55, 0.22);
+    background: var(--color-original-strong);
 }
 
 .reader-range-fill--vocabulary,
 .reader-range-fill--active-translation.reader-range-fill--vocabulary {
-    background: rgba(146, 44, 44, 0.16);
+    background: var(--color-error-soft);
 }
 
 .reader-range-frame--selection,
 .reader-range-frame--selection-loading {
-    border-color: rgba(52, 105, 190, 0.92);
+    border-color: color-mix(in srgb, var(--color-info, #4e8fc4) 92%, transparent);
 }
 
 .reader-range-frame--active-translation.reader-range-frame--translation {
-    border-color: rgba(216, 174, 55, 0.92);
+    border-color: color-mix(in srgb, var(--color-warning) 92%, transparent);
 }
 
 .reader-range-frame--active-translation.reader-range-frame--vocabulary {
-    border-color: rgba(146, 44, 44, 0.86);
+    border-color: color-mix(in srgb, var(--color-error) 86%, transparent);
 }
 
 .reader-range-frame--translation:hover {
-    border-color: rgba(216, 174, 55, 0.46);
+    border-color: color-mix(in srgb, var(--color-warning) 46%, transparent);
 }
 
 .reader-range-frame--vocabulary:hover {
-    border-color: rgba(146, 44, 44, 0.46);
+    border-color: color-mix(in srgb, var(--color-error) 46%, transparent);
 }
 
 .reader-range-frame--selection:hover,
@@ -165,22 +165,22 @@
 @keyframes reader-selection-loading {
     0%,
     100% {
-        background: rgba(52, 105, 190, 0.1);
+        background: color-mix(in srgb, var(--color-info, #4e8fc4) 10%, transparent);
     }
 
     50% {
-        background: rgba(52, 105, 190, 0.24);
+        background: color-mix(in srgb, var(--color-info, #4e8fc4) 24%, transparent);
     }
 }
 
 @keyframes reader-frame-loading {
     0%,
     100% {
-        border-color: rgba(52, 105, 190, 0.42);
+        border-color: color-mix(in srgb, var(--color-info, #4e8fc4) 42%, transparent);
     }
 
     50% {
-        border-color: rgba(52, 105, 190, 0.95);
+        border-color: color-mix(in srgb, var(--color-info, #4e8fc4) 95%, transparent);
     }
 }
 
