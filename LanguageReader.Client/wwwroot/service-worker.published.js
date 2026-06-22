@@ -21,12 +21,13 @@ const offlineAssetsInclude = [
     /\.webmanifest$/
 ];
 const offlineAssetsExclude = [
-    /^service-worker\.js$/
+    /^service-worker\.js$/,
+    /^service-worker-assets\.js$/
 ];
 
 self.addEventListener("install", event => event.waitUntil(onInstall()));
 self.addEventListener("activate", event => event.waitUntil(onActivate()));
-self.addEventListener("fetch", event => event.respondWith(onFetch(event)));
+self.addEventListener("fetch", onFetch);
 
 async function onInstall() {
     const assetsRequests = self.assetsManifest.assets
@@ -35,7 +36,7 @@ async function onInstall() {
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: "no-cache" }));
 
     const cache = await caches.open(cacheName);
-    await cache.addAll(assetsRequests);
+    await Promise.all(assetsRequests.map(request => cacheAsset(cache, request)));
 }
 
 async function onActivate() {
@@ -45,15 +46,60 @@ async function onActivate() {
         .map(key => caches.delete(key)));
 }
 
-async function onFetch(event) {
-    let cachedResponse = null;
-
-    if (event.request.method === "GET") {
-        const shouldServeIndexHtml = event.request.mode === "navigate";
-        const request = shouldServeIndexHtml ? "index.html" : event.request;
-        const cache = await caches.open(cacheName);
-        cachedResponse = await cache.match(request);
+function onFetch(event) {
+    if (event.request.method !== "GET") {
+        return;
     }
 
-    return cachedResponse || fetch(event.request);
+    if (event.request.mode === "navigate") {
+        event.respondWith(serveCachedIndex());
+        return;
+    }
+
+    const requestUrl = new URL(event.request.url);
+    if (requestUrl.origin !== self.location.origin) {
+        return;
+    }
+
+    event.respondWith(serveCachedAsset(event.request));
+}
+
+async function cacheAsset(cache, request) {
+    try {
+        const response = await fetch(request);
+        if (isUsableResponse(response)) {
+            await cache.put(request, response);
+        }
+    } catch {
+        // A single optional asset should not prevent the PWA from installing.
+    }
+}
+
+async function serveCachedIndex() {
+    const cache = await caches.open(cacheName);
+    const cachedIndex = await cache.match("index.html");
+    if (cachedIndex) {
+        return cachedIndex;
+    }
+
+    return fetchWithoutRedirectedResponse("index.html");
+}
+
+async function serveCachedAsset(request) {
+    const cache = await caches.open(cacheName);
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+
+    return fetchWithoutRedirectedResponse(request);
+}
+
+async function fetchWithoutRedirectedResponse(request) {
+    const response = await fetch(request);
+    return isUsableResponse(response) ? response : Response.error();
+}
+
+function isUsableResponse(response) {
+    return response.ok && !response.redirected && response.type !== "opaqueredirect";
 }
