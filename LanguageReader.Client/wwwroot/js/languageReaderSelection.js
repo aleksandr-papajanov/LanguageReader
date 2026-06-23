@@ -49,7 +49,8 @@ window.languageReaderSelection = {
             return null;
         }
 
-        const trimmedRange = trimOriginalRange(startParagraph, startOffset, endOffset);
+        const expandedRange = expandOriginalRangeToWordBoundaries(startParagraph, startOffset, endOffset);
+        const trimmedRange = trimOriginalRange(startParagraph, expandedRange.startOffset, expandedRange.endOffset);
         if (!trimmedRange) {
             return null;
         }
@@ -307,7 +308,30 @@ window.languageReaderSelection = {
         let lastSignature = "";
         let pointerSelection = null;
         let pointerSelectionTimer = 0;
+        let lastPointerPreviewAt = 0;
+        let lastPointerPreviewSignature = "";
         let suppressClickUntil = 0;
+
+        const emitSelectedRange = (selectedRange, force = false) => {
+            if (!selectedRange || !selectedRange.selectedText?.trim()) {
+                return false;
+            }
+
+            const signature = `${selectedRange.blockIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
+            if (!force && signature === lastSignature) {
+                return false;
+            }
+
+            lastSignature = signature;
+            dotNetReference.invokeMethodAsync(
+                "NotifyNativeSelectionChangedAsync",
+                selectedRange.blockIndex,
+                selectedRange.startOffset,
+                selectedRange.endOffset,
+                selectedRange.selectedText);
+
+            return true;
+        };
 
         const notify = () => {
             window.clearTimeout(timeout);
@@ -329,18 +353,7 @@ window.languageReaderSelection = {
                     return;
                 }
 
-                const signature = `${selectedRange.blockIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
-                if (signature === lastSignature) {
-                    return;
-                }
-
-                lastSignature = signature;
-                dotNetReference.invokeMethodAsync(
-                    "NotifyNativeSelectionChangedAsync",
-                    selectedRange.blockIndex,
-                    selectedRange.startOffset,
-                    selectedRange.endOffset,
-                    selectedRange.selectedText);
+                emitSelectedRange(selectedRange);
             }, 220);
         };
 
@@ -403,6 +416,8 @@ window.languageReaderSelection = {
             if (hit && hit.blockIndex === pointerSelection.startHit.blockIndex) {
                 pointerSelection.latestHit = hit;
             }
+
+            previewPointerSelection(root, dotNetReference, pointerSelection);
         };
 
         const finishPointerSelection = (event) => {
@@ -430,19 +445,29 @@ window.languageReaderSelection = {
                 return;
             }
 
-            const signature = `${selectedRange.blockIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
-            if (signature === lastSignature) {
+            suppressClickUntil = Date.now() + 350;
+            emitSelectedRange(selectedRange, true);
+        };
+
+        const previewPointerSelection = (root, dotNetReference, selection) => {
+            const now = Date.now();
+            if (now - lastPointerPreviewAt < 70) {
                 return;
             }
 
-            lastSignature = signature;
-            suppressClickUntil = Date.now() + 350;
-            dotNetReference.invokeMethodAsync(
-                "NotifyNativeSelectionChangedAsync",
-                selectedRange.blockIndex,
-                selectedRange.startOffset,
-                selectedRange.endOffset,
-                selectedRange.selectedText);
+            const selectedRange = getPointerSelectedRange(root, selection.startHit, selection.latestHit);
+            if (!selectedRange || !selectedRange.selectedText?.trim()) {
+                return;
+            }
+
+            const signature = `${selectedRange.blockIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
+            if (signature === lastPointerPreviewSignature) {
+                return;
+            }
+
+            lastPointerPreviewAt = now;
+            lastPointerPreviewSignature = signature;
+            emitSelectedRange(selectedRange);
         };
 
         const cancelPointerSelection = (event) => {
@@ -592,7 +617,8 @@ function getPointerSelectedRange(root, startHit, endHit) {
         return null;
     }
 
-    const trimmedRange = trimOriginalRange(paragraph, startOffset, endOffset);
+    const expandedRange = expandOriginalRangeToWordBoundaries(paragraph, startOffset, endOffset);
+    const trimmedRange = trimOriginalRange(paragraph, expandedRange.startOffset, expandedRange.endOffset);
     if (!trimmedRange) {
         return null;
     }
@@ -1012,6 +1038,30 @@ function trimOriginalRange(paragraph, startOffset, endOffset) {
         endOffset: endOffset - trailingWhitespace,
         selectedText: trimmedText
     };
+}
+
+function expandOriginalRangeToWordBoundaries(paragraph, startOffset, endOffset) {
+    const paragraphLength = getParagraphOriginalLength(paragraph);
+    let safeStart = clamp(startOffset, 0, paragraphLength);
+    let safeEnd = clamp(endOffset, safeStart, paragraphLength);
+    const text = getOriginalTextForRange(paragraph, 0, paragraphLength);
+
+    while (safeStart > 0 && isWordCharacter(text[safeStart - 1]) && isWordCharacter(text[safeStart])) {
+        safeStart--;
+    }
+
+    while (safeEnd < paragraphLength && isWordCharacter(text[safeEnd - 1]) && isWordCharacter(text[safeEnd])) {
+        safeEnd++;
+    }
+
+    return {
+        startOffset: safeStart,
+        endOffset: safeEnd
+    };
+}
+
+function isWordCharacter(value) {
+    return !!value && /[\p{L}\p{N}]/u.test(value);
 }
 
 function getClosestOriginalOffset(paragraph, clientX, clientY) {
