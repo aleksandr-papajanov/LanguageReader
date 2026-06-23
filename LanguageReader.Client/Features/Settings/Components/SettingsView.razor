@@ -1,6 +1,5 @@
 @inject SettingsApiClient Api
 @inject UserSession Session
-@inject NavigationManager Navigation
 
 <AppHeading Title="Settings"
             Subtitle="Reader and translation preferences." />
@@ -15,52 +14,66 @@ else if (state.IsLoading)
 }
 else
 {
-    <AppPanel AdditionalClass="form-panel settings-panel">
-        <AppTextInput Id="language"
-                      Label="Native Language"
-                      Value="@(state.NativeLanguage ?? string.Empty)"
-                      ValueChanged="@state.OnNativeLanguageChanged"
-                      LeadingIcon="translate"
-                      Placeholder="e.g. Russian, English, Swedish" />
-
-        <AppSelect TValue="AiServiceMode"
-                   Id="ai-mode"
-                   Label="AI Mode"
-                   Value="@state.AiServiceMode"
-                   ValueChanged="@state.OnAiServiceModeChanged"
-                   Options="@SettingsEditorState.AiModeOptions" />
-
-        @if (!string.IsNullOrWhiteSpace(state.Message))
-        {
-            <p class="app-inline-success">@state.Message</p>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(state.Error))
-        {
-            <p class="app-inline-error">@state.Error</p>
-        }
-
-        <AppButton Label="Save"
-                   Variant="primary"
-                   Icon="save"
-                   OnClick="SaveAsync" />
-    </AppPanel>
-
-    <AppPanel AdditionalClass="settings-panel settings-stats-panel">
-        <div>
-            <h3 class="settings-stats-panel__title">Statistics</h3>
-            <p class="settings-stats-panel__copy">Review AI operation usage and cost across translation and vocabulary workflows.</p>
+    <section class="settings-shell">
+        <div class="settings-header-row">
+            <AppTabs Items="Tabs"
+                     ActiveValue="@activeTab"
+                     ActiveValueChanged="SelectTab"
+                     AriaLabel="Settings sections" />
         </div>
 
-        <AppButton Label="Open statistics"
-                   Variant="secondary"
-                   Icon="monitoring"
-                   OnClick="OpenStatsAsync" />
-    </AppPanel>
+        @if (activeTab == SettingsTab)
+        {
+            <AppPanel AdditionalClass="form-panel settings-panel">
+                <AppTextInput Id="language"
+                              Label="Native Language"
+                              Value="@(state.NativeLanguage ?? string.Empty)"
+                              ValueChanged="@state.OnNativeLanguageChanged"
+                              LeadingIcon="translate"
+                              Placeholder="e.g. Russian, English, Swedish" />
+
+                <AppSelect TValue="AiServiceMode"
+                           Id="ai-mode"
+                           Label="AI Mode"
+                           Value="@state.AiServiceMode"
+                           ValueChanged="@state.OnAiServiceModeChanged"
+                           Options="@SettingsEditorState.AiModeOptions" />
+
+                @if (!string.IsNullOrWhiteSpace(state.Message))
+                {
+                    <p class="app-inline-success">@state.Message</p>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(state.Error))
+                {
+                    <p class="app-inline-error">@state.Error</p>
+                }
+
+                <AppButton Label="Save"
+                           Variant="primary"
+                           Icon="save"
+                           OnClick="SaveAsync" />
+            </AppPanel>
+        }
+        else if (activeTab == StatisticsTab)
+        {
+            <StatsView ShowHeading="false" />
+        }
+    </section>
 }
 
 @code {
+    private const string SettingsTab = "settings";
+    private const string StatisticsTab = "statistics";
+
+    private static readonly IReadOnlyList<AppTabItem> Tabs =
+    [
+        new(SettingsTab, "Settings", "tune"),
+        new(StatisticsTab, "Statistics", "monitoring")
+    ];
+
     private readonly SettingsEditorState state = new();
+    private string activeTab = SettingsTab;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,9 +91,9 @@ else
         await state.SaveAsync(Api, Session.Username!);
     }
 
-    private Task OpenStatsAsync(MouseEventArgs _)
+    private Task SelectTab(string tab)
     {
-        Navigation.NavigateTo("stats");
+        activeTab = tab;
         return Task.CompletedTask;
     }
 }

@@ -1,8 +1,11 @@
 @inject StatsApiClient Api
 @inject UserSession Session
 
-<AppHeading Title="Statistics"
-            Subtitle="AI operation usage across translation and vocabulary workflows." />
+@if (ShowHeading)
+{
+    <AppHeading Title="Statistics"
+                Subtitle="AI operation usage across translation and vocabulary workflows." />
+}
 
 @if (!Session.IsSignedIn)
 {
@@ -65,7 +68,7 @@ else
                     else
                     {
                         <div class="stats-operation-list">
-                            @foreach (var operation in stats.Operations)
+                            @foreach (var operation in VisibleOperations)
                             {
                                 <article class="stats-operation">
                                     <div class="stats-operation__main">
@@ -82,6 +85,9 @@ else
                                 </article>
                             }
                         </div>
+
+                        <AppInfiniteScrollSentinel IsEnabled="@HasMoreOperations"
+                                                   Reached="LoadMoreOperationsAsync" />
                     }
                 </ChildContent>
             </AppSection>
@@ -90,11 +96,23 @@ else
 }
 
 @code {
+    private const int OperationBatchSize = 12;
+
+    [Parameter]
+    public bool ShowHeading { get; set; } = true;
+
     private GetAiOperationsStatsResponse? stats;
     private string fromDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
     private string toDate = DateTime.Today.ToString("yyyy-MM-dd");
     private string? error;
     private bool isLoading;
+    private int renderedOperationCount;
+
+    private IReadOnlyList<AiOperationDto> VisibleOperations =>
+        stats?.Operations.Take(renderedOperationCount).ToList() ?? [];
+
+    private bool HasMoreOperations =>
+        stats is not null && renderedOperationCount < stats.Operations.Count;
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,15 +160,31 @@ else
                     Session.Username!,
                     ParseStartDate(fromDate),
                     ParseEndDate(toDate)));
+            renderedOperationCount = Math.Min(OperationBatchSize, stats.Operations.Count);
         }
         catch (Exception exception)
         {
             error = exception.Message;
+            renderedOperationCount = 0;
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private Task LoadMoreOperationsAsync()
+    {
+        if (stats is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        renderedOperationCount = Math.Min(
+            renderedOperationCount + OperationBatchSize,
+            stats.Operations.Count);
+
+        return InvokeAsync(StateHasChanged);
     }
 
     private static DateTimeOffset? ParseStartDate(string value)

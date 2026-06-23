@@ -1,0 +1,159 @@
+@inject MascotService Mascot
+@implements IDisposable
+
+<div class="mascot-logo-stack" aria-hidden="true">
+    @if (!string.IsNullOrWhiteSpace(previousFramePath))
+    {
+        <AppImage @key="previousFramePath"
+                  Src="@previousFramePath"
+                  Decorative="true"
+                  UseMask="true"
+                  FillContainer="true"
+                  AdditionalClass="top-row-logo mascot-logo mascot-logo--previous" />
+    }
+
+    <AppImage @key="currentFramePath"
+              Src="@currentFramePath"
+              Decorative="true"
+              UseMask="true"
+              FillContainer="true"
+              AdditionalClass="top-row-logo mascot-logo mascot-logo--current" />
+</div>
+
+@code {
+    private const int FrameDelayMilliseconds = 130;
+    private const int TransitionMilliseconds = 120;
+    private CancellationTokenSource? animationCancellation;
+    private string currentFramePath = StatePath(MascotState.Idle);
+    private string? previousFramePath;
+    private long renderedActionVersion = -1;
+
+    protected override void OnInitialized()
+    {
+        currentFramePath = StatePath(Mascot.CurrentState);
+        Mascot.Changed += HandleMascotChanged;
+    }
+
+    private void HandleMascotChanged()
+    {
+        _ = InvokeAsync(ApplyMascotSnapshotAsync);
+    }
+
+    private async Task ApplyMascotSnapshotAsync()
+    {
+        animationCancellation?.Cancel();
+        animationCancellation?.Dispose();
+        animationCancellation = null;
+
+        if (Mascot.CurrentAction == MascotAction.None)
+        {
+            renderedActionVersion = Mascot.ActionVersion;
+            await ShowFrameAsync(StatePath(Mascot.CurrentState), CancellationToken.None);
+            return;
+        }
+
+        if (renderedActionVersion == Mascot.ActionVersion)
+        {
+            return;
+        }
+
+        renderedActionVersion = Mascot.ActionVersion;
+        var action = Mascot.CurrentAction;
+        var finalState = Mascot.ActionFinalState;
+        var fallbackState = Mascot.CurrentState;
+        var frames = ActionFrames(action);
+
+        if (frames.Count == 0)
+        {
+            Mascot.SetState(finalState ?? fallbackState);
+            return;
+        }
+
+        animationCancellation = new CancellationTokenSource();
+        var token = animationCancellation.Token;
+
+        try
+        {
+            foreach (var frame in frames)
+            {
+                await ShowFrameAsync(frame, token);
+                await Task.Delay(FrameDelayMilliseconds, token);
+            }
+
+            if (!token.IsCancellationRequested)
+            {
+                Mascot.SetState(finalState ?? fallbackState);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer mascot state/action replaced this animation.
+        }
+    }
+
+    private async Task ShowFrameAsync(string framePath, CancellationToken token)
+    {
+        if (string.Equals(currentFramePath, framePath, StringComparison.Ordinal))
+        {
+            previousFramePath = null;
+            StateHasChanged();
+            return;
+        }
+
+        previousFramePath = currentFramePath;
+        currentFramePath = framePath;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(TransitionMilliseconds, token);
+            if (!token.IsCancellationRequested)
+            {
+                previousFramePath = null;
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer frame/action interrupted this transition.
+        }
+    }
+
+    private static string StatePath(MascotState state)
+    {
+        return state switch
+        {
+            MascotState.Reading => "/assets/mascot/reading.svg",
+            MascotState.Learning => "/assets/mascot/learning.svg",
+            MascotState.Sleeping => "/assets/mascot/sleeping.svg",
+            _ => "/assets/mascot/idle.svg"
+        };
+    }
+
+    private static IReadOnlyList<string> ActionFrames(MascotAction action)
+    {
+        return action switch
+        {
+            MascotAction.OpenBook =>
+            [
+                "/assets/mascot/book-open-1.svg",
+                "/assets/mascot/book-open-2.svg",
+                "/assets/mascot/book-open-3.svg"
+            ],
+            MascotAction.TurnPage =>
+            [
+                "/assets/mascot/page-turn-1.svg",
+                "/assets/mascot/page-turn-2.svg",
+                "/assets/mascot/page-turn-3.svg"
+            ],
+            _ => []
+        };
+    }
+
+    public void Dispose()
+    {
+        Mascot.Changed -= HandleMascotChanged;
+        animationCancellation?.Cancel();
+        animationCancellation?.Dispose();
+    }
+}

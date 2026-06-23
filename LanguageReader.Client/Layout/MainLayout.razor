@@ -2,7 +2,9 @@
 @inject NavigationManager Navigation
 @inject IViewportService Viewport
 @inject ThemeService Theme
-@implements IDisposable
+@inject MascotService Mascot
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
 
 <div class="app-layout">
     <header class="app-layout__top">
@@ -27,6 +29,18 @@
 </div>
 
 @code {
+    private static readonly TimeSpan ReadingInactivityDelay = TimeSpan.FromSeconds(20);
+    private CancellationTokenSource? inactivityCancellation;
+    private DotNetObjectReference<MainLayout>? dotNetReference;
+    private string? mascotActivityObserverId;
+    private bool previousRouteWasReader;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += HandleLocationChanged;
+        ApplyMascotRoute(Navigation.Uri, isInitialRoute: true);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -37,6 +51,12 @@
         Viewport.Changed += HandleViewportChanged;
         await Viewport.InitializeAsync();
         await Theme.InitializeAsync();
+
+        dotNetReference = DotNetObjectReference.Create(this);
+        mascotActivityObserverId = await JsRuntime.InvokeAsync<string>(
+            "languageReaderMascotActivity.observe",
+            dotNetReference);
+
         StateHasChanged();
     }
 
@@ -45,8 +65,116 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
+        ApplyMascotRoute(e.Location, isInitialRoute: false);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyMascotRoute(string uri, bool isInitialRoute)
+    {
+        var path = Navigation.ToBaseRelativePath(uri).TrimStart('/').ToLowerInvariant();
+        var isReaderRoute = path.StartsWith("reader/", StringComparison.Ordinal);
+
+        if (isReaderRoute)
+        {
+            if (!previousRouteWasReader)
+            {
+                Mascot.PlayAction(MascotAction.OpenBook, MascotState.Reading);
+            }
+            else if (!isInitialRoute)
+            {
+                Mascot.PlayAction(MascotAction.TurnPage, MascotState.Reading);
+            }
+            else
+            {
+                Mascot.SetState(MascotState.Reading);
+            }
+
+            previousRouteWasReader = true;
+            ScheduleReadingSleep();
+            return;
+        }
+
+        previousRouteWasReader = false;
+        CancelReadingSleep();
+
+        if (path.StartsWith("training", StringComparison.Ordinal)
+            || path.StartsWith("words", StringComparison.Ordinal)
+            || path.StartsWith("vocabulary", StringComparison.Ordinal))
+        {
+            Mascot.SetState(MascotState.Learning);
+            return;
+        }
+
+        Mascot.SetState(MascotState.Idle);
+    }
+
+    [JSInvokable]
+    public void NotifyMascotActivityAsync()
+    {
+        if (!previousRouteWasReader)
+        {
+            return;
+        }
+
+        if (Mascot.CurrentState == MascotState.Sleeping)
+        {
+            Mascot.SetState(MascotState.Reading);
+        }
+
+        ScheduleReadingSleep();
+    }
+
+    private void ScheduleReadingSleep()
+    {
+        CancelReadingSleep();
+        inactivityCancellation = new CancellationTokenSource();
+        var token = inactivityCancellation.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(ReadingInactivityDelay, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (previousRouteWasReader)
+                        {
+                            Mascot.SetState(MascotState.Sleeping);
+                        }
+                    });
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // A route change or user activity reset the inactivity timer.
+            }
+        }, token);
+    }
+
+    private void CancelReadingSleep()
+    {
+        inactivityCancellation?.Cancel();
+        inactivityCancellation?.Dispose();
+        inactivityCancellation = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Navigation.LocationChanged -= HandleLocationChanged;
         Viewport.Changed -= HandleViewportChanged;
+        CancelReadingSleep();
+
+        if (!string.IsNullOrWhiteSpace(mascotActivityObserverId))
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "languageReaderMascotActivity.unobserve",
+                mascotActivityObserverId);
+        }
+
+        dotNetReference?.Dispose();
     }
 }

@@ -5,6 +5,7 @@
 @inject SettingsApiClient SettingsApi
 @inject TranslationApiClient TranslationApi
 @inject ReaderSessionCache ReaderCache
+@inject MascotService Mascot
 @inject UserSession Session
 @inject NavigationManager Navigation
 @implements IDisposable
@@ -595,6 +596,7 @@ else if (content is not null)
         lastRenderedLastPageSyncIndex = null;
         selection = null;
         QueueScrollToCurrentPosition();
+        Mascot.PlayAction(MascotAction.TurnPage, MascotState.Reading);
         await SaveCurrentPositionAsync();
     }
 
@@ -615,6 +617,7 @@ else if (content is not null)
         lastRenderedLastPageSyncIndex = null;
         selection = null;
         QueueScrollToCurrentPosition();
+        Mascot.PlayAction(MascotAction.TurnPage, MascotState.Reading);
         await SaveCurrentPositionAsync();
     }
 

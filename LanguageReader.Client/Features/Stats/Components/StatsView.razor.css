@@ -1,9 +1,13 @@
 .stats-filter-panel {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
     align-items: end;
     gap: var(--space-3);
     margin-bottom: var(--space-5);
+}
+
+.stats-filter-panel :deep(.app-button) {
+    width: 100%;
 }
 
 .stats-content {
@@ -30,6 +34,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
 }
 
 .stats-operation__main {

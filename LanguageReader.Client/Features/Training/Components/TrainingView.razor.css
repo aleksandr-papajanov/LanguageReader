@@ -60,27 +60,25 @@
 }
 
 .training-card--back-panel {
-    box-shadow: 0 14px 30px rgba(23, 20, 17, 0.08);
+    box-shadow: var(--shadow-md);
 }
 
 .training-card--original {
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 239, 0.98));
-    border-color: rgba(23, 20, 17, 0.08);
+    background: var(--color-surface);
+    border-color: var(--color-border);
 }
 
 .training-card--translation {
-    background:
-        linear-gradient(180deg, rgba(246, 240, 230, 0.98), rgba(238, 229, 214, 0.98));
-    border-color: rgba(135, 107, 69, 0.14);
+    background: var(--color-surface-muted);
+    border-color: var(--color-border);
 }
 
 .training-card--translation .training-card__label {
-    color: rgba(110, 84, 50, 0.88);
+    color: var(--color-text-muted);
 }
 
 .training-card--translation .training-card__hint {
-    color: rgba(90, 74, 57, 0.72);
+    color: var(--color-text-soft);
 }
 
 .training-card__label,

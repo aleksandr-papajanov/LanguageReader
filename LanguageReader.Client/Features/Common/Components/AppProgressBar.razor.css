@@ -4,7 +4,7 @@
     width: 100%;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(23, 20, 17, 0.08);
+    background: color-mix(in srgb, var(--color-border) 72%, transparent);
 }
 
 .app-progress--sm {
@@ -19,5 +19,9 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, rgba(23, 20, 17, 0.82), rgba(23, 20, 17, 0.42));
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-text) 82%, transparent),
+        color-mix(in srgb, var(--color-text-soft) 62%, transparent));
+    transition: width 180ms ease;
 }

@@ -9,13 +9,9 @@
     min-width: 0;
     min-height: var(--control-height-md);
 
-    border: 1px solid rgba(23, 20, 17, 0.11);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82)),
-        var(--color-surface-strong);
-
+    background: var(--color-surface-strong);
     color: var(--color-text);
 
     padding: 0.78rem 0.9rem;
@@ -26,9 +22,7 @@
     font-weight: 600;
     line-height: 1.1;
 
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.7),
-        0 8px 18px rgba(23, 20, 17, 0.035);
+    box-shadow: var(--shadow-sm);
 
     transition:
         background-color 140ms ease,
@@ -42,15 +36,15 @@
 }
 
 .app-input:hover:not(:disabled) {
-    border-color: rgba(23, 20, 17, 0.18);
+    border-color: var(--color-border-strong);
 }
 
 .app-input:focus {
     outline: none;
     border-color: var(--color-border-strong);
     box-shadow:
-        0 0 0 0.18rem rgba(23, 20, 17, 0.08),
-        0 10px 22px rgba(23, 20, 17, 0.055);
+        0 0 0 0.18rem color-mix(in srgb, var(--color-text) 8%, transparent),
+        var(--shadow-md);
 }
 
 .app-input::placeholder {
