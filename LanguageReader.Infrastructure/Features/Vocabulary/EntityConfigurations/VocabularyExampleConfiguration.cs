@@ -17,7 +17,7 @@ internal sealed class VocabularyExampleConfiguration : IEntityTypeConfiguration<
         entity.Property(example => example.Translation).HasColumnName("translation");
         entity.Property(example => example.IsFromReadingItem).HasColumnName("is_from_reading_item").HasDefaultValue(false);
         entity.Property(example => example.ReadingItemId).HasColumnName("reading_item_id");
-        entity.Property(example => example.ParagraphIndex).HasColumnName("paragraph_index");
+        entity.Property(example => example.BlockIndex).HasColumnName("block_index");
         entity.Property(example => example.CharacterOffset).HasColumnName("character_offset");
         entity.Property(example => example.CreatedAtUtc).HasColumnName("created_at_utc");
 

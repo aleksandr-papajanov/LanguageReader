@@ -24,7 +24,7 @@ internal sealed class GetReadingItemTranslationsHandler(ApplicationDbContext dbC
         var translations = await dbContext.TranslatedRanges
             .AsNoTracking()
             .Where(range => range.Username == normalizedUsername && range.ReadingItemId == request.ReadingItemId)
-            .OrderBy(range => range.ParagraphIndex)
+            .OrderBy(range => range.BlockIndex)
             .ThenBy(range => range.StartOffset)
             .ToListAsync(ct);
 

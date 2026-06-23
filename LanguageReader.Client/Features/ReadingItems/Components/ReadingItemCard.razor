@@ -174,7 +174,7 @@
 
         var route = Item.Position is null
             ? $"/reader/{Item.Id}"
-            : $"/reader/{Item.Id}?paragraph={Item.Position.ParagraphIndex}&offset={Item.Position.CharacterOffset}";
+            : $"/reader/{Item.Id}?block={Item.Position.BlockIndex}&offset={Item.Position.CharacterOffset}";
 
         Navigation.NavigateTo(route);
     }

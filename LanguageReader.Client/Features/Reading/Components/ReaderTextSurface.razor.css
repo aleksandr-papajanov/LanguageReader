@@ -25,6 +25,28 @@
     user-select: text;
 }
 
+.reader-page__image {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    margin: 0 0 1.35rem;
+}
+
+.reader-page__spacer {
+    position: relative;
+    z-index: 1;
+    height: 1rem;
+}
+
+.reader-page__embedded-image {
+    width: min(100%, 34rem);
+    max-height: 62vh;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+}
+
 .reader-page p span[data-translated="true"] {
     color: var(--color-text);
     font-weight: 600;

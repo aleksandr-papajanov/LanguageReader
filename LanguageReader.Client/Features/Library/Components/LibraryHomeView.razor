@@ -153,7 +153,7 @@ else
 
         var route = item.Position is null
             ? $"/reader/{item.Id}"
-            : $"/reader/{item.Id}?paragraph={item.Position.ParagraphIndex}&offset={item.Position.CharacterOffset}";
+            : $"/reader/{item.Id}?block={item.Position.BlockIndex}&offset={item.Position.CharacterOffset}";
 
         Navigation.NavigateTo(route);
         await Task.CompletedTask;

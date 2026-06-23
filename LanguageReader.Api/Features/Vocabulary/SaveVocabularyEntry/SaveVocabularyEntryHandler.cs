@@ -67,13 +67,13 @@ internal sealed class SaveVocabularyEntryHandler(
         var kind = request.SelectionKind == SelectionKind.Word || candidate?.IsLexicalUnit == true
             ? SavedTextKind.LexicalUnit
             : SavedTextKindMapper.FromSelectionKind(request.SelectionKind);
-        var normalizedParagraphIndex = Math.Max(0, request.Position.ParagraphIndex);
+        var normalizedBlockIndex = Math.Max(0, request.Position.BlockIndex);
         var normalizedCharacterOffset = Math.Max(0, request.Position.CharacterOffset);
         var matchingRange = await FindMatchingTranslatedRangeAsync(
             request.ReadingItemId,
             normalizedUsername,
             kind,
-            normalizedParagraphIndex,
+            normalizedBlockIndex,
             normalizedCharacterOffset,
             word,
             ct);
@@ -93,7 +93,7 @@ internal sealed class SaveVocabularyEntryHandler(
             targetLanguage,
             dictionaryForm,
             request.ReadingItemId,
-            normalizedParagraphIndex,
+            normalizedBlockIndex,
             normalizedCharacterOffset,
             canonicalWord,
             ct);
@@ -126,7 +126,7 @@ internal sealed class SaveVocabularyEntryHandler(
             entry.Translation = translation;
             entry.SourceLanguage = sourceLanguage;
             entry.TargetLanguage = targetLanguage;
-            entry.ParagraphIndex = normalizedParagraphIndex;
+            entry.BlockIndex = normalizedBlockIndex;
             entry.CharacterOffset = normalizedCharacterOffset;
             entry.Kind = kind;
             entry.ReadingItem = readingItem;
@@ -196,7 +196,7 @@ internal sealed class SaveVocabularyEntryHandler(
         Guid readingItemId,
         string username,
         SavedTextKind kind,
-        int paragraphIndex,
+        int BlockIndex,
         int characterOffset,
         string word,
         CancellationToken ct)
@@ -206,7 +206,7 @@ internal sealed class SaveVocabularyEntryHandler(
             .FirstOrDefaultAsync(range =>
                 range.Username == username
                 && range.ReadingItemId == readingItemId
-                && range.ParagraphIndex == paragraphIndex
+                && range.BlockIndex == BlockIndex
                 && range.StartOffset == characterOffset
                 && range.Kind == kind
                 && range.OriginalText == word,
@@ -222,7 +222,7 @@ internal sealed class SaveVocabularyEntryHandler(
             .FirstOrDefaultAsync(range =>
                 range.Username == username
                 && range.ReadingItemId == readingItemId
-                && range.ParagraphIndex == paragraphIndex
+                && range.BlockIndex == BlockIndex
                 && range.StartOffset == characterOffset
                 && range.OriginalText == word,
                 ct);
@@ -235,7 +235,7 @@ internal sealed class SaveVocabularyEntryHandler(
         string targetLanguage,
         string? dictionaryForm,
         Guid readingItemId,
-        int paragraphIndex,
+        int BlockIndex,
         int characterOffset,
         string canonicalWord,
         CancellationToken ct)
@@ -279,7 +279,7 @@ internal sealed class SaveVocabularyEntryHandler(
                     existing.Username == username
                     && existing.ReadingItemId == readingItemId
                     && existing.Word.ToLower() == loweredCanonicalWord
-                && existing.ParagraphIndex == paragraphIndex
+                && existing.BlockIndex == BlockIndex
                 && existing.CharacterOffset == characterOffset
                 && existing.Kind == kind
                 && existing.TargetLanguage == targetLanguage,
@@ -338,7 +338,7 @@ internal sealed class SaveVocabularyEntryHandler(
         var existing = entry.Examples.FirstOrDefault(example =>
             example.IsFromReadingItem
             && example.ReadingItemId == position.ReadingItemId
-            && example.ParagraphIndex == position.ParagraphIndex
+            && example.BlockIndex == position.BlockIndex
             && example.CharacterOffset == position.CharacterOffset);
 
         if (existing is not null)
@@ -355,7 +355,7 @@ internal sealed class SaveVocabularyEntryHandler(
             Translation = null,
             IsFromReadingItem = true,
             ReadingItemId = position.ReadingItemId,
-            ParagraphIndex = position.ParagraphIndex,
+            BlockIndex = position.BlockIndex,
             CharacterOffset = position.CharacterOffset,
             CreatedAtUtc = DateTimeOffset.UtcNow
         });

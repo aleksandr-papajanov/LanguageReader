@@ -1,18 +1,24 @@
 namespace LanguageReader.Shared.Features.ReadingItems;
 
 
-public sealed record ReadingItemContentDto(
+public sealed record ReadingItemContentPageDto(
     Guid Id,
     string Title,
     ReadingItemType Type,
     string OriginalLanguage,
+    int PageIndex,
+    int TotalPages,
+    int StartBlockIndex,
+    int EndBlockIndex,
+    int TotalBlocks,
     IReadOnlyList<ReadingContentBlockDto> Blocks,
     IReadOnlyDictionary<string, ReadingImageDto> Images);
 
 public sealed record ReadingContentBlockDto(
     ReadingContentBlockType Type,
     string? Text,
-    string? ImageId);
+    string? ImageId,
+    int? BlockIndex = null);
 
 public sealed record ReadingImageDto(
     string Id,

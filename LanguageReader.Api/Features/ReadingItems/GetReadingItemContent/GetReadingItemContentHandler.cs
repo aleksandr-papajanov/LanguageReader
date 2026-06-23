@@ -9,7 +9,7 @@ internal sealed class GetReadingItemContentHandler(
     ApplicationDbContext dbContext,
     IReadingItemContentService readingItemContentService)
 {
-    public async Task<ReadingItemContentDto> HandleAsync(GetReadingItemContentRequest request, CancellationToken ct)
+    public async Task<ReadingItemContentPageDto> HandleAsync(GetReadingItemContentRequest request, CancellationToken ct)
     {
         var item = await dbContext.ReadingItems
             .AsNoTracking()
@@ -25,6 +25,6 @@ internal sealed class GetReadingItemContentHandler(
             throw new ForbiddenException("You do not have access to this reading item.");
         }
 
-        return await readingItemContentService.LoadAsync(item, ct);
+        return await readingItemContentService.LoadPageAsync(item, request, ct);
     }
 }

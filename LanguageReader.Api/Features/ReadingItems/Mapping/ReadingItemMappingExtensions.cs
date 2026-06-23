@@ -39,7 +39,7 @@ internal static class ReadingItemMappingExtensions
             progress?.ProgressPercent,
             progress is null
                 ? null
-                : new ReadingPositionDto(item.Id, progress.ParagraphIndex, progress.CharacterOffset),
+                : new ReadingPositionDto(item.Id, progress.BlockIndex, progress.CharacterOffset),
             progress?.LastOpenedAtUtc,
             null,
             true,
@@ -87,7 +87,7 @@ internal static class ReadingItemMappingExtensions
             progress?.ProgressPercent,
             savedItem is null || progress is null
                 ? null
-                : new ReadingPositionDto(savedItem.Id, progress.ParagraphIndex, progress.CharacterOffset),
+                : new ReadingPositionDto(savedItem.Id, progress.BlockIndex, progress.CharacterOffset),
             progress?.LastOpenedAtUtc,
             candidate.Status,
             canOpen,

@@ -28,9 +28,9 @@ public sealed class ReadingProgressEntity
     public double ProgressPercent { get; set; }
 
     /// <summary>
-    /// Paragraph index in parsed book content.
+    /// Block index in parsed reading item content.
     /// </summary>
-    public int ParagraphIndex { get; set; }
+    public int BlockIndex { get; set; }
 
     /// <summary>
     /// Character offset inside the paragraph.

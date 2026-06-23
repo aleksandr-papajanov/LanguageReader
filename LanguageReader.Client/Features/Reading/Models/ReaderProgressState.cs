@@ -1,15 +1,12 @@
 namespace LanguageReader.Client.Features.Reading.Models;
 
 public readonly record struct ReaderProgressState(
-    int ParagraphsPerPage,
-    int ParagraphCount,
+    int TotalBlocks,
     int PageCount,
     int PageIndex,
-    int ParagraphIndex,
+    int BlockIndex,
     int CharacterOffset)
 {
-    public int PageStartParagraphIndex => PageIndex * ParagraphsPerPage;
-
     public bool IsFirstPage => PageIndex <= 0;
 
     public bool IsLastPage => PageCount == 0 || PageIndex >= PageCount - 1;
@@ -18,79 +15,65 @@ public readonly record struct ReaderProgressState(
         ? 0
         : Math.Clamp(((double)(PageIndex + 1) / PageCount) * 100, 0, 100);
 
-    public double ReadingPercent => ParagraphCount == 0
+    public double ReadingPercent => TotalBlocks == 0
         ? 0
-        : Math.Clamp(((double)Math.Min(ParagraphIndex + 1, ParagraphCount) / ParagraphCount) * 100, 0, 100);
+        : Math.Clamp(((double)Math.Min(BlockIndex + 1, TotalBlocks) / TotalBlocks) * 100, 0, 100);
 
-    public static ReaderProgressState Empty(int paragraphsPerPage)
+    public static ReaderProgressState Empty()
     {
-        return new ReaderProgressState(paragraphsPerPage, 0, 0, 0, 0, 0);
+        return new ReaderProgressState(0, 0, 0, 0, 0);
     }
 
-    public static ReaderProgressState Create(int paragraphsPerPage, int paragraphCount, int pageCount)
+    public static ReaderProgressState Create(
+        int totalBlocks,
+        int pageCount,
+        int pageIndex,
+        int blockIndex,
+        int characterOffset = 0)
     {
-        return Empty(paragraphsPerPage).WithDocument(paragraphCount, pageCount);
-    }
-
-    public int SafePageIndex(int pageCount)
-    {
-        return pageCount == 0 ? 0 : Math.Clamp(PageIndex, 0, pageCount - 1);
-    }
-
-    public ReaderProgressState WithDocument(int paragraphCount, int pageCount)
-    {
-        return this with
+        if (totalBlocks <= 0 || pageCount <= 0)
         {
-            ParagraphCount = Math.Max(0, paragraphCount),
-            PageCount = Math.Max(0, pageCount),
-            PageIndex = pageCount == 0 ? 0 : Math.Clamp(PageIndex, 0, pageCount - 1),
-            ParagraphIndex = paragraphCount == 0 ? 0 : Math.Clamp(ParagraphIndex, 0, paragraphCount - 1),
-            CharacterOffset = Math.Max(0, CharacterOffset)
-        };
-    }
-
-    public ReaderProgressState MoveTo(int paragraphIndex, int characterOffset, int paragraphCount, int pageCount)
-    {
-        if (paragraphCount <= 0 || pageCount <= 0)
-        {
-            return Empty(ParagraphsPerPage);
+            return Empty();
         }
 
-        var safeParagraphIndex = Math.Clamp(paragraphIndex, 0, paragraphCount - 1);
-        var safePageIndex = Math.Clamp(safeParagraphIndex / ParagraphsPerPage, 0, pageCount - 1);
-
-        return this with
-        {
-            ParagraphCount = paragraphCount,
-            PageCount = pageCount,
-            PageIndex = safePageIndex,
-            ParagraphIndex = safeParagraphIndex,
-            CharacterOffset = Math.Max(0, characterOffset)
-        };
+        return new ReaderProgressState(
+            Math.Max(0, totalBlocks),
+            Math.Max(0, pageCount),
+            Math.Clamp(pageIndex, 0, pageCount - 1),
+            Math.Clamp(blockIndex, 0, totalBlocks - 1),
+            Math.Max(0, characterOffset));
     }
 
-    public ReaderProgressState MoveToParagraph(int paragraphIndex, int paragraphCount, int pageCount)
+    public ReaderProgressState MoveTo(
+        int blockIndex,
+        int characterOffset,
+        int totalBlocks,
+        int pageCount,
+        int pageIndex)
     {
-        return MoveTo(paragraphIndex, 0, paragraphCount, pageCount);
+        return Create(totalBlocks, pageCount, pageIndex, blockIndex, characterOffset);
     }
 
-    public ReaderProgressState MoveToPage(int pageIndex, int paragraphCount, int pageCount)
+    public ReaderProgressState MoveToVisibleBlock(int blockIndex)
     {
-        if (paragraphCount <= 0 || pageCount <= 0)
+        if (TotalBlocks <= 0)
         {
-            return Empty(ParagraphsPerPage);
+            return Empty();
         }
 
-        var safePageIndex = Math.Clamp(pageIndex, 0, pageCount - 1);
-        var paragraphIndex = Math.Clamp(safePageIndex * ParagraphsPerPage, 0, paragraphCount - 1);
-
         return this with
         {
-            ParagraphCount = paragraphCount,
-            PageCount = pageCount,
-            PageIndex = safePageIndex,
-            ParagraphIndex = paragraphIndex,
+            BlockIndex = Math.Clamp(blockIndex, 0, TotalBlocks - 1),
             CharacterOffset = 0
         };
+    }
+
+    public ReaderProgressState MoveToPage(
+        int pageIndex,
+        int startBlockIndex,
+        int totalBlocks,
+        int pageCount)
+    {
+        return Create(totalBlocks, pageCount, pageIndex, startBlockIndex);
     }
 }

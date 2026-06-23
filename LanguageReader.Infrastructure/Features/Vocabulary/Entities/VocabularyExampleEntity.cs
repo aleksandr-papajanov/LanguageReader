@@ -19,7 +19,7 @@ public sealed class VocabularyExampleEntity
 
     public Guid? ReadingItemId { get; set; }
 
-    public int? ParagraphIndex { get; set; }
+    public int? BlockIndex { get; set; }
 
     public int? CharacterOffset { get; set; }
 

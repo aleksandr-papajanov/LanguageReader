@@ -15,7 +15,7 @@ internal sealed class ReadingProgressConfiguration : IEntityTypeConfiguration<Re
         entity.Property(progress => progress.Username).HasColumnName("username").HasMaxLength(128).IsRequired();
         entity.Property(progress => progress.ReadingItemId).HasColumnName("reading_item_id");
         entity.Property(progress => progress.ProgressPercent).HasColumnName("progress_percent");
-        entity.Property(progress => progress.ParagraphIndex).HasColumnName("paragraph_index");
+        entity.Property(progress => progress.BlockIndex).HasColumnName("block_index");
         entity.Property(progress => progress.CharacterOffset).HasColumnName("character_offset");
         entity.Property(progress => progress.LastOpenedAtUtc).HasColumnName("last_opened_at_utc");
 

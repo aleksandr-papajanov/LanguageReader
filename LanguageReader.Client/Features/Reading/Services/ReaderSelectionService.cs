@@ -3,7 +3,7 @@ namespace LanguageReader.Client.Features.Reading.Services;
 public sealed class ReaderSelectionService
 {
     public ReaderSelection? BuildFromOffset(
-        ReaderParagraph paragraph,
+        ReaderBlock paragraph,
         int offset,
         SelectionKind mode)
     {
@@ -26,7 +26,7 @@ public sealed class ReaderSelectionService
         };
     }
 
-    public ReaderSelection? BuildCustomSelection(ReaderParagraph paragraph, ReaderCustomSelectionRange range)
+    public ReaderSelection? BuildCustomSelection(ReaderBlock paragraph, ReaderCustomSelectionRange range)
     {
         var startOffset = Math.Clamp(range.StartOffset, 0, paragraph.Text.Length);
         var endOffset = Math.Clamp(range.EndOffset, startOffset, paragraph.Text.Length);
@@ -49,11 +49,11 @@ public sealed class ReaderSelectionService
 
     public ReaderSelection? ReselectFromAnchor(
         SelectionKind mode,
-        int sourceParagraphIndex,
+        int sourceBlockIndex,
         int sourceOffset,
-        IReadOnlyList<ReaderParagraph> allParagraphs)
+        IReadOnlyList<ReaderBlock> allParagraphs)
     {
-        var paragraph = allParagraphs.FirstOrDefault(paragraph => paragraph.Index == sourceParagraphIndex)
+        var paragraph = allParagraphs.FirstOrDefault(paragraph => paragraph.Index == sourceBlockIndex)
             ?? allParagraphs.FirstOrDefault();
 
         if (paragraph is null)
@@ -96,11 +96,11 @@ public sealed class ReaderSelectionService
     }
 
     public string? GetContextSentence(
-        IReadOnlyList<ReaderParagraph> paragraphs,
-        int targetParagraphIndex,
+        IReadOnlyList<ReaderBlock> paragraphs,
+        int targetBlockIndex,
         int targetOffset)
     {
-        var paragraph = paragraphs.FirstOrDefault(item => item.Index == targetParagraphIndex);
+        var paragraph = paragraphs.FirstOrDefault(item => item.Index == targetBlockIndex);
         if (paragraph is null)
         {
             return null;
@@ -121,7 +121,7 @@ public sealed class ReaderSelectionService
     }
 
     private static ReaderSelection? BuildWordSelection(
-        ReaderParagraph paragraph,
+        ReaderBlock paragraph,
         int offset,
         SelectionKind activeMode)
     {
@@ -143,7 +143,7 @@ public sealed class ReaderSelectionService
     }
 
     private static ReaderSelection BuildSentenceSelection(
-        ReaderParagraph paragraph,
+        ReaderBlock paragraph,
         int offset,
         SelectionKind activeMode)
     {

@@ -49,9 +49,9 @@ public sealed class VocabularyEntryEntity
     public Guid? ReadingItemId { get; set; }
 
     /// <summary>
-    /// Paragraph index for returning to the source.
+    /// Block index for returning to the source.
     /// </summary>
-    public int ParagraphIndex { get; set; }
+    public int BlockIndex { get; set; }
 
     /// <summary>
     /// Character offset for returning to the source.

@@ -3,7 +3,7 @@ namespace LanguageReader.Client.Features.Reading.Models;
 public sealed record ReaderSelection(
     SelectionKind Mode,
     string SelectedText,
-    int ParagraphIndex,
+    int BlockIndex,
     int StartOffset,
     int EndOffset,
     int AnchorOffset,
@@ -15,10 +15,10 @@ public sealed record TapOption(
     ReaderSelection? Selection,
     TranslatedRangeDto? Translation);
 
-public sealed record ReaderOffsetTap(ReaderParagraph Paragraph, int Offset);
+public sealed record ReaderOffsetTap(ReaderBlock Block, int Offset);
 
 public sealed record ReaderCustomSelectionRange(
-    int ParagraphIndex,
+    int BlockIndex,
     int StartOffset,
     int EndOffset,
     string SelectedText);
@@ -27,7 +27,7 @@ public sealed record ReaderRangeOverlay(
     string Id,
     string Kind,
     string Layer,
-    int ParagraphIndex,
+    int BlockIndex,
     int StartOffset,
     int EndOffset,
     string? DisplayText);
@@ -36,7 +36,7 @@ public sealed record ReaderRangeRect(
     string Id,
     string Kind,
     string Layer,
-    int ParagraphIndex,
+    int BlockIndex,
     int StartOffset,
     int EndOffset,
     string? DisplayText,
@@ -45,9 +45,9 @@ public sealed record ReaderRangeRect(
     double Width,
     double Height);
 
-public sealed record ReaderDomTextHit(int ParagraphIndex, int Offset);
+public sealed record ReaderDomTextHit(int BlockIndex, int Offset);
 
-public sealed record ReaderParagraph(
+public sealed record ReaderBlock(
     int Index,
     string Text,
     ReadingContentBlockType Type,

@@ -6,7 +6,7 @@ public sealed record TranslatedRangeDto(
     Guid Id,
     string Username,
     Guid ReadingItemId,
-    int ParagraphIndex,
+    int BlockIndex,
     int StartOffset,
     int EndOffset,
     string OriginalText,

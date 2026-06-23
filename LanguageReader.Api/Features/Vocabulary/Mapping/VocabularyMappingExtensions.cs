@@ -17,7 +17,7 @@ internal static class VocabularyMappingExtensions
             entry.ReadingItemId,
             entry.Username,
             entry.ReadingItemId.HasValue
-                ? new ReadingPositionDto(entry.ReadingItemId.Value, entry.ParagraphIndex, entry.CharacterOffset)
+                ? new ReadingPositionDto(entry.ReadingItemId.Value, entry.BlockIndex, entry.CharacterOffset)
                 : null,
             entry.Kind,
             entry.WordDetails?.ToVocabularyWordDetailsDto(),
@@ -66,8 +66,8 @@ internal static class VocabularyMappingExtensions
             example.CreatedAtUtc,
             example.ReadingItemId,
             example.ReadingItem?.Title,
-            example.ReadingItemId.HasValue && example.ParagraphIndex.HasValue && example.CharacterOffset.HasValue
-                ? new ReadingPositionDto(example.ReadingItemId.Value, example.ParagraphIndex.Value, example.CharacterOffset.Value)
+            example.ReadingItemId.HasValue && example.BlockIndex.HasValue && example.CharacterOffset.HasValue
+                ? new ReadingPositionDto(example.ReadingItemId.Value, example.BlockIndex.Value, example.CharacterOffset.Value)
                 : null);
     }
 }

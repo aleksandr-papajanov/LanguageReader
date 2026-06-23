@@ -32,7 +32,7 @@ else if (content is not null)
                            Title="@content.Title"
                            OriginalLanguage="@content.OriginalLanguage"
                            CurrentPage="@(progress.PageIndex + 1)"
-                           TotalPages="@pages.Count"
+                           TotalPages="@content.TotalPages"
                            ProgressPercent="@progress.ReadingPercent"
                            IsPreviousDisabled="@progress.IsFirstPage"
                            IsNextDisabled="@progress.IsLastPage"
@@ -46,7 +46,8 @@ else if (content is not null)
         }
 
         <ReaderTextSurface @ref="textSurface"
-                           Paragraphs="CurrentPageParagraphs"
+                           Blocks="CurrentPageBlocks"
+                           Images="content.Images"
                            TranslatedRanges="translatedRanges"
                            Selection="selection"
                            ActiveTranslation="activeTranslation"
@@ -58,8 +59,8 @@ else if (content is not null)
                            LoadingTranslationAction="@loadingTranslationAction"
                            OffsetSelected="SelectFromOffsetTapAsync"
                            CustomRangeSelected="SelectCustomRangeAsync"
-                           VisibleParagraphChanged="OnVisibleParagraphChangedAsync"
-                           ScrollParagraphIndex="scrollParagraphIndex"
+                           VisibleBlockChanged="OnVisibleBlockChangedAsync"
+                           ScrollBlockIndex="scrollBlockIndex"
                            ScrollOffset="scrollOffset"
                            ScrollRequestKey="scrollRequestKey"
                            TranslationSelected="SelectTranslatedRange"
@@ -79,25 +80,22 @@ else if (content is not null)
     public Guid ReadingItemId { get; set; }
 
     [Parameter]
-    public int? QueryParagraph { get; set; }
+    public int? QueryBlock { get; set; }
 
     [Parameter]
     public int? QueryOffset { get; set; }
 
-    private const int ParagraphsPerPage = 8;
-
     private readonly PeriodicTimer saveTimer = new(TimeSpan.FromSeconds(10));
-    private readonly List<IReadOnlyList<ReaderParagraph>> pages = [];
-    private readonly List<ReaderParagraph> paragraphs = [];
+    private readonly List<ReaderBlock> blocks = [];
     private readonly List<TranslatedRangeDto> translatedRanges = [];
     private readonly List<VocabularyEntryDto> vocabularyEntries = [];
     private readonly Dictionary<Guid, SelectionKind> readerSelectionKinds = [];
     private readonly ReaderSelectionService selectionService = new();
-    private ReaderProgressState progress = ReaderProgressState.Empty(ParagraphsPerPage);
+    private ReaderProgressState progress = ReaderProgressState.Empty();
 
     private ReaderTextSurface? textSurface;
     private ReadingItemDetailsDto? readingItemDetails;
-    private ReadingItemContentDto? content;
+    private ReadingItemContentPageDto? content;
     private UserSettingsDto? settings;
     private ReaderSelection? selection;
     private TranslatedRangeDto? activeTranslation;
@@ -111,11 +109,11 @@ else if (content is not null)
     private Guid? loadingTranslationId;
     private string? loadingTranslationAction;
 
-    private int? scrollParagraphIndex;
+    private int? scrollBlockIndex;
     private int? scrollOffset;
     private long scrollRequestKey;
 
-    private int? selectionAnchorParagraphIndex;
+    private int? selectionAnchorBlockIndex;
     private int? selectionAnchorOffset;
     private int? lastRenderedLastPageSyncIndex;
 
@@ -126,8 +124,7 @@ else if (content is not null)
         && string.IsNullOrWhiteSpace(selection.TranslatedText)
         && !string.IsNullOrWhiteSpace(selection.SelectedText);
 
-    private IReadOnlyList<ReaderParagraph> CurrentPageParagraphs =>
-        pages.Count == 0 ? [] : pages[progress.SafePageIndex(pages.Count)];
+    private IReadOnlyList<ReaderBlock> CurrentPageBlocks => blocks;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -161,25 +158,19 @@ else if (content is not null)
         {
             await Session.SetLastReaderRouteAsync($"/{Navigation.ToBaseRelativePath(Navigation.Uri)}");
 
-            await LoadReadingItemAsync();
+            await LoadReadingItemDetailsAsync();
             await LoadUserDataAsync();
-            BuildDocumentPages();
 
-            if (QueryParagraph.HasValue)
-            {
-                progress = progress.MoveTo(QueryParagraph.Value, QueryOffset ?? 0, paragraphs.Count, pages.Count);
-            }
-            else
-            {
-                var savedProgress = await ReadingApi.GetReadingProgressAsync(
-                    new GetReadingProgressRequest(ReadingItemId, Session.Username!));
+            var initialPosition = await GetInitialPositionAsync();
+            await LoadReadingItemContentPageAsync(blockIndex: initialPosition.BlockIndex);
+            BuildCurrentPageBlocks();
 
-                progress = progress.MoveTo(
-                    savedProgress.Position.ParagraphIndex,
-                    savedProgress.Position.CharacterOffset,
-                    paragraphs.Count,
-                    pages.Count);
-            }
+            progress = ReaderProgressState.Create(
+                content?.TotalBlocks ?? 0,
+                content?.TotalPages ?? 0,
+                content?.PageIndex ?? 0,
+                initialPosition.BlockIndex,
+                initialPosition.CharacterOffset);
 
             if (ShouldRestoreScroll())
             {
@@ -198,18 +189,34 @@ else if (content is not null)
         }
     }
 
-    private async Task LoadReadingItemAsync()
+    private async Task LoadReadingItemDetailsAsync()
     {
-        if (ReaderCache.TryGet(ReadingItemId, out var cachedDocument))
+        if (ReaderCache.TryGetDetails(ReadingItemId, out var cachedDetails))
         {
-            readingItemDetails = cachedDocument.Details;
-            content = cachedDocument.Content;
+            readingItemDetails = cachedDetails;
             return;
         }
 
         readingItemDetails = await ReadingItemsApi.GetReadingItemAsync(new GetReadingItemRequest(ReadingItemId, Session.Username!));
-        content = await ReadingItemsApi.GetReadingItemContentAsync(new GetReadingItemContentRequest(ReadingItemId, Session.Username!));
-        ReaderCache.Store(ReadingItemId, readingItemDetails, content);
+        ReaderCache.StoreDetails(ReadingItemId, readingItemDetails);
+    }
+
+    private async Task LoadReadingItemContentPageAsync(int? pageIndex = null, int? blockIndex = null)
+    {
+        if (pageIndex.HasValue && ReaderCache.TryGetPage(ReadingItemId, pageIndex.Value, out var cachedPage))
+        {
+            content = cachedPage;
+            return;
+        }
+
+        content = await ReadingItemsApi.GetReadingItemContentAsync(
+            new GetReadingItemContentRequest(
+                ReadingItemId,
+                Session.Username!,
+                PageIndex: pageIndex,
+                BlockIndex: blockIndex));
+
+        ReaderCache.StorePage(ReadingItemId, content);
     }
 
     private async Task LoadUserDataAsync()
@@ -225,29 +232,35 @@ else if (content is not null)
             new GetVocabularyRequest(Session.Username!, true)));
     }
 
-    private void BuildDocumentPages()
+    private async Task<ReadingPositionDto> GetInitialPositionAsync()
     {
-        paragraphs.Clear();
-        pages.Clear();
+        if (QueryBlock.HasValue)
+        {
+            return new ReadingPositionDto(ReadingItemId, QueryBlock.Value, QueryOffset ?? 0);
+        }
+
+        var savedProgress = await ReadingApi.GetReadingProgressAsync(
+            new GetReadingProgressRequest(ReadingItemId, Session.Username!));
+
+        return savedProgress.Position;
+    }
+
+    private void BuildCurrentPageBlocks()
+    {
+        blocks.Clear();
 
         if (content is null)
         {
-            progress = ReaderProgressState.Empty(ParagraphsPerPage);
+            progress = ReaderProgressState.Empty();
             return;
         }
 
-        paragraphs.AddRange(ReaderDocumentParser.BuildParagraphs(content.Blocks));
-        pages.AddRange(ReaderDocumentParser.BuildPages(paragraphs, ParagraphsPerPage));
-
-        progress = ReaderProgressState.Create(
-            ParagraphsPerPage,
-            paragraphs.Count,
-            pages.Count);
+        blocks.AddRange(ReaderDocumentParser.BuildBlocks(content.Blocks, content.StartBlockIndex));
     }
 
-    private Task OnVisibleParagraphChangedAsync(int visibleParagraphIndex)
+    private Task OnVisibleBlockChangedAsync(int visibleBlockIndex)
     {
-        var next = progress.MoveToParagraph(visibleParagraphIndex, paragraphs.Count, pages.Count);
+        var next = progress.MoveToVisibleBlock(visibleBlockIndex);
 
         if (next.Equals(progress))
         {
@@ -261,15 +274,15 @@ else if (content is not null)
 
     private Task SelectFromOffsetTapAsync(ReaderOffsetTap tap)
     {
-        SelectFromOffset(tap.Paragraph, tap.Offset);
-        progress = progress.MoveTo(tap.Paragraph.Index, tap.Offset, paragraphs.Count, pages.Count);
+        SelectFromOffset(tap.Block, tap.Offset);
+        progress = MoveProgressTo(tap.Block.Index, tap.Offset);
         lastRenderedLastPageSyncIndex = null;
         return SaveCurrentPositionAsync();
     }
 
     private Task SelectCustomRangeAsync(ReaderCustomSelectionRange range)
     {
-        var paragraph = paragraphs.FirstOrDefault(item => item.Index == range.ParagraphIndex);
+        var paragraph = blocks.FirstOrDefault(item => item.Index == range.BlockIndex);
         if (paragraph is null)
         {
             return Task.CompletedTask;
@@ -288,12 +301,12 @@ else if (content is not null)
         }
 
         ApplySelection(nextSelection);
-        progress = progress.MoveTo(nextSelection.ParagraphIndex, nextSelection.StartOffset, paragraphs.Count, pages.Count);
+        progress = MoveProgressTo(nextSelection.BlockIndex, nextSelection.StartOffset);
         lastRenderedLastPageSyncIndex = null;
         return Task.CompletedTask;
     }
 
-    private void SelectFromOffset(ReaderParagraph paragraph, int offset)
+    private void SelectFromOffset(ReaderBlock paragraph, int offset)
     {
         var nextSelection = selectionService.BuildFromOffset(
             paragraph,
@@ -325,14 +338,14 @@ else if (content is not null)
             return Task.CompletedTask;
         }
 
-        var anchorParagraphIndex = selectionAnchorParagraphIndex ?? selection.ParagraphIndex;
+        var anchorBlockIndex = selectionAnchorBlockIndex ?? selection.BlockIndex;
         var anchorOffset = selectionAnchorOffset ?? selection.AnchorOffset;
 
         var nextSelection = selectionService.ReselectFromAnchor(
             mode,
-            anchorParagraphIndex,
+            anchorBlockIndex,
             anchorOffset,
-            paragraphs);
+            blocks);
 
         if (nextSelection is null)
         {
@@ -358,7 +371,7 @@ else if (content is not null)
             return;
         }
 
-        selectionAnchorParagraphIndex = readerSelection.ParagraphIndex;
+        selectionAnchorBlockIndex = readerSelection.BlockIndex;
         selectionAnchorOffset = readerSelection.AnchorOffset;
     }
 
@@ -401,7 +414,7 @@ else if (content is not null)
                     ReadingItemId,
                     currentSelection.SelectedText,
                     result.Translation,
-                    currentSelection.ParagraphIndex,
+                    currentSelection.BlockIndex,
                     currentSelection.StartOffset,
                     currentSelection.EndOffset,
                     Session.Username!,
@@ -450,8 +463,8 @@ else if (content is not null)
                 sourceLanguage,
                 targetLanguage,
                 ReadingItemId,
-                new ReadingPositionDto(ReadingItemId, range.ParagraphIndex, range.StartOffset),
-                selectionService.GetContextSentence(paragraphs, range.ParagraphIndex, range.StartOffset),
+                new ReadingPositionDto(ReadingItemId, range.BlockIndex, range.StartOffset),
+                selectionService.GetContextSentence(blocks, range.BlockIndex, range.StartOffset),
                 true,
                 vocabularySelectionKind));
 
@@ -498,7 +511,7 @@ else if (content is not null)
         selection = new ReaderSelection(
             activeMode,
             range.OriginalText,
-            range.ParagraphIndex,
+            range.BlockIndex,
             range.StartOffset,
             range.EndOffset,
             range.StartOffset,
@@ -507,7 +520,7 @@ else if (content is not null)
 
         RememberSelectionAnchor(selection);
 
-        QueueScrollTo(range.ParagraphIndex, range.StartOffset);
+        QueueScrollTo(range.BlockIndex, range.StartOffset);
     }
 
     private Task UnselectTranslatedRange(TranslatedRangeDto range)
@@ -572,7 +585,13 @@ else if (content is not null)
             return;
         }
 
-        progress = progress.MoveToPage(progress.PageIndex - 1, paragraphs.Count, pages.Count);
+        await LoadReadingItemContentPageAsync(pageIndex: progress.PageIndex - 1);
+        BuildCurrentPageBlocks();
+        progress = progress.MoveToPage(
+            content?.PageIndex ?? 0,
+            content?.StartBlockIndex ?? 0,
+            content?.TotalBlocks ?? 0,
+            content?.TotalPages ?? 0);
         lastRenderedLastPageSyncIndex = null;
         selection = null;
         QueueScrollToCurrentPosition();
@@ -586,7 +605,13 @@ else if (content is not null)
             return;
         }
 
-        progress = progress.MoveToPage(progress.PageIndex + 1, paragraphs.Count, pages.Count);
+        await LoadReadingItemContentPageAsync(pageIndex: progress.PageIndex + 1);
+        BuildCurrentPageBlocks();
+        progress = progress.MoveToPage(
+            content?.PageIndex ?? 0,
+            content?.StartBlockIndex ?? 0,
+            content?.TotalBlocks ?? 0,
+            content?.TotalPages ?? 0);
         lastRenderedLastPageSyncIndex = null;
         selection = null;
         QueueScrollToCurrentPosition();
@@ -599,14 +624,14 @@ else if (content is not null)
         translationError = null;
         activeTranslation = null;
 
-        selectionAnchorParagraphIndex = readerSelection.ParagraphIndex;
+        selectionAnchorBlockIndex = readerSelection.BlockIndex;
         selectionAnchorOffset = readerSelection.AnchorOffset;
     }
 
     private bool IsExistingTranslationSelection(ReaderSelection readerSelection)
     {
         return translatedRanges.Any(range =>
-            range.ParagraphIndex == readerSelection.ParagraphIndex
+            range.BlockIndex == readerSelection.BlockIndex
             && RangesOverlap(range.StartOffset, range.EndOffset, readerSelection.StartOffset, readerSelection.EndOffset)
             && string.Equals(
                 NormalizeSelectionText(range.OriginalText),
@@ -632,11 +657,21 @@ else if (content is not null)
         return Task.CompletedTask;
     }
 
+    private ReaderProgressState MoveProgressTo(int blockIndex, int characterOffset)
+    {
+        return progress.MoveTo(
+            blockIndex,
+            characterOffset,
+            content?.TotalBlocks ?? 0,
+            content?.TotalPages ?? 0,
+            content?.PageIndex ?? 0);
+    }
+
     private void ClearSelection()
     {
         selection = null;
         activeTranslation = null;
-        selectionAnchorParagraphIndex = null;
+        selectionAnchorBlockIndex = null;
         selectionAnchorOffset = null;
     }
 
@@ -675,7 +710,7 @@ else if (content is not null)
             .OrderByDescending(entry => entry.CreatedAtUtc)
             .FirstOrDefault(entry =>
                 (includeHidden || entry.IsVisibleInVocabulary)
-                && entry.Position?.ParagraphIndex == range.ParagraphIndex
+                && entry.Position?.BlockIndex == range.BlockIndex
                 && entry.Position?.CharacterOffset == range.StartOffset
                 && entry.Kind == range.Kind
                 && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
@@ -700,13 +735,13 @@ else if (content is not null)
 
     private ReadingPositionDto CurrentPosition()
     {
-        return new ReadingPositionDto(ReadingItemId, progress.ParagraphIndex, progress.CharacterOffset);
+        return new ReadingPositionDto(ReadingItemId, progress.BlockIndex, progress.CharacterOffset);
     }
 
     private string? BuildTranslationContext(ReaderSelection readerSelection)
     {
         return readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Unknown
-            ? selectionService.GetContextSentence(paragraphs, readerSelection.ParagraphIndex, readerSelection.StartOffset)
+            ? selectionService.GetContextSentence(blocks, readerSelection.BlockIndex, readerSelection.StartOffset)
             : readerSelection.SelectedText;
     }
 
@@ -731,7 +766,7 @@ else if (content is not null)
 
     private async Task SaveProgressAsync(ReadingPositionDto position)
     {
-        progress = progress.MoveTo(position.ParagraphIndex, position.CharacterOffset, paragraphs.Count, pages.Count);
+        progress = MoveProgressTo(position.BlockIndex, position.CharacterOffset);
 
         await ReadingApi.SaveReadingProgressAsync(
             new SaveReadingProgressRequest(
@@ -765,22 +800,22 @@ else if (content is not null)
 
     private void QueueScrollToCurrentPosition()
     {
-        QueueScrollTo(progress.ParagraphIndex, progress.CharacterOffset);
+        QueueScrollTo(progress.BlockIndex, progress.CharacterOffset);
     }
 
     private bool ShouldRestoreScroll()
     {
-        if (QueryParagraph.HasValue)
+        if (QueryBlock.HasValue)
         {
             return true;
         }
 
-        return progress.ParagraphIndex > 0 || progress.CharacterOffset > 0;
+        return progress.BlockIndex > 0 || progress.CharacterOffset > 0;
     }
 
-    private void QueueScrollTo(int targetParagraphIndex, int targetOffset)
+    private void QueueScrollTo(int targetBlockIndex, int targetOffset)
     {
-        scrollParagraphIndex = targetParagraphIndex;
+        scrollBlockIndex = targetBlockIndex;
         scrollOffset = targetOffset;
         scrollRequestKey++;
     }
@@ -820,7 +855,7 @@ else if (content is not null)
             return Task.CompletedTask;
         }
 
-        var returnUrl = Uri.EscapeDataString($"/reader/{ReadingItemId}?paragraph={progress.ParagraphIndex}&offset={progress.CharacterOffset}");
+        var returnUrl = Uri.EscapeDataString($"/reader/{ReadingItemId}?block={progress.BlockIndex}&offset={progress.CharacterOffset}");
         Navigation.NavigateTo($"/words/{entry.Id}?returnUrl={returnUrl}");
         return Task.CompletedTask;
     }

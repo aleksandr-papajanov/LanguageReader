@@ -20,7 +20,7 @@ public sealed class ReadingItemTranslationsApiClient(ApiClient api)
         var body = new CreateTranslatedRangeRequestBody(
             request.OriginalText,
             request.TranslatedText,
-            request.ParagraphIndex,
+            request.BlockIndex,
             request.StartOffset,
             request.EndOffset,
             request.Username,

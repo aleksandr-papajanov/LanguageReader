@@ -419,7 +419,7 @@ else if (entry is not null)
 
     private Task OpenInReader(Guid readingItemId, ReadingPositionDto position)
     {
-        Navigation.NavigateTo($"/reader/{readingItemId}?paragraph={position.ParagraphIndex}&offset={position.CharacterOffset}");
+        Navigation.NavigateTo($"/reader/{readingItemId}?block={position.BlockIndex}&offset={position.CharacterOffset}");
         return Task.CompletedTask;
     }
 }

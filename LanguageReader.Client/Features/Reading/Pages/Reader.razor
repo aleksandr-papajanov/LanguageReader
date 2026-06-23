@@ -2,14 +2,14 @@
 
 <PageTitle>Reader</PageTitle>
 
-<ReaderView ReadingItemId="ReadingItemId" QueryParagraph="QueryParagraph" QueryOffset="QueryOffset" />
+<ReaderView ReadingItemId="ReadingItemId" QueryBlock="QueryBlock" QueryOffset="QueryOffset" />
 
 @code {
     [Parameter]
     public Guid ReadingItemId { get; set; }
 
-    [SupplyParameterFromQuery(Name = "paragraph")]
-    public int? QueryParagraph { get; set; }
+    [SupplyParameterFromQuery(Name = "block")]
+    public int? QueryBlock { get; set; }
 
     [SupplyParameterFromQuery(Name = "offset")]
     public int? QueryOffset { get; set; }

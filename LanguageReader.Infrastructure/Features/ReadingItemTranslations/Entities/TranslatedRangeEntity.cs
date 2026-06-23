@@ -25,9 +25,9 @@ public sealed class TranslatedRangeEntity
     public Guid ReadingItemId { get; set; }
 
     /// <summary>
-    /// Paragraph index in parsed book content.
+    /// Block index in parsed reading item content.
     /// </summary>
-    public int ParagraphIndex { get; set; }
+    public int BlockIndex { get; set; }
 
     /// <summary>
     /// Start character offset inside the paragraph.

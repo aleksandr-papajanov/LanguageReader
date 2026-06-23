@@ -11,7 +11,7 @@ internal static class ReadingMappingExtensions
             progress.Username,
             progress.ProgressPercent,
             progress.LastOpenedAtUtc,
-            new ReadingPositionDto(progress.ReadingItemId, progress.ParagraphIndex, progress.CharacterOffset));
+            new ReadingPositionDto(progress.ReadingItemId, progress.BlockIndex, progress.CharacterOffset));
     }
 
     public static ReadingProgressDto ToEmptyReadingProgressDto(this GetReadingProgressRequest request, string username)

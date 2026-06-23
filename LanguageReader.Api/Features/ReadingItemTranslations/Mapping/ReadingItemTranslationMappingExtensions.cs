@@ -10,7 +10,7 @@ internal static class ReadingItemTranslationMappingExtensions
             range.Id,
             range.Username,
             range.ReadingItemId,
-            range.ParagraphIndex,
+            range.BlockIndex,
             range.StartOffset,
             range.EndOffset,
             range.OriginalText,

@@ -14,7 +14,7 @@ internal static class CreateReadingItemTranslationEndpoint
                 route.ReadingItemId,
                 body.OriginalText,
                 body.TranslatedText,
-                body.ParagraphIndex,
+                body.BlockIndex,
                 body.StartOffset,
                 body.EndOffset,
                 body.Username,

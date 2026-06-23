@@ -19,7 +19,7 @@ internal sealed class TranslatedRangeConfiguration : IEntityTypeConfiguration<Tr
         entity.Property(range => range.Id).HasColumnName("id");
         entity.Property(range => range.Username).HasColumnName("username").HasMaxLength(128).IsRequired();
         entity.Property(range => range.ReadingItemId).HasColumnName("reading_item_id");
-        entity.Property(range => range.ParagraphIndex).HasColumnName("paragraph_index");
+        entity.Property(range => range.BlockIndex).HasColumnName("block_index");
         entity.Property(range => range.StartOffset).HasColumnName("start_offset");
         entity.Property(range => range.EndOffset).HasColumnName("end_offset");
         entity.Property(range => range.OriginalText).HasColumnName("original_text").IsRequired();
@@ -30,7 +30,7 @@ internal sealed class TranslatedRangeConfiguration : IEntityTypeConfiguration<Tr
         entity.Property(range => range.CreatedAtUtc).HasColumnName("created_at_utc");
 
         entity.HasIndex(range => new { range.Username, range.ReadingItemId });
-        entity.HasIndex(range => new { range.ReadingItemId, range.ParagraphIndex });
+        entity.HasIndex(range => new { range.ReadingItemId, range.BlockIndex });
 
         entity.HasOne(range => range.ReadingItem)
             .WithMany(item => item.TranslatedRanges)

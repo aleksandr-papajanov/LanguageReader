@@ -89,22 +89,42 @@
         }
     </div>
 
-    @foreach (var paragraph in Paragraphs)
+    @foreach (var paragraph in Blocks)
     {
-        <p data-paragraph-index="@paragraph.Index">
-            @foreach (var chunk in BuildTextChunks(paragraph))
-            {
-                @if (!string.IsNullOrEmpty(chunk.Text))
+        @if (paragraph.Type == ReadingContentBlockType.Image)
+        {
+            <figure class="reader-page__image">
+                @if (TryGetImageSource(paragraph.ImageId, out var imageSource))
                 {
-                    <span class="@GetChunkClass(chunk)"
-                          style="@GetChunkStyle(chunk)"
-                          data-original-start="@chunk.StartOffset"
-                          data-original-end="@chunk.EndOffset"
-                          data-original-text="@chunk.OriginalText"
-                          data-translated="@chunk.IsTranslated.ToString().ToLowerInvariant()">@chunk.Text</span>
+                    <AppImage Src="@imageSource"
+                              Alt="Embedded reading item image"
+                              Fit="contain"
+                              AspectRatio="4 / 3"
+                              AdditionalClass="reader-page__embedded-image" />
                 }
-            }
-        </p>
+            </figure>
+        }
+        else if (paragraph.Index < 0)
+        {
+            <div class="reader-page__spacer" aria-hidden="true"></div>
+        }
+        else
+        {
+            <p data-block-index="@paragraph.Index">
+                @foreach (var chunk in BuildTextChunks(paragraph))
+                {
+                    @if (!string.IsNullOrEmpty(chunk.Text))
+                    {
+                        <span class="@GetChunkClass(chunk)"
+                              style="@GetChunkStyle(chunk)"
+                              data-original-start="@chunk.StartOffset"
+                              data-original-end="@chunk.EndOffset"
+                              data-original-text="@chunk.OriginalText"
+                              data-translated="@chunk.IsTranslated.ToString().ToLowerInvariant()">@chunk.Text</span>
+                    }
+                }
+            </p>
+        }
     }
 
     <span class="reader-page__end" data-reader-page-end="true"></span>
@@ -138,7 +158,10 @@
     private long lastScrollRequestKey = -1;
 
     [Parameter]
-    public IReadOnlyList<ReaderParagraph> Paragraphs { get; set; } = [];
+    public IReadOnlyList<ReaderBlock> Blocks { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyDictionary<string, ReadingImageDto> Images { get; set; } = new Dictionary<string, ReadingImageDto>();
 
     [Parameter]
     public IReadOnlyList<TranslatedRangeDto> TranslatedRanges { get; set; } = [];
@@ -174,7 +197,7 @@
     public EventCallback<ReaderCustomSelectionRange> CustomRangeSelected { get; set; }
 
     [Parameter]
-    public EventCallback<int> VisibleParagraphChanged { get; set; }
+    public EventCallback<int> VisibleBlockChanged { get; set; }
 
     [Parameter]
     public EventCallback<TranslatedRangeDto> TranslationSelected { get; set; }
@@ -204,7 +227,7 @@
     public EventCallback ClearSelectionRequested { get; set; }
 
     [Parameter]
-    public int? ScrollParagraphIndex { get; set; }
+    public int? ScrollBlockIndex { get; set; }
 
     [Parameter]
     public int? ScrollOffset { get; set; }
@@ -220,7 +243,7 @@
     protected override void OnParametersSet()
     {
         var nextSignature = string.Join("|", BuildOverlays().Select(range =>
-            $"{range.Id}:{range.Kind}:{range.Layer}:{range.ParagraphIndex}:{range.StartOffset}:{range.EndOffset}:{range.DisplayText}:{IsTranslationLoading}"));
+            $"{range.Id}:{range.Kind}:{range.Layer}:{range.BlockIndex}:{range.StartOffset}:{range.EndOffset}:{range.DisplayText}:{IsTranslationLoading}"));
 
         if (!string.Equals(nextSignature, overlaySignature, StringComparison.Ordinal))
         {
@@ -262,14 +285,14 @@
             return;
         }
 
-        if (ScrollParagraphIndex.HasValue && ScrollRequestKey != lastScrollRequestKey)
+        if (ScrollBlockIndex.HasValue && ScrollRequestKey != lastScrollRequestKey)
         {
             lastScrollRequestKey = ScrollRequestKey;
 
             await JsRuntime.InvokeVoidAsync(
                 "languageReaderSelection.scrollParagraphOffsetIntoViewIfNeeded",
                 readerPage,
-                ScrollParagraphIndex.Value,
+                ScrollBlockIndex.Value,
                 ScrollOffset ?? 0);
         }
 
@@ -280,7 +303,7 @@
             await JsRuntime.InvokeVoidAsync(
                 "languageReaderSelection.scrollRangeStartIntoViewIfNeeded",
                 readerPage,
-                Selection.ParagraphIndex,
+                Selection.BlockIndex,
                 Selection.StartOffset);
         }
 
@@ -295,7 +318,7 @@
 
     private static bool IsSameSelection(ReaderSelection? current, ReaderSelection? previous)
     {
-        return current?.ParagraphIndex == previous?.ParagraphIndex
+        return current?.BlockIndex == previous?.BlockIndex
             && current?.StartOffset == previous?.StartOffset
             && current?.EndOffset == previous?.EndOffset
             && current?.SelectionType == previous?.SelectionType;
@@ -308,14 +331,14 @@
     }
 
     [JSInvokable]
-    public async Task NotifyVisibleParagraphChangedAsync(int paragraphIndex)
+    public async Task NotifyVisibleBlockChangedAsync(int blockIndex)
     {
-        await VisibleParagraphChanged.InvokeAsync(paragraphIndex);
+        await VisibleBlockChanged.InvokeAsync(blockIndex);
     }
 
     [JSInvokable]
     public async Task NotifyNativeSelectionChangedAsync(
-        int paragraphIndex,
+        int BlockIndex,
         int startOffset,
         int endOffset,
         string selectedText)
@@ -326,7 +349,7 @@
         }
 
         var selectedRange = new ReaderCustomSelectionRange(
-            paragraphIndex,
+            BlockIndex,
             startOffset,
             endOffset,
             selectedText);
@@ -350,12 +373,12 @@
 
     public async Task<ReadingPositionDto?> GetViewportPositionAsync(Guid readingItemId)
     {
-        var visibleParagraphIndex = await JsRuntime.InvokeAsync<int?>(
-            "languageReaderSelection.getReaderProgressParagraphIndex",
+        var visibleBlockIndex = await JsRuntime.InvokeAsync<int?>(
+            "languageReaderSelection.getReaderProgressBlockIndex",
             readerPage);
 
-        return visibleParagraphIndex.HasValue
-            ? new ReadingPositionDto(readingItemId, visibleParagraphIndex.Value, 0)
+        return visibleBlockIndex.HasValue
+            ? new ReadingPositionDto(readingItemId, visibleBlockIndex.Value, 0)
             : null;
     }
 
@@ -394,7 +417,7 @@
             return;
         }
 
-        var paragraph = Paragraphs.FirstOrDefault(item => item.Index == hit.ParagraphIndex);
+        var paragraph = Blocks.FirstOrDefault(item => item.Index == hit.BlockIndex);
         if (paragraph is null)
         {
             return;
@@ -427,7 +450,7 @@
     private bool ShouldIgnoreCustomSelection(ReaderCustomSelectionRange selectedRange)
     {
         return TranslatedRanges.Any(range =>
-            range.ParagraphIndex == selectedRange.ParagraphIndex
+            range.BlockIndex == selectedRange.BlockIndex
             && RangesOverlap(range.StartOffset, range.EndOffset, selectedRange.StartOffset, selectedRange.EndOffset)
             && string.Equals(
                 NormalizeSelectionText(range.OriginalText),
@@ -490,7 +513,7 @@
             "selection",
             IsTranslationLoading ? "selection-loading" : "selection",
             "selection",
-            readerSelection.ParagraphIndex,
+            readerSelection.BlockIndex,
             readerSelection.StartOffset,
             readerSelection.EndOffset,
             null);
@@ -507,24 +530,24 @@
             $"{kind}-{range.Id}",
             kind,
             layer,
-            range.ParagraphIndex,
+            range.BlockIndex,
             range.StartOffset,
             range.EndOffset,
             displayText);
     }
 
-    private IReadOnlyList<ReaderTextChunk> BuildTextChunks(ReaderParagraph paragraph)
+    private IReadOnlyList<ReaderTextChunk> BuildTextChunks(ReaderBlock paragraph)
     {
         var translations = GetVisibleTranslations()
             .Where(range =>
-                range.ParagraphIndex == paragraph.Index)
+                range.BlockIndex == paragraph.Index)
             .ToList();
 
         return BuildTextChunks(paragraph, translations, 0, paragraph.Text.Length, null);
     }
 
     private IReadOnlyList<ReaderTextChunk> BuildTextChunks(
-        ReaderParagraph paragraph,
+        ReaderBlock paragraph,
         IReadOnlyList<TranslatedRangeDto> translations,
         int rangeStart,
         int rangeEnd,
@@ -625,7 +648,7 @@
     private static bool Contains(TranslatedRangeDto parent, TranslatedRangeDto child)
     {
         return parent.ReadingItemId == child.ReadingItemId
-            && parent.ParagraphIndex == child.ParagraphIndex
+            && parent.BlockIndex == child.BlockIndex
             && parent.StartOffset <= child.StartOffset
             && parent.EndOffset >= child.EndOffset
             && (parent.StartOffset < child.StartOffset || parent.EndOffset > child.EndOffset);
@@ -730,7 +753,7 @@
         return VocabularyEntries.Any(entry =>
             entry.IsVisibleInVocabulary
             && entry.ReadingItemId == range.ReadingItemId
-            && entry.Position?.ParagraphIndex == range.ParagraphIndex
+            && entry.Position?.BlockIndex == range.BlockIndex
             && entry.Position?.CharacterOffset == range.StartOffset
             && entry.Kind == range.Kind
             && string.Equals(entry.Word, range.OriginalText, StringComparison.OrdinalIgnoreCase));
@@ -803,6 +826,22 @@
         return string.Create(
             System.Globalization.CultureInfo.InvariantCulture,
             $"left:clamp(0.75rem, {anchor.Left:0.###}px, calc(100% - {anchor.Width:0.###}px - 0.75rem));top:{anchor.Top:0.###}px;");
+    }
+
+    private bool TryGetImageSource(string? imageId, out string source)
+    {
+        source = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(imageId)
+            || !Images.TryGetValue(imageId, out var image)
+            || string.IsNullOrWhiteSpace(image.Base64Content)
+            || string.IsNullOrWhiteSpace(image.ContentType))
+        {
+            return false;
+        }
+
+        source = $"data:{image.ContentType};base64,{image.Base64Content}";
+        return true;
     }
 
     public async ValueTask DisposeAsync()

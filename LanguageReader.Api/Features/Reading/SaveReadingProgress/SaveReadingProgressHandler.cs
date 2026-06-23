@@ -35,7 +35,7 @@ internal sealed class SaveReadingProgressHandler(ApplicationDbContext dbContext)
         }
 
         progress.ProgressPercent = progressPercent;
-        progress.ParagraphIndex = Math.Max(0, request.Position.ParagraphIndex);
+        progress.BlockIndex = Math.Max(0, request.Position.BlockIndex);
         progress.CharacterOffset = Math.Max(0, request.Position.CharacterOffset);
         progress.LastOpenedAtUtc = DateTimeOffset.UtcNow;
 

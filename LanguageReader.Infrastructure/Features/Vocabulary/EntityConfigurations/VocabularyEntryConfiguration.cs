@@ -24,7 +24,7 @@ internal sealed class VocabularyEntryConfiguration : IEntityTypeConfiguration<Vo
         entity.Property(entry => entry.SourceLanguage).HasColumnName("source_language").HasMaxLength(64);
         entity.Property(entry => entry.TargetLanguage).HasColumnName("target_language").HasMaxLength(64).IsRequired();
         entity.Property(entry => entry.ReadingItemId).HasColumnName("reading_item_id");
-        entity.Property(entry => entry.ParagraphIndex).HasColumnName("paragraph_index");
+        entity.Property(entry => entry.BlockIndex).HasColumnName("block_index");
         entity.Property(entry => entry.CharacterOffset).HasColumnName("character_offset");
         entity.Property(entry => entry.Kind).HasColumnName("kind").HasConversion<string>().HasMaxLength(32);
         entity.Property(entry => entry.CreatedAtUtc).HasColumnName("created_at_utc");

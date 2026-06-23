@@ -8,26 +8,13 @@ public static class ReaderDocumentParser
         @"[\p{L}\p{N}]+(?:['\u2019-][\p{L}\p{N}]+)*",
         RegexOptions.Compiled);
 
-    public static IReadOnlyList<ReaderParagraph> BuildParagraphs(
-        IReadOnlyList<ReadingContentBlockDto> blocks)
+    public static IReadOnlyList<ReaderBlock> BuildBlocks(
+        IReadOnlyList<ReadingContentBlockDto> blocks,
+        int startBlockIndex = 0)
     {
         return blocks
-            .Select((block, index) => BuildParagraph(index, block))
+            .Select((block, index) => BuildParagraph(block.BlockIndex ?? -(startBlockIndex + index + 1), block))
             .ToList();
-    }
-
-    public static IReadOnlyList<IReadOnlyList<ReaderParagraph>> BuildPages(
-        IReadOnlyList<ReaderParagraph> paragraphs,
-        int paragraphsPerPage)
-    {
-        var pages = new List<IReadOnlyList<ReaderParagraph>>();
-
-        for (var i = 0; i < paragraphs.Count; i += paragraphsPerPage)
-        {
-            pages.Add(paragraphs.Skip(i).Take(paragraphsPerPage).ToList());
-        }
-
-        return pages;
     }
 
     public static string? GetSingleWord(string? text)
@@ -51,13 +38,13 @@ public static class ReaderDocumentParser
             : null;
     }
 
-    private static ReaderParagraph BuildParagraph(int index, ReadingContentBlockDto block)
+    private static ReaderBlock BuildParagraph(int index, ReadingContentBlockDto block)
     {
         var text = block.Text ?? string.Empty;
 
         if (!CanTokenize(block.Type))
         {
-            return new ReaderParagraph(
+            return new ReaderBlock(
                 index,
                 text,
                 block.Type,
@@ -78,7 +65,7 @@ public static class ReaderDocumentParser
         var sentences = BuildSentences(text);
         var segments = BuildSegments(text, words);
 
-        return new ReaderParagraph(
+        return new ReaderBlock(
             index,
             text,
             block.Type,

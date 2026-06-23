@@ -22,11 +22,11 @@ public sealed class ReadingItemsApiClient(ApiClient api)
             cancellationToken);
     }
 
-    public Task<ReadingItemContentDto> GetReadingItemContentAsync(
+    public Task<ReadingItemContentPageDto> GetReadingItemContentAsync(
         GetReadingItemContentRequest request,
         CancellationToken cancellationToken = default)
     {
-        return api.GetAsync<ReadingItemContentDto>(
+        return api.GetAsync<ReadingItemContentPageDto>(
             "/api/reading-items/{ReadingItemId}/content",
             request,
             cancellationToken);

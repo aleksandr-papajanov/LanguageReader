@@ -42,10 +42,10 @@ window.languageReaderSelection = {
             return null;
         }
 
-        const paragraphIndex = Number(startParagraph.dataset.paragraphIndex);
+        const blockIndex = Number(startParagraph.dataset.blockIndex);
         const startOffset = getOriginalOffsetFromDomPosition(startParagraph, range.startContainer, range.startOffset);
         const endOffset = getOriginalOffsetFromDomPosition(endParagraph, range.endContainer, range.endOffset);
-        if (paragraphIndex < 0 || endOffset <= startOffset) {
+        if (blockIndex < 0 || endOffset <= startOffset) {
             return null;
         }
 
@@ -55,7 +55,7 @@ window.languageReaderSelection = {
         }
 
         return {
-            paragraphIndex,
+            blockIndex,
             startOffset: trimmedRange.startOffset,
             endOffset: trimmedRange.endOffset,
             selectedText: trimmedRange.selectedText
@@ -113,7 +113,7 @@ window.languageReaderSelection = {
         }
 
         return {
-            paragraphIndex: Number(paragraph.dataset.paragraphIndex),
+            blockIndex: Number(paragraph.dataset.blockIndex),
             offset: clamp(offset, 0, getParagraphOriginalLength(paragraph))
         };
     },
@@ -128,7 +128,7 @@ window.languageReaderSelection = {
         const result = [];
 
         for (const item of ranges) {
-            const paragraph = root.querySelector(`[data-paragraph-index="${item.paragraphIndex}"]`);
+            const paragraph = root.querySelector(`[data-block-index="${item.blockIndex}"]`);
             const boundary = getRangeBoundary(paragraph, item.startOffset, item.endOffset);
             if (!boundary) {
                 continue;
@@ -148,7 +148,7 @@ window.languageReaderSelection = {
                         id: item.id,
                         kind: item.kind,
                         layer: item.layer,
-                        paragraphIndex: item.paragraphIndex,
+                        blockIndex: item.blockIndex,
                         startOffset: item.startOffset,
                         endOffset: item.endOffset,
                         displayText: item.displayText || null,
@@ -166,12 +166,12 @@ window.languageReaderSelection = {
         return result;
     },
 
-    scrollParagraphOffsetIntoViewIfNeeded: (root, paragraphIndex, offset) => {
+    scrollParagraphOffsetIntoViewIfNeeded: (root, blockIndex, offset) => {
         if (!root) {
             return;
         }
 
-        const rect = getRangeRectForOffset(root, paragraphIndex, offset);
+        const rect = getRangeRectForOffset(root, blockIndex, offset);
         if (!rect) {
             return;
         }
@@ -179,12 +179,12 @@ window.languageReaderSelection = {
         scrollRectIntoViewIfNeeded(rect);
     },
 
-    getReaderProgressParagraphIndex: (root) => {
+    getReaderProgressBlockIndex: (root) => {
         if (!root) {
             return null;
         }
 
-        const paragraphs = Array.from(root.querySelectorAll("[data-paragraph-index]"));
+        const paragraphs = Array.from(root.querySelectorAll("[data-block-index]"));
         if (paragraphs.length === 0) {
             return null;
         }
@@ -194,7 +194,7 @@ window.languageReaderSelection = {
         const viewportBottom = window.innerHeight - metrics.bottom - 12;
         const pageEnd = root.querySelector("[data-reader-page-end]");
         if (pageEnd && isElementEndVisible(pageEnd, viewportTop, viewportBottom + 24)) {
-            return Number(paragraphs[paragraphs.length - 1].dataset.paragraphIndex);
+            return Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
         }
 
         let lastPartiallyVisible = null;
@@ -203,19 +203,19 @@ window.languageReaderSelection = {
         for (const paragraph of paragraphs) {
             const rect = paragraph.getBoundingClientRect();
             if (rect.bottom > viewportTop && rect.top < viewportBottom) {
-                lastPartiallyVisible = Number(paragraph.dataset.paragraphIndex);
+                lastPartiallyVisible = Number(paragraph.dataset.blockIndex);
             }
 
             if (rect.bottom >= viewportTop && rect.bottom <= viewportBottom) {
-                lastParagraphWithVisibleEnd = Number(paragraph.dataset.paragraphIndex);
+                lastParagraphWithVisibleEnd = Number(paragraph.dataset.blockIndex);
             }
         }
 
-        return lastParagraphWithVisibleEnd ?? lastPartiallyVisible ?? Number(paragraphs[paragraphs.length - 1].dataset.paragraphIndex);
+        return lastParagraphWithVisibleEnd ?? lastPartiallyVisible ?? Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
     },
 
-    getFirstVisibleParagraphIndex: (root) => {
-        return window.languageReaderSelection.getReaderProgressParagraphIndex(root);
+    getFirstVisibleBlockIndex: (root) => {
+        return window.languageReaderSelection.getReaderProgressBlockIndex(root);
     },
 
     observeRangeRoot: (root, dotNetReference) => {
@@ -256,19 +256,19 @@ window.languageReaderSelection = {
 
         const id = `reader-scroll-${++languageReaderScrollObserverId}`;
         let frame = 0;
-        let lastParagraphIndex = null;
+        let lastBlockIndex = null;
 
         const notify = () => {
             window.cancelAnimationFrame(frame);
 
             frame = window.requestAnimationFrame(() => {
-                const paragraphIndex = window.languageReaderSelection.getReaderProgressParagraphIndex(root);
-                if (paragraphIndex === null || paragraphIndex === lastParagraphIndex) {
+                const blockIndex = window.languageReaderSelection.getReaderProgressBlockIndex(root);
+                if (blockIndex === null || blockIndex === lastBlockIndex) {
                     return;
                 }
 
-                lastParagraphIndex = paragraphIndex;
-                dotNetReference.invokeMethodAsync("NotifyVisibleParagraphChangedAsync", paragraphIndex);
+                lastBlockIndex = blockIndex;
+                dotNetReference.invokeMethodAsync("NotifyVisibleBlockChangedAsync", blockIndex);
             });
         };
 
@@ -321,7 +321,7 @@ window.languageReaderSelection = {
                     return;
                 }
 
-                const signature = `${selectedRange.paragraphIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
+                const signature = `${selectedRange.blockIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
                 if (signature === lastSignature) {
                     return;
                 }
@@ -329,7 +329,7 @@ window.languageReaderSelection = {
                 lastSignature = signature;
                 dotNetReference.invokeMethodAsync(
                     "NotifyNativeSelectionChangedAsync",
-                    selectedRange.paragraphIndex,
+                    selectedRange.blockIndex,
                     selectedRange.startOffset,
                     selectedRange.endOffset,
                     selectedRange.selectedText);
@@ -439,7 +439,7 @@ function findParagraphAtPoint(root, clientX, clientY) {
         return null;
     }
 
-    const directParagraph = directElement?.closest?.("[data-paragraph-index]");
+    const directParagraph = directElement?.closest?.("[data-block-index]");
     if (directParagraph && root.contains(directParagraph)) {
         return isPointInsideParagraphText(directParagraph, clientX, clientY)
             ? directParagraph
@@ -451,7 +451,7 @@ function findParagraphAtPoint(root, clientX, clientY) {
         const element = range.startContainer.nodeType === Node.ELEMENT_NODE
             ? range.startContainer
             : range.startContainer.parentElement;
-        const paragraph = element?.closest?.("[data-paragraph-index]");
+        const paragraph = element?.closest?.("[data-block-index]");
         if (paragraph
             && root.contains(paragraph)
             && isPointInsideElement(paragraph, clientX, clientY)
@@ -586,7 +586,7 @@ function getParagraphForNode(root, node) {
     const element = node?.nodeType === Node.ELEMENT_NODE
         ? node
         : node?.parentElement;
-    const paragraph = element?.closest?.("[data-paragraph-index]");
+    const paragraph = element?.closest?.("[data-block-index]");
     return paragraph && root.contains(paragraph) ? paragraph : null;
 }
 
@@ -885,12 +885,12 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
-window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, paragraphIndex, startOffset) => {
+window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, blockIndex, startOffset) => {
     if (!root) {
         return;
     }
 
-    const rect = getRangeRectForOffset(root, paragraphIndex, startOffset);
+    const rect = getRangeRectForOffset(root, blockIndex, startOffset);
     if (!rect) {
         return;
     }
@@ -898,8 +898,8 @@ window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, paragra
     scrollRectIntoViewIfNeeded(rect);
 };
 
-function getRangeRectForOffset(root, paragraphIndex, startOffset) {
-    const paragraph = root.querySelector(`[data-paragraph-index="${paragraphIndex}"]`);
+function getRangeRectForOffset(root, blockIndex, startOffset) {
+    const paragraph = root.querySelector(`[data-block-index="${blockIndex}"]`);
     if (!paragraph) {
         return null;
     }
