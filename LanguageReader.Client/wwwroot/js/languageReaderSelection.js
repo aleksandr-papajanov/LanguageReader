@@ -308,6 +308,7 @@ window.languageReaderSelection = {
         let lastSignature = "";
         let pointerSelection = null;
         let pointerSelectionTimer = 0;
+        let selectionTouchId = null;
         let lastPointerPreviewAt = 0;
         let lastPointerPreviewSignature = "";
         let suppressClickUntil = 0;
@@ -390,6 +391,48 @@ window.languageReaderSelection = {
             }, 120);
         };
 
+        const startTouchScrollGuard = (event) => {
+            if (selectionTouchId !== null || isReaderInteractiveTarget(event.target)) {
+                return;
+            }
+
+            const touch = event.changedTouches?.[0];
+            if (!touch) {
+                return;
+            }
+
+            const hit = window.languageReaderSelection.getTextOffsetAtPoint(root, touch.clientX, touch.clientY);
+            if (!hit) {
+                return;
+            }
+
+            selectionTouchId = touch.identifier;
+            root.classList.add("reader-page--touch-selecting");
+            document.body.classList.add("reader-touch-selection-active");
+        };
+
+        const preventTouchScroll = (event) => {
+            if (selectionTouchId === null || !touchListContains(event.touches, selectionTouchId)) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            clearNativeSelection();
+        };
+
+        const stopTouchScrollGuard = (event) => {
+            if (selectionTouchId === null || !touchListContains(event.changedTouches, selectionTouchId)) {
+                return;
+            }
+
+            selectionTouchId = null;
+            if (!pointerSelection) {
+                root.classList.remove("reader-page--touch-selecting");
+                document.body.classList.remove("reader-touch-selection-active");
+            }
+        };
+
         const updatePointerSelection = (event) => {
             if (!pointerSelection || pointerSelection.pointerId !== event.pointerId) {
                 return;
@@ -429,6 +472,7 @@ window.languageReaderSelection = {
             window.clearTimeout(pointerSelectionTimer);
             const completedSelection = pointerSelection;
             pointerSelection = null;
+            selectionTouchId = null;
             root.classList.remove("reader-page--touch-selecting");
             document.body.classList.remove("reader-touch-selection-active");
             releasePointerCaptureSafely(root, event.pointerId);
@@ -479,6 +523,7 @@ window.languageReaderSelection = {
 
             window.clearTimeout(pointerSelectionTimer);
             pointerSelection = null;
+            selectionTouchId = null;
             root.classList.remove("reader-page--touch-selecting");
             document.body.classList.remove("reader-touch-selection-active");
             releasePointerCaptureSafely(root, event.pointerId);
@@ -495,6 +540,10 @@ window.languageReaderSelection = {
         };
 
         document.addEventListener("selectionchange", notify);
+        root.addEventListener("touchstart", startTouchScrollGuard, { passive: true });
+        root.addEventListener("touchmove", preventTouchScroll, { passive: false });
+        root.addEventListener("touchend", stopTouchScrollGuard, { passive: true });
+        root.addEventListener("touchcancel", stopTouchScrollGuard, { passive: true });
         root.addEventListener("pointerdown", startPointerSelection, { passive: true });
         root.addEventListener("pointermove", updatePointerSelection, { passive: false });
         root.addEventListener("pointerup", finishPointerSelection, { passive: false });
@@ -505,8 +554,13 @@ window.languageReaderSelection = {
             disconnect: () => {
                 window.clearTimeout(timeout);
                 window.clearTimeout(pointerSelectionTimer);
+                selectionTouchId = null;
                 document.body.classList.remove("reader-touch-selection-active");
                 document.removeEventListener("selectionchange", notify);
+                root.removeEventListener("touchstart", startTouchScrollGuard);
+                root.removeEventListener("touchmove", preventTouchScroll);
+                root.removeEventListener("touchend", stopTouchScrollGuard);
+                root.removeEventListener("touchcancel", stopTouchScrollGuard);
                 root.removeEventListener("pointerdown", startPointerSelection);
                 root.removeEventListener("pointermove", updatePointerSelection);
                 root.removeEventListener("pointerup", finishPointerSelection);
@@ -603,6 +657,20 @@ function isReaderInteractiveTarget(target) {
     return !!element?.closest?.(
         "button,a,input,textarea,select,[contenteditable='true'],[contenteditable='plaintext-only']," +
         ".reader-fragment-action,.reader-fragment-actions,.reader-selection-actions");
+}
+
+function touchListContains(touches, identifier) {
+    if (!touches || identifier === null) {
+        return false;
+    }
+
+    for (let index = 0; index < touches.length; index++) {
+        if (touches[index].identifier === identifier) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function getPointerSelectedRange(root, startHit, endHit) {
