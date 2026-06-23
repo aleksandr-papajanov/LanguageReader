@@ -1,6 +1,6 @@
 @inject ReadingApiClient ReadingApi
 @inject ReadingItemsApiClient ReadingItemsApi
-@inject BookTranslationsApiClient BookTranslationsApi
+@inject ReadingItemTranslationsApiClient ReadingItemTranslationsApi
 @inject VocabularyApiClient VocabularyApi
 @inject SettingsApiClient SettingsApi
 @inject TranslationApiClient TranslationApi
@@ -217,8 +217,8 @@ else if (content is not null)
         settings = await SettingsApi.GetSettingsAsync(new GetUserSettingsRequest(Session.Username!));
 
         translatedRanges.Clear();
-        translatedRanges.AddRange(await BookTranslationsApi.GetBookTranslationsAsync(
-            new GetBookTranslationsRequest(ReadingItemId, Session.Username!)));
+        translatedRanges.AddRange(await ReadingItemTranslationsApi.GetReadingItemTranslationsAsync(
+            new GetReadingItemTranslationsRequest(ReadingItemId, Session.Username!)));
 
         vocabularyEntries.Clear();
         vocabularyEntries.AddRange(await VocabularyApi.GetVocabularyAsync(
@@ -396,7 +396,7 @@ else if (content is not null)
                     ReadingItemId,
                     CurrentPosition()));
 
-            var saved = await BookTranslationsApi.CreateBookTranslationAsync(
+            var saved = await ReadingItemTranslationsApi.CreateReadingItemTranslationAsync(
                 new CreateTranslatedRangeRequest(
                     ReadingItemId,
                     currentSelection.SelectedText,
@@ -527,7 +527,7 @@ else if (content is not null)
 
         try
         {
-            var updated = await BookTranslationsApi.UpdateBookTranslationDisplayAsync(
+            var updated = await ReadingItemTranslationsApi.UpdateReadingItemTranslationDisplayAsync(
                 new UpdateTranslatedRangeDisplayRequest(ReadingItemId, range.Id, Session.Username!, !range.ShowOriginal));
 
             ReplaceTranslatedRange(updated);
@@ -549,8 +549,8 @@ else if (content is not null)
 
         try
         {
-            await BookTranslationsApi.DeleteBookTranslationAsync(
-                new DeleteBookTranslationRequest(ReadingItemId, range.Id, Session.Username!));
+            await ReadingItemTranslationsApi.DeleteReadingItemTranslationAsync(
+                new DeleteReadingItemTranslationRequest(ReadingItemId, range.Id, Session.Username!));
 
             translatedRanges.RemoveAll(item => item.Id == range.Id);
             ClearSelection();

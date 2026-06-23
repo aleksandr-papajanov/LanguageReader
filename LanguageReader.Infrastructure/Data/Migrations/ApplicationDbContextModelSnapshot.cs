@@ -103,77 +103,6 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.ToTable("ai_operations", (string)null);
                 });
 
-            modelBuilder.Entity("LanguageReader.Infrastructure.Features.BookTranslations.Entities.TranslatedRangeEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<int>("EndOffset")
-                        .HasColumnType("integer")
-                        .HasColumnName("end_offset");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("kind");
-
-                    b.Property<string>("OriginalText")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("original_text");
-
-                    b.Property<int>("ParagraphIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("paragraph_index");
-
-                    b.Property<Guid>("ReadingItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reading_item_id");
-
-                    b.Property<bool>("ShowOriginal")
-                        .HasColumnType("boolean")
-                        .HasColumnName("show_original");
-
-                    b.Property<int>("StartOffset")
-                        .HasColumnType("integer")
-                        .HasColumnName("start_offset");
-
-                    b.Property<string>("TranslatedText")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("translated_text");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("username");
-
-                    b.Property<Guid?>("VocabularyEntryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("vocabulary_entry_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VocabularyEntryId");
-
-                    b.HasIndex("ReadingItemId", "ParagraphIndex");
-
-                    b.HasIndex("Username", "ReadingItemId");
-
-                    b.ToTable("translated_ranges", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_translated_ranges_kind", "kind IN ('LexicalUnit', 'Text')");
-                        });
-                });
-
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.Books.Entities.BookEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -356,6 +285,77 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("reading_progress", (string)null);
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities.TranslatedRangeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<int>("EndOffset")
+                        .HasColumnType("integer")
+                        .HasColumnName("end_offset");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("OriginalText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("original_text");
+
+                    b.Property<int>("ParagraphIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("paragraph_index");
+
+                    b.Property<Guid>("ReadingItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reading_item_id");
+
+                    b.Property<bool>("ShowOriginal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_original");
+
+                    b.Property<int>("StartOffset")
+                        .HasColumnType("integer")
+                        .HasColumnName("start_offset");
+
+                    b.Property<string>("TranslatedText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("translated_text");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("username");
+
+                    b.Property<Guid?>("VocabularyEntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vocabulary_entry_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VocabularyEntryId");
+
+                    b.HasIndex("ReadingItemId", "ParagraphIndex");
+
+                    b.HasIndex("Username", "ReadingItemId");
+
+                    b.ToTable("translated_ranges", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_translated_ranges_kind", "kind IN ('LexicalUnit', 'Text')");
+                        });
                 });
 
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ArticleMetadataEntity", b =>
@@ -658,11 +658,11 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
 
-                    b.Property<bool>("IsFromBook")
+                    b.Property<bool>("IsFromReadingItem")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
-                        .HasColumnName("is_from_book");
+                        .HasColumnName("is_from_reading_item");
 
                     b.Property<int?>("ParagraphIndex")
                         .HasColumnType("integer")
@@ -732,7 +732,7 @@ namespace LanguageReader.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.Ai.Entities.AiOperationEntity", b =>
                 {
-                    b.HasOne("LanguageReader.Infrastructure.Features.BookTranslations.Entities.TranslatedRangeEntity", "TranslatedRange")
+                    b.HasOne("LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities.TranslatedRangeEntity", "TranslatedRange")
                         .WithMany("AiOperations")
                         .HasForeignKey("TranslatedRangeId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -747,7 +747,18 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.Navigation("VocabularyEntry");
                 });
 
-            modelBuilder.Entity("LanguageReader.Infrastructure.Features.BookTranslations.Entities.TranslatedRangeEntity", b =>
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.Reading.Entities.ReadingProgressEntity", b =>
+                {
+                    b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "ReadingItem")
+                        .WithMany("ReadingProgresses")
+                        .HasForeignKey("ReadingItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReadingItem");
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities.TranslatedRangeEntity", b =>
                 {
                     b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "ReadingItem")
                         .WithMany("TranslatedRanges")
@@ -763,17 +774,6 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.Navigation("ReadingItem");
 
                     b.Navigation("VocabularyEntry");
-                });
-
-            modelBuilder.Entity("LanguageReader.Infrastructure.Features.Reading.Entities.ReadingProgressEntity", b =>
-                {
-                    b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "ReadingItem")
-                        .WithMany("ReadingProgresses")
-                        .HasForeignKey("ReadingItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ReadingItem");
                 });
 
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ArticleMetadataEntity", b =>
@@ -837,7 +837,7 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.Navigation("VocabularyEntry");
                 });
 
-            modelBuilder.Entity("LanguageReader.Infrastructure.Features.BookTranslations.Entities.TranslatedRangeEntity", b =>
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities.TranslatedRangeEntity", b =>
                 {
                     b.Navigation("AiOperations");
                 });

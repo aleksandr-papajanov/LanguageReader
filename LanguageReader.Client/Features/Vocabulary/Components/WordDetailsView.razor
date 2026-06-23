@@ -175,8 +175,8 @@ else if (entry is not null)
                             {
                                 <AppContentCard AdditionalClass="word-details-example">
                                     <Header>
-                                        <AppBadge Tone="@(example.IsFromBook ? "warning" : "default")">
-                                            @(example.IsFromBook ? "From book" : "Generated")
+                                        <AppBadge Tone="@(example.IsFromReadingItem ? "warning" : "default")">
+                                            @(example.IsFromReadingItem ? "From reading item" : "Generated")
                                         </AppBadge>
                                         <span class="word-details-example__date">@example.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
                                     </Header>

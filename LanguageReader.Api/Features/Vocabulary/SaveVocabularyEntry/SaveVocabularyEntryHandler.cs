@@ -4,7 +4,7 @@ using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
 using LanguageReader.Infrastructure.Features.Ai;
-using LanguageReader.Infrastructure.Features.BookTranslations.Entities;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
 using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
@@ -142,7 +142,7 @@ internal sealed class SaveVocabularyEntryHandler(
 
         EnsureWordDetails(entry, word, dictionaryForm, kind);
 
-        EnsureBookExample(entry, request.ContextSentence, request.Position);
+        EnsureReadingItemExample(entry, request.ContextSentence, request.Position);
         await LinkTranslatedRangeAsync(entry, matchingRange, ct);
         if (candidate is not null)
         {
@@ -327,7 +327,7 @@ internal sealed class SaveVocabularyEntryHandler(
             .FirstOrDefaultAsync(item => item.Id == id && item.Username == username, ct);
     }
 
-    private static void EnsureBookExample(VocabularyEntryEntity entry, string? contextSentence, ReadingPositionDto position)
+    private static void EnsureReadingItemExample(VocabularyEntryEntity entry, string? contextSentence, ReadingPositionDto position)
     {
         if (entry.Kind != SavedTextKind.LexicalUnit || string.IsNullOrWhiteSpace(contextSentence))
         {
@@ -336,7 +336,7 @@ internal sealed class SaveVocabularyEntryHandler(
 
         var normalizedSentence = contextSentence.Trim();
         var existing = entry.Examples.FirstOrDefault(example =>
-            example.IsFromBook
+            example.IsFromReadingItem
             && example.ReadingItemId == position.ReadingItemId
             && example.ParagraphIndex == position.ParagraphIndex
             && example.CharacterOffset == position.CharacterOffset);
@@ -353,7 +353,7 @@ internal sealed class SaveVocabularyEntryHandler(
             VocabularyEntryId = entry.Id,
             Text = normalizedSentence,
             Translation = null,
-            IsFromBook = true,
+            IsFromReadingItem = true,
             ReadingItemId = position.ReadingItemId,
             ParagraphIndex = position.ParagraphIndex,
             CharacterOffset = position.CharacterOffset,

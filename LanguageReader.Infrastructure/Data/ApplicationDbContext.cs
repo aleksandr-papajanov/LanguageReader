@@ -3,7 +3,7 @@ using LanguageReader.Infrastructure.Features.Ai.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 using LanguageReader.Infrastructure.Features.Books.Entities;
 using LanguageReader.Infrastructure.Features.Reading.Entities;
-using LanguageReader.Infrastructure.Features.BookTranslations.Entities;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities;
 using LanguageReader.Infrastructure.Features.Settings.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using LanguageReader.Infrastructure.Features.News.Entities;

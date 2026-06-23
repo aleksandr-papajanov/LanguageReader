@@ -1,4 +1,4 @@
-using LanguageReader.Infrastructure.Features.BookTranslations.Entities;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities;
 using LanguageReader.Infrastructure.Features.Reading.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
 

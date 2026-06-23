@@ -1,0 +1,67 @@
+<AppPanel AdditionalClass="form-panel">
+    <AppHeading Title="Add Reading Item"
+                Subtitle="Import an FB2 or XML source into your private library."
+                Level="section" />
+
+    <AppTextInput Id="title"
+                  Label="Title"
+                  Value="@Title"
+                  ValueChanged="TitleChanged"
+                  LeadingIcon="book_2" />
+
+    <AppTextInput Id="original-language"
+                  Label="Original Language"
+                  Value="@OriginalLanguage"
+                  ValueChanged="OriginalLanguageChanged"
+                  LeadingIcon="language"
+                  Placeholder="English" />
+
+    <AppField Label="Source File" Hint="FB2 or XML source" For="file">
+        <InputFile id="file" class="app-input" OnChange="OnFileSelected" accept=".fb2,.xml" />
+    </AppField>
+
+    <AppButton Label="Upload"
+               Variant="primary"
+               Icon="upload"
+               Disabled="@IsUploadDisabled"
+               IsLoading="@IsBusy"
+               OnClick="OnUploadClicked" />
+</AppPanel>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string OriginalLanguage { get; set; } = "English";
+
+    [Parameter]
+    public bool IsBusy { get; set; }
+
+    [Parameter]
+    public bool HasSelectedFile { get; set; }
+
+    [Parameter]
+    public EventCallback<string> TitleChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OriginalLanguageChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<InputFileChangeEventArgs> FileSelected { get; set; }
+
+    [Parameter]
+    public EventCallback UploadClicked { get; set; }
+
+    private bool IsUploadDisabled => !HasSelectedFile || IsBusy;
+
+    private Task OnFileSelected(InputFileChangeEventArgs args)
+    {
+        return FileSelected.InvokeAsync(args);
+    }
+
+    private Task OnUploadClicked(MouseEventArgs _)
+    {
+        return UploadClicked.InvokeAsync();
+    }
+}

@@ -29,7 +29,7 @@ internal sealed class AutofillVocabularyEntryHandler(
                 entry.Translation,
                 string.IsNullOrWhiteSpace(entry.SourceLanguage) ? entry.TargetLanguage : entry.SourceLanguage,
                 entry.TargetLanguage,
-                entry.Examples.FirstOrDefault(example => example.IsFromBook)?.Text),
+                entry.Examples.FirstOrDefault(example => example.IsFromReadingItem)?.Text),
             ct);
         autofillApplicator.Apply(entry, generated, ct);
 

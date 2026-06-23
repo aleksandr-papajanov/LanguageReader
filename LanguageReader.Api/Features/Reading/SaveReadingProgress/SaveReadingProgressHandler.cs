@@ -13,7 +13,7 @@ internal sealed class SaveReadingProgressHandler(ApplicationDbContext dbContext)
 
         if (request.Position.ReadingItemId != request.ReadingItemId)
         {
-            throw new ValidationException("Book position must match the requested book.");
+            throw new ValidationException("Reading item position must match the requested reading item.");
         }
 
         var progressPercent = Math.Clamp(request.ProgressPercent, 0, 100);

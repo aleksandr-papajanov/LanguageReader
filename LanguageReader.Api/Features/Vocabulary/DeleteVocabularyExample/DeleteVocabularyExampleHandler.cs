@@ -33,7 +33,7 @@ internal sealed class DeleteVocabularyExampleHandler(
             throw new NotFoundException($"Vocabulary example '{request.ExampleId}' was not found.");
         }
 
-        if (example.IsFromBook)
+        if (example.IsFromReadingItem)
         {
             throw new ValidationException("Examples from the book cannot be deleted.");
         }

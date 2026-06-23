@@ -15,7 +15,7 @@ public sealed class VocabularyExampleEntity
 
     public string? Translation { get; set; }
 
-    public bool IsFromBook { get; set; }
+    public bool IsFromReadingItem { get; set; }
 
     public Guid? ReadingItemId { get; set; }
 

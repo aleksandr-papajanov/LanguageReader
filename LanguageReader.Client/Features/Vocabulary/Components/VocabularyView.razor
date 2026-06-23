@@ -24,9 +24,9 @@ else
                        Variant="quiet"
                        LeadingIcon="auto_stories"
                        CompactTitle="true"
-                       Value="state.SelectedBookId"
-                       ValueChanged="OnBookChanged"
-                       Options="state.BookOptions" />
+                       Value="state.SelectedReadingItemId"
+                       ValueChanged="OnReadingItemChanged"
+                       Options="state.ReadingItemOptions" />
         </Actions>
         <ChildContent>
             <VocabularyEntryList Entries="state.VisibleEntries"
@@ -52,9 +52,9 @@ else
         await state.LoadAsync(Api, Session.Username!);
     }
 
-    private Task OnBookChanged(Guid? bookId)
+    private Task OnReadingItemChanged(Guid? readingItemId)
     {
-        state.OnBookChanged(bookId);
+        state.OnReadingItemChanged(readingItemId);
         return Task.CompletedTask;
     }
 

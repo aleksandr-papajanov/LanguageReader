@@ -7,25 +7,25 @@ public sealed class VocabularyBrowserState
 
     public List<VocabularyEntryDto> Entries { get; } = [];
 
-    public List<AppSelectOption<Guid?>> BookOptions { get; } = [];
+    public List<AppSelectOption<Guid?>> ReadingItemOptions { get; } = [];
 
     public bool IsLoading { get; private set; }
 
     public bool IsLoadingMore { get; private set; }
 
-    public Guid? SelectedBookId { get; private set; }
+    public Guid? SelectedReadingItemId { get; private set; }
 
     public int RenderedCount { get; private set; } = InitialRenderCount;
 
     public IReadOnlyList<VocabularyEntryDto> VisibleEntries =>
         Entries
-            .Where(entry => !SelectedBookId.HasValue || entry.ReadingItemId == SelectedBookId.Value)
+            .Where(entry => !SelectedReadingItemId.HasValue || entry.ReadingItemId == SelectedReadingItemId.Value)
             .OrderByDescending(entry => entry.CreatedAtUtc)
             .Take(RenderedCount)
             .ToList();
 
     public bool HasMoreEntries =>
-        Entries.Count(entry => !SelectedBookId.HasValue || entry.ReadingItemId == SelectedBookId.Value) > RenderedCount;
+        Entries.Count(entry => !SelectedReadingItemId.HasValue || entry.ReadingItemId == SelectedReadingItemId.Value) > RenderedCount;
 
     public async Task LoadAsync(
         VocabularyApiClient api,
@@ -40,7 +40,7 @@ public sealed class VocabularyBrowserState
                 new GetVocabularyRequest(username, false),
                 cancellationToken));
 
-            BuildBookOptions();
+            BuildReadingItemOptions();
         }
         finally
         {
@@ -48,9 +48,9 @@ public sealed class VocabularyBrowserState
         }
     }
 
-    public void OnBookChanged(Guid? bookId)
+    public void OnReadingItemChanged(Guid? readingItemId)
     {
-        SelectedBookId = bookId;
+        SelectedReadingItemId = readingItemId;
         RenderedCount = InitialRenderCount;
     }
 
@@ -77,13 +77,13 @@ public sealed class VocabularyBrowserState
             cancellationToken);
 
         Entries.RemoveAll(item => item.Id == entry.Id);
-        BuildBookOptions();
+        BuildReadingItemOptions();
     }
 
-    private void BuildBookOptions()
+    private void BuildReadingItemOptions()
     {
-        BookOptions.Clear();
-        BookOptions.Add(new AppSelectOption<Guid?>(null, "All reading items"));
+        ReadingItemOptions.Clear();
+        ReadingItemOptions.Add(new AppSelectOption<Guid?>(null, "All reading items"));
 
         foreach (var item in Entries
                      .Select(entry => new { entry.ReadingItemId, entry.ReadingItemTitle })
@@ -91,7 +91,7 @@ public sealed class VocabularyBrowserState
                      .DistinctBy(item => item.ReadingItemId)
                      .OrderBy(item => item.ReadingItemTitle))
         {
-            BookOptions.Add(new AppSelectOption<Guid?>(item.ReadingItemId, item.ReadingItemTitle));
+            ReadingItemOptions.Add(new AppSelectOption<Guid?>(item.ReadingItemId, item.ReadingItemTitle));
         }
     }
 }

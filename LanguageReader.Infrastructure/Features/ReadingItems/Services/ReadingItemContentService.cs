@@ -4,7 +4,6 @@ using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Models;
 using LanguageReader.Infrastructure.Storage;
-using LanguageReader.Shared.Features.Books;
 
 namespace LanguageReader.Infrastructure.Features.ReadingItems.Services;
 
@@ -38,14 +37,14 @@ public sealed class ReadingItemContentService(
             parsedBook.Title ?? item.Title,
             item.Type,
             LanguageNameNormalizer.Normalize(item.OriginalLanguage),
-            parsedBook.Blocks.Select(x => new BookContentBlockDto(
+            parsedBook.Blocks.Select(x => new ReadingContentBlockDto(
                 x.Type,
                 x.Text,
                 x.ImageId))
                 .ToArray(),
             parsedBook.Images.ToDictionary(
                 x => x.Key,
-                x => new BookImageDto(
+                x => new ReadingImageDto(
                     x.Value.Id,
                     x.Value.ContentType,
                     x.Value.Base64Content)));
@@ -64,8 +63,8 @@ public sealed class ReadingItemContentService(
 
         var blocks = document.Paragraphs
             .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
-            .Select(paragraph => new BookContentBlockDto(
-                BookBlockType.Paragraph,
+            .Select(paragraph => new ReadingContentBlockDto(
+                ReadingContentBlockType.Paragraph,
                 paragraph.Trim(),
                 ImageId: null))
             .ToArray();
@@ -76,6 +75,6 @@ public sealed class ReadingItemContentService(
             item.Type,
             LanguageNameNormalizer.Normalize(item.OriginalLanguage),
             blocks,
-            Images: new Dictionary<string, BookImageDto>());
+            Images: new Dictionary<string, ReadingImageDto>());
     }
 }

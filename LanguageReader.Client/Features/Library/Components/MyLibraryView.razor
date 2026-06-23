@@ -1,0 +1,36 @@
+@inject ReadingItemImportsApiClient Api
+@inject NavigationManager Navigation
+@inject UserSession Session
+
+<AppHeading Title="Add Reading Item"
+            Subtitle="Import an FB2 or XML source into your private library." />
+
+@if (!Session.IsSignedIn)
+{
+    <SignInPrompt />
+}
+else
+{
+    <ReadingItemUploadForm Title="@state.Title"
+                           OriginalLanguage="@state.OriginalLanguage"
+                           HasSelectedFile="@state.HasSelectedFile"
+                           IsBusy="@state.IsBusy"
+                           TitleChanged="@state.OnTitleChanged"
+                           OriginalLanguageChanged="@state.OnOriginalLanguageChanged"
+                           FileSelected="@state.OnFileSelected"
+                           UploadClicked="UploadAsync" />
+
+    @if (!string.IsNullOrWhiteSpace(state.Error))
+    {
+        <p class="app-inline-error">@state.Error</p>
+    }
+}
+
+@code {
+    private readonly ReadingItemUploadState state = new();
+
+    private async Task UploadAsync()
+    {
+        await state.UploadAsync(Api, Navigation, Session.Username!);
+    }
+}

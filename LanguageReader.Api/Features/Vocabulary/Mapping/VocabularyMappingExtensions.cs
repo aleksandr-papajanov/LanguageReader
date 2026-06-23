@@ -62,7 +62,7 @@ internal static class VocabularyMappingExtensions
             example.Id,
             example.Text,
             example.Translation,
-            example.IsFromBook,
+            example.IsFromReadingItem,
             example.CreatedAtUtc,
             example.ReadingItemId,
             example.ReadingItem?.Title,

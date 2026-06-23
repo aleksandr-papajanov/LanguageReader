@@ -1,7 +1,6 @@
-using LanguageReader.Api.Features.BookTranslations;
-using LanguageReader.Api.Features.Books;
-using LanguageReader.Api.Features.News;
+using LanguageReader.Api.Features.ReadingItemTranslations;
 using LanguageReader.Api.Features.ReadingItems;
+using LanguageReader.Api.Features.News;
 using LanguageReader.Api.Features.Reading;
 using LanguageReader.Api.Features.Settings;
 using LanguageReader.Api.Features.Stats;
@@ -18,11 +17,7 @@ internal static class FeatureRegistration
     {
         services.AddScoped<UserSettingsAccessor>();
 
-        services.AddScoped<GetBookHandler>();
-        services.AddScoped<GetBookContentHandler>();
-        services.AddScoped<CreateBookHandler>();
-        services.AddScoped<UpdateBookVisibilityHandler>();
-        services.AddScoped<DeleteBookHandler>();
+        services.AddScoped<ImportReadingItemHandler>();
         services.AddScoped<GetReadingItemsHandler>();
         services.AddScoped<GetReadingItemHandler>();
         services.AddScoped<GetReadingItemContentHandler>();
@@ -30,10 +25,10 @@ internal static class FeatureRegistration
         services.AddScoped<DeleteReadingItemHandler>();
         services.AddScoped<ImportNewsArticleHandler>();
 
-        services.AddScoped<GetBookTranslationsHandler>();
-        services.AddScoped<CreateBookTranslationHandler>();
-        services.AddScoped<UpdateBookTranslationDisplayHandler>();
-        services.AddScoped<DeleteBookTranslationHandler>();
+        services.AddScoped<GetReadingItemTranslationsHandler>();
+        services.AddScoped<CreateReadingItemTranslationHandler>();
+        services.AddScoped<UpdateReadingItemTranslationDisplayHandler>();
+        services.AddScoped<DeleteReadingItemTranslationHandler>();
 
         services.AddScoped<GetReadingProgressHandler>();
         services.AddScoped<SaveReadingProgressHandler>();

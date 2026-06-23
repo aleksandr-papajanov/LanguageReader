@@ -36,9 +36,9 @@ else if (activeEntry is not null)
                        Variant="quiet"
                        LeadingIcon="auto_stories"
                        CompactTitle="true"
-                       Value="selectedBookId"
-                       ValueChanged="OnBookChanged"
-                       Options="bookOptions" />
+                       Value="selectedReadingItemId"
+                       ValueChanged="OnReadingItemChanged"
+                       Options="readingItemOptions" />
         </Actions>
         <ChildContent>
             <div class="@GetCardWrapClass()">
@@ -82,7 +82,7 @@ else if (activeEntry is not null)
 @code {
     private static readonly TimeSpan FlipDuration = TimeSpan.FromMilliseconds(560);
     private readonly List<VocabularyEntryDto> entries = [];
-    private readonly List<AppSelectOption<Guid?>> bookOptions = [];
+    private readonly List<AppSelectOption<Guid?>> readingItemOptions = [];
     private readonly Random random = new();
     private VocabularyEntryDto? activeEntry;
     private bool isLoading;
@@ -90,10 +90,10 @@ else if (activeEntry is not null)
     private bool showOriginal;
     private bool suppressFlipAnimation;
     private string? error;
-    private Guid? selectedBookId;
+    private Guid? selectedReadingItemId;
 
     private IReadOnlyList<VocabularyEntryDto> FilteredEntries =>
-        entries.Where(item => !selectedBookId.HasValue || item.ReadingItemId == selectedBookId.Value).ToList();
+        entries.Where(item => !selectedReadingItemId.HasValue || item.ReadingItemId == selectedReadingItemId.Value).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,7 +110,7 @@ else if (activeEntry is not null)
             entries.Clear();
             entries.AddRange((await Api.GetVocabularyAsync(new GetVocabularyRequest(Session.Username!, false)))
                 .Where(item => item.Kind == SavedTextKind.LexicalUnit && item.IsVisibleInVocabulary));
-            BuildBookOptions();
+            BuildReadingItemOptions();
 
             SelectNextCardImmediate();
         }
@@ -182,23 +182,23 @@ else if (activeEntry is not null)
         StateHasChanged();
     }
 
-    private void BuildBookOptions()
+    private void BuildReadingItemOptions()
     {
-        bookOptions.Clear();
-        bookOptions.Add(new AppSelectOption<Guid?>(null, "All reading items"));
+        readingItemOptions.Clear();
+        readingItemOptions.Add(new AppSelectOption<Guid?>(null, "All reading items"));
 
         foreach (var item in entries
                      .Select(entry => new { entry.ReadingItemId, entry.ReadingItemTitle })
                      .DistinctBy(item => item.ReadingItemId)
                      .OrderBy(item => item.ReadingItemTitle))
         {
-            bookOptions.Add(new AppSelectOption<Guid?>(item.ReadingItemId, item.ReadingItemTitle));
+            readingItemOptions.Add(new AppSelectOption<Guid?>(item.ReadingItemId, item.ReadingItemTitle));
         }
     }
 
-    private Task OnBookChanged(Guid? bookId)
+    private Task OnReadingItemChanged(Guid? readingItemId)
     {
-        selectedBookId = bookId;
+        selectedReadingItemId = readingItemId;
         SelectNextCardImmediate();
         return Task.CompletedTask;
     }

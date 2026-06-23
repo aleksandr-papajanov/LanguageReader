@@ -41,7 +41,7 @@ internal sealed class AddVocabularyExampleHandler(
                 entry.Translation,
                 string.IsNullOrWhiteSpace(entry.SourceLanguage) ? entry.TargetLanguage : entry.SourceLanguage,
                 entry.TargetLanguage,
-                entry.Examples.FirstOrDefault(example => example.IsFromBook)?.Text),
+                entry.Examples.FirstOrDefault(example => example.IsFromReadingItem)?.Text),
             ct);
 
         dbContext.VocabularyExamples.Add(new VocabularyExampleEntity
@@ -50,7 +50,7 @@ internal sealed class AddVocabularyExampleHandler(
             VocabularyEntryId = entry.Id,
             Text = generated.Text,
             Translation = generated.Translation,
-            IsFromBook = false,
+            IsFromReadingItem = false,
             CreatedAtUtc = DateTimeOffset.UtcNow
         });
 

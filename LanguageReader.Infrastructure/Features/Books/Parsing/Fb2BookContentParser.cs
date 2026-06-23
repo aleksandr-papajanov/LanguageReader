@@ -1,7 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using LanguageReader.Infrastructure.Features.Books.Parsing.Models;
-using LanguageReader.Shared.Features.Books;
+using LanguageReader.Shared.Features.ReadingItems;
 
 namespace LanguageReader.Infrastructure.Features.Books.Parsing;
 
@@ -36,7 +36,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
             if (!string.IsNullOrWhiteSpace(bodyName))
             {
-                AddTextBlock(blocks, BookBlockType.Heading1, bodyName);
+                AddTextBlock(blocks, ReadingContentBlockType.Heading1, bodyName);
             }
 
             ParseContainer(body, blocks);
@@ -47,7 +47,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
         if (blocks.Count == 0)
         {
             blocks.Add(new ParsedBookBlock(
-                BookBlockType.Paragraph,
+                ReadingContentBlockType.Paragraph,
                 "No readable text was found in this file."));
         }
 
@@ -112,11 +112,11 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "subtitle":
-                AddTextBlock(blocks, BookBlockType.Heading2, element.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Heading2, element.Value);
                 break;
 
             case "p":
-                AddTextBlock(blocks, BookBlockType.Paragraph, element.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Paragraph, element.Value);
                 break;
 
             case "empty-line":
@@ -140,7 +140,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "v":
-                AddTextBlock(blocks, BookBlockType.Verse, element.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Verse, element.Value);
                 break;
 
             case "cite":
@@ -148,7 +148,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "text-author":
-                AddTextBlock(blocks, BookBlockType.Author, element.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Author, element.Value);
                 break;
 
             case "annotation":
@@ -167,7 +167,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, BookBlockType.Heading1, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Heading1, child.Value);
             }
             else
             {
@@ -184,11 +184,11 @@ public sealed class Fb2BookContentParser : IBookContentParser
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, BookBlockType.Quote, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Quote, child.Value);
             }
             else if (child.Name.LocalName == "text-author")
             {
-                AddTextBlock(blocks, BookBlockType.Author, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Author, child.Value);
             }
             else
             {
@@ -215,7 +215,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
         {
             if (child.Name.LocalName == "v")
             {
-                AddTextBlock(blocks, BookBlockType.Verse, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Verse, child.Value);
             }
             else
             {
@@ -232,11 +232,11 @@ public sealed class Fb2BookContentParser : IBookContentParser
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, BookBlockType.Quote, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Quote, child.Value);
             }
             else if (child.Name.LocalName == "text-author")
             {
-                AddTextBlock(blocks, BookBlockType.Author, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Author, child.Value);
             }
             else
             {
@@ -253,7 +253,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, BookBlockType.Quote, child.Value);
+                AddTextBlock(blocks, ReadingContentBlockType.Quote, child.Value);
             }
             else
             {
@@ -274,7 +274,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
             return;
 
         blocks.Add(new ParsedBookBlock(
-            BookBlockType.Image,
+            ReadingContentBlockType.Image,
             null,
             ImageId: href.TrimStart('#')));
 
@@ -283,7 +283,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void AddTextBlock(
         List<ParsedBookBlock> blocks,
-        BookBlockType type,
+        ReadingContentBlockType type,
         string value)
     {
         var text = NormalizeWhitespace(value);
@@ -299,20 +299,20 @@ public sealed class Fb2BookContentParser : IBookContentParser
         if (blocks.Count == 0)
             return;
 
-        if (blocks[^1].Type == BookBlockType.EmptyLine)
+        if (blocks[^1].Type == ReadingContentBlockType.EmptyLine)
             return;
 
-        blocks.Add(new ParsedBookBlock(BookBlockType.EmptyLine, null));
+        blocks.Add(new ParsedBookBlock(ReadingContentBlockType.EmptyLine, null));
     }
 
     private static void TrimEmptyLines(List<ParsedBookBlock> blocks)
     {
-        while (blocks.Count > 0 && blocks[0].Type == BookBlockType.EmptyLine)
+        while (blocks.Count > 0 && blocks[0].Type == ReadingContentBlockType.EmptyLine)
         {
             blocks.RemoveAt(0);
         }
 
-        while (blocks.Count > 0 && blocks[^1].Type == BookBlockType.EmptyLine)
+        while (blocks.Count > 0 && blocks[^1].Type == ReadingContentBlockType.EmptyLine)
         {
             blocks.RemoveAt(blocks.Count - 1);
         }

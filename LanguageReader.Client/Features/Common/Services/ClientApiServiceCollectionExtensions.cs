@@ -7,14 +7,14 @@ public static class ClientApiServiceCollectionExtensions
         services.AddScoped<ApiClient>();
         services.AddScoped<ThemeService>();
         services.AddScoped<SessionApiClient>();
-        services.AddScoped<BooksApiClient>();
+        services.AddScoped<ReadingItemImportsApiClient>();
         services.AddScoped<ReadingItemsApiClient>();
         services.AddScoped<NewsApiClient>();
         services.AddScoped<ReadingApiClient>();
         services.AddScoped<SettingsApiClient>();
         services.AddScoped<StatsApiClient>();
         services.AddScoped<TranslationApiClient>();
-        services.AddScoped<BookTranslationsApiClient>();
+        services.AddScoped<ReadingItemTranslationsApiClient>();
         services.AddScoped<VocabularyApiClient>();
         services.AddScoped<ReaderSessionCache>();
 

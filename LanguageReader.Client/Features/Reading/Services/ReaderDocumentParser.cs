@@ -9,7 +9,7 @@ public static class ReaderDocumentParser
         RegexOptions.Compiled);
 
     public static IReadOnlyList<ReaderParagraph> BuildParagraphs(
-        IReadOnlyList<BookContentBlockDto> blocks)
+        IReadOnlyList<ReadingContentBlockDto> blocks)
     {
         return blocks
             .Select((block, index) => BuildParagraph(index, block))
@@ -51,7 +51,7 @@ public static class ReaderDocumentParser
             : null;
     }
 
-    private static ReaderParagraph BuildParagraph(int index, BookContentBlockDto block)
+    private static ReaderParagraph BuildParagraph(int index, ReadingContentBlockDto block)
     {
         var text = block.Text ?? string.Empty;
 
@@ -88,15 +88,15 @@ public static class ReaderDocumentParser
             sentences);
     }
 
-    private static bool CanTokenize(BookBlockType type)
+    private static bool CanTokenize(ReadingContentBlockType type)
     {
         return type is
-            BookBlockType.Paragraph or
-            BookBlockType.Heading1 or
-            BookBlockType.Heading2 or
-            BookBlockType.Quote or
-            BookBlockType.Verse or
-            BookBlockType.Author;
+            ReadingContentBlockType.Paragraph or
+            ReadingContentBlockType.Heading1 or
+            ReadingContentBlockType.Heading2 or
+            ReadingContentBlockType.Quote or
+            ReadingContentBlockType.Verse or
+            ReadingContentBlockType.Author;
     }
 
     private static IReadOnlyList<InlineSegment> BuildSegments(

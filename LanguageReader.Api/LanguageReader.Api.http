@@ -19,12 +19,12 @@ Content-Type: application/json
 
 ###
 
-GET {{LanguageReader.Api_HostAddress}}/api/books?username=admin&ownedByUser=true
+GET {{LanguageReader.Api_HostAddress}}/api/reading-items?username=admin&ownership=mine
 Accept: application/json
 
 ###
 
-GET {{LanguageReader.Api_HostAddress}}/api/books?isPublic=true
+GET {{LanguageReader.Api_HostAddress}}/api/reading-items?username=admin&ownership=public
 Accept: application/json
 
 ###

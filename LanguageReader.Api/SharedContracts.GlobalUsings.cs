@@ -1,8 +1,7 @@
 global using LanguageReader.Api.Features.Common.Services;
 global using LanguageReader.Api.Features.Settings.Services;
 global using LanguageReader.Shared.Features.Common;
-global using LanguageReader.Shared.Features.Books;
-global using LanguageReader.Shared.Features.BookTranslations;
+global using LanguageReader.Shared.Features.ReadingItemTranslations;
 global using LanguageReader.Shared.Features.News;
 global using LanguageReader.Shared.Features.Reading;
 global using LanguageReader.Shared.Features.ReadingItems;

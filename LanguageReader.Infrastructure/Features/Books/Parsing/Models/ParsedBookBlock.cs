@@ -1,8 +1,8 @@
-using LanguageReader.Shared.Features.Books;
+using LanguageReader.Shared.Features.ReadingItems;
 
 namespace LanguageReader.Infrastructure.Features.Books.Parsing.Models;
 
 public sealed record ParsedBookBlock(
-    BookBlockType Type,
+    ReadingContentBlockType Type,
     string? Text,
     string? ImageId = null);

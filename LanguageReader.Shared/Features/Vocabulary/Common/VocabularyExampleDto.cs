@@ -4,7 +4,7 @@ public sealed record VocabularyExampleDto(
     Guid Id,
     string Text,
     string? Translation,
-    bool IsFromBook,
+    bool IsFromReadingItem,
     DateTimeOffset CreatedAtUtc,
     Guid? ReadingItemId,
     string? ReadingItemTitle,
