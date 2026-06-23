@@ -25,8 +25,7 @@ internal sealed class VocabularyExampleAiJsonOperation(
         return new AiJsonOperationRequest(
             Kind,
             OperationName,
-            BuildInstructions(),
-            BuildInput(request),
+            BuildMessages(request),
             SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
             Model: Model,
@@ -35,22 +34,33 @@ internal sealed class VocabularyExampleAiJsonOperation(
             ExpectedJsonPropertyCount: 2);
     }
 
+    private static IReadOnlyList<AiProviderMessage> BuildMessages(
+        VocabularyExampleGenerationRequest request)
+    {
+        return
+        [
+            new(
+                AiMessageRole.System,
+                "Generate one example sentence for a vocabulary entry."),
+
+            new(
+                AiMessageRole.User,
+                BuildInput(request))
+        ];
+    }
+
     private static string BuildInput(VocabularyExampleGenerationRequest request)
     {
-        return $"""
-Task: generate one example sentence for a vocabulary entry.
+        var context = string.IsNullOrWhiteSpace(request.ContextSentence)
+            ? "none"
+            : request.ContextSentence.Trim();
 
+        return $"""
 Word: {request.Word.Trim()}
 Word language: {request.WordLanguage.Trim()}
 Known translation: {request.Translation.Trim()}
 Translation language: {request.TranslationLanguage.Trim()}
-""";
-    }
-
-    private static string BuildInstructions()
-    {
-        return """
-Create concise learner-friendly vocabulary examples.
+Context: {context}
 """;
     }
 
@@ -89,24 +99,16 @@ Create concise learner-friendly vocabulary examples.
     private static void Validate(VocabularyExampleGenerationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Word))
-        {
             throw new ValidationException("Word is required.");
-        }
 
         if (string.IsNullOrWhiteSpace(request.Translation))
-        {
             throw new ValidationException("Translation is required.");
-        }
 
         if (string.IsNullOrWhiteSpace(request.WordLanguage))
-        {
             throw new ValidationException("Word language is required.");
-        }
 
         if (string.IsNullOrWhiteSpace(request.TranslationLanguage))
-        {
             throw new ValidationException("Translation language is required.");
-        }
     }
 
     internal sealed record Payload(

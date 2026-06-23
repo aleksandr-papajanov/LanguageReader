@@ -27,14 +27,29 @@ internal sealed class VocabularyCandidateAiJsonOperation(
         return new AiJsonOperationRequest(
             Kind,
             OperationName,
-            BuildInstructions(),
-            BuildInput(request, normalizationRules),
+            BuildMessages(request, normalizationRules),
             SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
             Model: Model,
             request.Text.Length + request.Translation.Length,
             request.ContextSentence?.Length ?? 0,
             ExpectedJsonPropertyCount: 2);
+    }
+
+    private static IReadOnlyList<AiProviderMessage> BuildMessages(
+        VocabularyNormalizationRequest request,
+        VocabularyNormalizationRules normalizationRules)
+    {
+        return
+        [
+            new(
+                AiMessageRole.System,
+                "Decide if selected text is one lexical unit. If yes, return its dictionary form."),
+
+            new(
+                AiMessageRole.User,
+                BuildInput(request, normalizationRules))
+        ];
     }
 
     private static string BuildInput(
@@ -46,24 +61,15 @@ internal sealed class VocabularyCandidateAiJsonOperation(
             : request.ContextSentence.Trim();
 
         return $"""
-Task: decide if selected text is one vocabulary item. If yes, return its dictionary form.
-
 Selected text: {request.Text.Trim()}
 Language: {request.SourceLanguage.Trim()}
 Context: {context}
 
-Lexical unit = one word, compound word, fixed expression, phrasal verb, idiom, named term, or short collocation with one meaning.
-Not lexical unit = sentence, clause, paragraph, quote, random fragment, or multiple independent words.
+Lexical unit: one word, compound word, fixed expression, phrasal verb, idiom, named term, or short collocation with one meaning.
+Not lexical unit: sentence, clause, paragraph, quote, random fragment, or multiple independent words.
 
 Dictionary form rules:
 {normalizationRules.DictionaryFormInstruction}
-""";
-    }
-
-    private static string BuildInstructions()
-    {
-        return """
-Classify and normalize vocabulary selections.
 """;
     }
 

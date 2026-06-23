@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using LanguageReader.Infrastructure.Agents.Core.Models;
 using LanguageReader.Infrastructure.Agents.Providers.Models;
 using LanguageReader.Infrastructure.Agents.Tools.Models;
@@ -11,32 +12,29 @@ using Microsoft.Extensions.Options;
 
 namespace LanguageReader.Infrastructure.Agents.Providers.OpenAI;
 
-/// <summary>
-/// OpenAI Responses API implementation of the provider-neutral AI client.
-/// </summary>
 public sealed class OpenAiResponsesClient(
     HttpClient httpClient,
     IOptions<OpenAiOptions> options) : IAiProviderClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const string GlobalSystemMessage = """
+You are a language-learning assistant.
+
+Follow the requested task exactly.
+Return only valid JSON matching the provided schema.
+""";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly OpenAiOptions openAiOptions = options.Value;
 
-    /// <inheritdoc />
-    public async Task<AiProviderResponse> SendAsync(AiProviderRequest request, CancellationToken cancellationToken = default)
+    public async Task<AiProviderResponse> SendAsync(
+        AiProviderRequest request,
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(openAiOptions.ApiKey))
-        {
-            throw new InfrastructureException("OpenAI API key is not configured.");
-        }
-
-        var model = string.IsNullOrWhiteSpace(request.Model)
-            ? openAiOptions.DefaultModel
-            : request.Model;
-
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            throw new InfrastructureException("OpenAI model is not configured.");
-        }
+        var model = ResolveModel(request);
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "responses");
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", openAiOptions.ApiKey);
@@ -59,15 +57,60 @@ public sealed class OpenAiResponsesClient(
         return ParseResponse(json, request.ResponseFormat);
     }
 
+    private string ResolveModel(AiProviderRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(openAiOptions.ApiKey))
+        {
+            throw new InfrastructureException("OpenAI API key is not configured.");
+        }
+
+        var model = string.IsNullOrWhiteSpace(request.Model)
+            ? openAiOptions.DefaultModel
+            : request.Model.Trim();
+
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            throw new InfrastructureException("OpenAI model is not configured.");
+        }
+
+        return model;
+    }
+
     private static object BuildRequestBody(AiProviderRequest request, string model)
     {
-        var input = new List<object>();
+        var hasTools = request.Tools.Count > 0;
+
+        return new
+        {
+            model,
+            input = BuildInput(request),
+            tools = hasTools ? BuildTools(request) : null,
+            max_output_tokens = request.MaxOutputTokens,
+            reasoning = IsReasoningModel(model)
+                ? new { effort = hasTools ? "low" : "minimal" }
+                : null,
+            text = request.ResponseFormat == AgentResponseFormat.Json && !hasTools
+                ? BuildTextFormat(request)
+                : null
+        };
+    }
+
+    private static List<object> BuildInput(AiProviderRequest request)
+    {
+        var input = new List<object>
+        {
+            new
+            {
+                role = "system",
+                content = GlobalSystemMessage
+            }
+        };
 
         foreach (var message in request.Messages)
         {
             input.Add(new
             {
-                role = message.Role,
+                role = ToRole(message.Role),
                 content = message.Content
             });
         }
@@ -82,35 +125,31 @@ public sealed class OpenAiResponsesClient(
             });
         }
 
-        var tools = request.Tools.Select(tool => new
+        return input;
+    }
+
+    private static string ToRole(AgentMessageRole  role)
+    {
+        return role switch
         {
-            type = "function",
-            name = tool.Name,
-            description = tool.Description,
-            parameters = JsonNode.Parse(tool.ParametersJsonSchema)
-        }).ToArray();
-
-        var hasTools = tools.Length > 0;
-
-        return new
-        {
-            model,
-            instructions = BuildInstructions(request),
-
-            input,
-
-            tools = hasTools ? tools : null,
-
-            max_output_tokens = request.MaxOutputTokens,
-
-            reasoning = IsReasoningModel(model)
-                ? new { effort = hasTools ? "low" : "minimal" }
-                : null,
-
-            text = request.ResponseFormat == AgentResponseFormat.Json && !hasTools
-                ? BuildTextFormat(request)
-                : null
+            AgentMessageRole .System => "system",
+            AgentMessageRole .User => "user",
+            AgentMessageRole .Assistant => "assistant",
+            _ => throw new ArgumentOutOfRangeException(nameof(role))
         };
+    }
+
+    private static object[] BuildTools(AiProviderRequest request)
+    {
+        return request.Tools
+            .Select(tool => new
+            {
+                type = "function",
+                name = tool.Name,
+                description = tool.Description,
+                parameters = ParseJson(tool.ParametersJsonSchema, $"Invalid schema for tool '{tool.Name}'.")
+            })
+            .ToArray();
     }
 
     private static object? BuildTextFormat(AiProviderRequest request)
@@ -120,16 +159,14 @@ public sealed class OpenAiResponsesClient(
             return null;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.SchemaName) && !string.IsNullOrWhiteSpace(request.JsonSchema))
+        if (string.IsNullOrWhiteSpace(request.SchemaName) ||
+            string.IsNullOrWhiteSpace(request.JsonSchema))
         {
             return new
             {
                 format = new
                 {
-                    type = "json_schema",
-                    name = request.SchemaName,
-                    strict = true,
-                    schema = JsonNode.Parse(request.JsonSchema)
+                    type = "json_object"
                 }
             };
         }
@@ -138,30 +175,25 @@ public sealed class OpenAiResponsesClient(
         {
             format = new
             {
-                type = "json_object"
+                type = "json_schema",
+                name = request.SchemaName,
+                strict = true,
+                schema = ParseJson(request.JsonSchema, $"Invalid JSON schema '{request.SchemaName}'.")
             }
         };
     }
 
-    private static string? BuildInstructions(AiProviderRequest request)
+    private static JsonNode ParseJson(string json, string errorMessage)
     {
-        if (request.ResponseFormat != AgentResponseFormat.Json)
+        try
         {
-            return string.IsNullOrWhiteSpace(request.Instructions)
-                ? null
-                : request.Instructions;
+            return JsonNode.Parse(json)
+                ?? throw new InfrastructureException(errorMessage);
         }
-
-        var baseInstructions = string.IsNullOrWhiteSpace(request.Instructions)
-            ? ""
-            : request.Instructions.Trim();
-
-        return baseInstructions + """
-
-    Return valid JSON only.
-    Do not include markdown.
-    Do not include explanations.
-    """;
+        catch (JsonException exception)
+        {
+            throw new InfrastructureException(errorMessage, exception);
+        }
     }
 
     private static bool IsReasoningModel(string model)
@@ -170,13 +202,16 @@ public sealed class OpenAiResponsesClient(
             || model.StartsWith("o", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static AiProviderResponse ParseResponse(string json, AgentResponseFormat responseFormat)
+    private static AiProviderResponse ParseResponse(
+        string json,
+        AgentResponseFormat responseFormat)
     {
         var root = JsonNode.Parse(json)?.AsObject()
             ?? throw new InfrastructureException("OpenAI returned an empty response.");
 
         var responseId = root["id"]?.GetValue<string>();
         var incompleteReason = root["incomplete_details"]?["reason"]?.GetValue<string>();
+
         var toolCalls = new List<AgentToolCall>();
         var textParts = new List<string>();
 
@@ -192,16 +227,14 @@ public sealed class OpenAiResponsesClient(
 
             if (type == "function_call")
             {
-                toolCalls.Add(new AgentToolCall(
-                    outputObject["call_id"]?.GetValue<string>() ?? outputObject["id"]?.GetValue<string>() ?? Guid.NewGuid().ToString("N"),
-                    outputObject["name"]?.GetValue<string>() ?? string.Empty,
-                    outputObject["arguments"]?.GetValue<string>() ?? "{}"));
+                toolCalls.Add(ParseToolCall(outputObject));
                 continue;
             }
 
             foreach (var content in outputObject["content"]?.AsArray() ?? [])
             {
                 var text = content?["text"]?.GetValue<string>();
+
                 if (!string.IsNullOrWhiteSpace(text))
                 {
                     textParts.Add(text);
@@ -210,17 +243,26 @@ public sealed class OpenAiResponsesClient(
         }
 
         var textResult = string.Join(Environment.NewLine, textParts).Trim();
-        var structuredJson = responseFormat == AgentResponseFormat.Json ? textResult : null;
         var usage = ParseUsage(root["usage"]?.AsObject());
 
         return new AiProviderResponse(
             responseId,
             responseFormat == AgentResponseFormat.PlainText ? textResult : null,
-            structuredJson,
+            responseFormat == AgentResponseFormat.Json ? textResult : null,
             toolCalls,
             IsSuccess: true,
             Usage: usage,
             IncompleteReason: incompleteReason);
+    }
+
+    private static AgentToolCall ParseToolCall(JsonObject outputObject)
+    {
+        return new AgentToolCall(
+            outputObject["call_id"]?.GetValue<string>()
+                ?? outputObject["id"]?.GetValue<string>()
+                ?? Guid.NewGuid().ToString("N"),
+            outputObject["name"]?.GetValue<string>() ?? string.Empty,
+            outputObject["arguments"]?.GetValue<string>() ?? "{}");
     }
 
     private static AiProviderUsage? ParseUsage(JsonObject? usageObject)
@@ -230,28 +272,20 @@ public sealed class OpenAiResponsesClient(
             return null;
         }
 
+        var inputDetails = usageObject["input_tokens_details"] as JsonObject;
+        var outputDetails = usageObject["output_tokens_details"] as JsonObject;
+
         return new AiProviderUsage(
             ReadInt(usageObject, "input_tokens"),
             ReadInt(usageObject, "output_tokens"),
             ReadInt(usageObject, "total_tokens"),
-            ReadInt(usageObject["output_tokens_details"] as JsonObject, "reasoning_tokens"),
-            ReadInt(usageObject["input_tokens_details"] as JsonObject, "cached_tokens")
-                ?? ReadInt(usageObject["input_tokens_details"] as JsonObject, "cache_read_input_tokens"));
+            ReadInt(outputDetails, "reasoning_tokens"),
+            ReadInt(inputDetails, "cached_tokens")
+                ?? ReadInt(inputDetails, "cache_read_input_tokens"));
     }
 
     private static int? ReadInt(JsonObject? source, string propertyName)
     {
-        if (source is null)
-        {
-            return null;
-        }
-
-        if (source[propertyName] is null)
-        {
-            return null;
-        }
-
-        return source[propertyName]!.GetValue<int?>();
+        return source?[propertyName]?.GetValue<int?>();
     }
 }
-

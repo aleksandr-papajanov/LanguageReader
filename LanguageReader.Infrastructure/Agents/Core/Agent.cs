@@ -6,22 +6,16 @@ using LanguageReader.Infrastructure.Agents.Tools.Models;
 
 namespace LanguageReader.Infrastructure.Agents.Core;
 
-/// <summary>
-/// Default provider-backed agent implementation.
-/// </summary>
 public sealed class Agent(
     AgentDefinition definition,
     IAiProviderClient providerClient,
     IToolDispatcher toolDispatcher) : IAgent
 {
-    /// <inheritdoc />
-    public async Task<AgentRunResult> RunAsync(AgentRunRequest request, CancellationToken cancellationToken = default)
+    public async Task<AgentRunResult> RunAsync(
+        AgentRunRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var messages = new List<AgentMessage>(request.Messages ?? []);
-        if (!string.IsNullOrWhiteSpace(request.Input))
-        {
-            messages.Add(new AgentMessage("user", request.Input));
-        }
+        var messages = BuildMessages(request);
 
         var allToolCalls = new List<AgentToolCall>();
         var allToolResults = new List<AgentToolResult>();
@@ -31,13 +25,12 @@ public sealed class Agent(
         for (var iteration = 0; iteration <= definition.MaxToolIterations; iteration++)
         {
             var providerRequest = new AiProviderRequest(
-                definition.Instructions,
                 messages,
                 definition.Tools,
                 pendingToolResults,
                 definition.ResponseFormat,
-                SchemaName: null,
-                JsonSchema: null,
+                definition.SchemaName,
+                definition.JsonSchema,
                 definition.Model);
 
             var response = await providerClient.SendAsync(providerRequest, cancellationToken);
@@ -78,10 +71,13 @@ public sealed class Agent(
             }
 
             pendingToolResults.Clear();
+
             foreach (var call in response.ToolCalls)
             {
                 allToolCalls.Add(call);
+
                 var toolResult = await toolDispatcher.DispatchAsync(call, cancellationToken);
+
                 pendingToolResults.Add(toolResult);
                 allToolResults.Add(toolResult);
             }
@@ -106,5 +102,25 @@ public sealed class Agent(
             allToolResults,
             providerResponseId);
     }
-}
 
+    private List<AgentMessage> BuildMessages(AgentRunRequest request)
+    {
+        var messages = new List<AgentMessage>();
+
+        messages.AddRange(definition.Messages);
+
+        if (request.Messages is not null)
+        {
+            messages.AddRange(request.Messages);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Input))
+        {
+            messages.Add(new AgentMessage(
+                AgentMessageRole.User,
+                request.Input.Trim()));
+        }
+
+        return messages;
+    }
+}

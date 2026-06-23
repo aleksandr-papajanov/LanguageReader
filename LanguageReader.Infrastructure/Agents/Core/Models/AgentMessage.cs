@@ -4,6 +4,5 @@ namespace LanguageReader.Infrastructure.Agents.Core.Models;
 /// Message exchanged during an agent run.
 /// </summary>
 public sealed record AgentMessage(
-    string Role,
+    AgentMessageRole Role,
     string Content);
-

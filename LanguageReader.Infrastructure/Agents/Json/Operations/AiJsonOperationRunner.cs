@@ -1,3 +1,4 @@
+using LanguageReader.Infrastructure.Agents.Json.Models;
 using LanguageReader.Infrastructure.Features.Ai.Models;
 
 namespace LanguageReader.Infrastructure.Agents.Json.Operations;
@@ -12,11 +13,12 @@ public sealed class AiJsonOperationRunner(
         var request = operation.BuildRequest();
         var result = await jsonRequestService.CompleteAsync<TPayload>(request, cancellationToken);
         var pricing = AiPricingCatalog.GetPricing(operation.ProviderName, result.Model);
+
         var usage = AiOperationUsageFactory.Create(
             operation.Kind,
             operation.ProviderName,
             result.Model,
-            request.InputJson,
+            BuildPromptPreview(request.Messages),
             result.RawJson,
             pricing.InputUsdPerMillionTokens,
             pricing.OutputUsdPerMillionTokens,
@@ -29,5 +31,12 @@ public sealed class AiJsonOperationRunner(
             usage,
             result.ResponseId,
             result.IncompleteReason);
+    }
+
+    private static string BuildPromptPreview(IReadOnlyList<AiProviderMessage> messages)
+    {
+        return string.Join(
+            Environment.NewLine + Environment.NewLine,
+            messages.Select(message => $"{message.Role}: {message.Content}"));
     }
 }

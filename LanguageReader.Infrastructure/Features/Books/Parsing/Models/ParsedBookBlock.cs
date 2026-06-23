@@ -1,5 +1,3 @@
-using LanguageReader.Shared.Features.ReadingItems;
-
 namespace LanguageReader.Infrastructure.Features.Books.Parsing.Models;
 
 public sealed record ParsedBookBlock(

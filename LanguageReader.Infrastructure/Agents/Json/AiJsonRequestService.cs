@@ -21,15 +21,16 @@ public sealed class AiJsonRequestService(
     {
         var model = modelResolver.Resolve(request.Model);
 
-        var providerResponse = await providerClient.SendAsync(new AiProviderRequest(
-            Instructions: request.Instructions,
-            Messages: [new AgentMessage("user", request.InputJson)],
-            Tools: [],
-            ToolResults: [],
-            ResponseFormat: AgentResponseFormat.Json,
-            SchemaName: request.SchemaName,
-            JsonSchema: request.JsonSchema,
-            Model: model), cancellationToken);
+        var providerResponse = await providerClient.SendAsync(
+            new AiProviderRequest(
+                Messages: MapMessages(request.Messages),
+                Tools: [],
+                ToolResults: [],
+                ResponseFormat: AgentResponseFormat.Json,
+                SchemaName: request.SchemaName,
+                JsonSchema: request.JsonSchema,
+                Model: model),
+            cancellationToken);
 
         if (!providerResponse.IsSuccess)
         {
@@ -74,5 +75,25 @@ public sealed class AiJsonRequestService(
                 $"{request.OperationName} returned invalid or truncated JSON. Model: {model}. ResponseId: {providerResponse.ResponseId ?? "n/a"}. IncompleteReason: {providerResponse.IncompleteReason ?? "n/a"}. Payload preview: {preview}",
                 exception);
         }
+    }
+
+    private static IReadOnlyList<AgentMessage> MapMessages(
+        IReadOnlyList<AiProviderMessage> messages)
+    {
+        return messages
+            .Select(message => new AgentMessage(
+                MapRole(message.Role),
+                message.Content))
+            .ToArray();
+    }
+
+    private static AgentMessageRole MapRole(AiMessageRole role)
+    {
+        return role switch
+        {
+            AiMessageRole.System => AgentMessageRole.System,
+            AiMessageRole.User => AgentMessageRole.User,
+            _ => throw new ArgumentOutOfRangeException(nameof(role))
+        };
     }
 }

@@ -24,8 +24,7 @@ internal sealed class TranslationAiJsonOperation(
         return new AiJsonOperationRequest(
             Kind,
             OperationName,
-            BuildInstructions(),
-            BuildInput(request),
+            BuildMessages(request),
             SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
             Model: Model,
@@ -34,26 +33,32 @@ internal sealed class TranslationAiJsonOperation(
             ExpectedJsonPropertyCount: 1);
     }
 
+    private static IReadOnlyList<AiProviderMessage> BuildMessages(TranslateRequest request)
+    {
+        return
+        [
+            new(
+                AiMessageRole.System,
+                "Translate only the selected fragment as it fits inside the context."),
+
+            new(
+                AiMessageRole.User,
+                BuildInput(request))
+        ];
+    }
+
     private static string BuildInput(TranslateRequest request)
     {
         return $"""
-Task: translate selected text for in-place reading.
-
-Selected text: {request.SourceText.Trim()}
+Selected fragment: {request.SourceText.Trim()}
 Context: {NormalizeContext(request)}
 Source language: {request.SourceLanguage.Trim()}
 Target language: {request.TargetLanguage.Trim()}
 
 Rules:
-- Use the context to resolve ambiguity.
-- Return the context-specific meaning, not dictionary form.
-""";
-    }
-
-    private static string BuildInstructions()
-    {
-        return """
-Translate for language learners.
+- Translate only the selected fragment, not the full context.
+- The result should fit naturally if inserted back into the context.
+- Add a short note in parentheses only if the translation is unclear without it.
 """;
     }
 
@@ -73,7 +78,8 @@ Translate for language learners.
                         request.SelectionKind,
                         request.SourceLanguage.Trim(),
                         request.TargetLanguage.Trim()),
-                    minLength = 1
+                    minLength = 1,
+                    maxLength = 300
                 }
             }
         };
@@ -83,14 +89,19 @@ Translate for language learners.
 
     private static void ValidateRequest(TranslateRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.TargetLanguage))
-        {
-            throw new ValidationException("Select a learning language in Settings before translating.");
-        }
-
         if (string.IsNullOrWhiteSpace(request.SourceText))
         {
             throw new ValidationException("Select text before translating.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SourceLanguage))
+        {
+            throw new ValidationException("Source language is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TargetLanguage))
+        {
+            throw new ValidationException("Select a learning language in Settings before translating.");
         }
     }
 
@@ -108,10 +119,17 @@ Translate for language learners.
     {
         return selectionKind switch
         {
-            SelectionKind.Word => $"Context-specific meaning of the selected word from {sourceLanguage}, translated into {targetLanguage}.",
-            SelectionKind.Sentence => $"Natural sentence translation from {sourceLanguage} into {targetLanguage}.",
-            SelectionKind.Paragraph => $"Natural paragraph translation from {sourceLanguage} into {targetLanguage}.",
-            _ => $"Natural custom-fragment translation from {sourceLanguage} into {targetLanguage}."
+            SelectionKind.Word =>
+                $"Translation of only the selected word from {sourceLanguage} into {targetLanguage}, adjusted to fit the context.",
+
+            SelectionKind.Sentence =>
+                $"Translation of only the selected sentence from {sourceLanguage} into {targetLanguage}.",
+
+            SelectionKind.Paragraph =>
+                $"Translation of only the selected paragraph from {sourceLanguage} into {targetLanguage}.",
+
+            _ =>
+                $"Translation of only the selected fragment from {sourceLanguage} into {targetLanguage}, adjusted to fit the context."
         };
     }
 

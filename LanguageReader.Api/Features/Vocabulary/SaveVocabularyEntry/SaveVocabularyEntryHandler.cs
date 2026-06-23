@@ -1,5 +1,4 @@
 using LanguageReader.Api.Features.Vocabulary.Services;
-using LanguageReader.Api.Features.Common.Services;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;

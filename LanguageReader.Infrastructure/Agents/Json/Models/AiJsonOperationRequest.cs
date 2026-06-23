@@ -6,8 +6,7 @@ namespace LanguageReader.Infrastructure.Agents.Json.Models;
 public sealed record AiJsonOperationRequest(
     AiOperationKind Kind,
     string OperationName,
-    string Instructions,
-    string InputJson,
+    IReadOnlyList<AiProviderMessage> Messages,
     string? SchemaName,
     string? JsonSchema,
     string? Model,

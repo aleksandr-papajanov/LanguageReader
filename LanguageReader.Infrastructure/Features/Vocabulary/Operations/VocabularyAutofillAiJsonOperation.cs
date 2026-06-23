@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using LanguageReader.Infrastructure.Agents.Json.Models;
 using LanguageReader.Infrastructure.Agents.Json.Operations;
@@ -26,14 +25,27 @@ internal sealed class VocabularyAutofillAiJsonOperation(
         return new AiJsonOperationRequest(
             Kind,
             OperationName,
-            BuildInstructions(),
-            BuildInput(request),
+            BuildMessages(request),
             SchemaName: SchemaName,
             JsonSchema: BuildSchema(request),
             Model: Model,
             request.Word.Length + request.Translation.Length,
             request.ContextSentence?.Length ?? 0,
             ExpectedJsonPropertyCount: 9);
+    }
+
+    private static IReadOnlyList<AiProviderMessage> BuildMessages(VocabularyAutofillRequest request)
+    {
+        return
+        [
+            new(
+                AiMessageRole.System,
+                "Create concise vocabulary data for a language learner."),
+
+            new(
+                AiMessageRole.User,
+                BuildInput(request))
+        ];
     }
 
     private static string BuildInput(VocabularyAutofillRequest request)
@@ -43,8 +55,6 @@ internal sealed class VocabularyAutofillAiJsonOperation(
             : request.ContextSentence.Trim();
 
         return $"""
-Task: enrich vocabulary entry.
-
 Word: {request.Word.Trim()}
 Word language: {request.WordLanguage.Trim()}
 Known translation: {request.Translation.Trim()}
@@ -54,13 +64,7 @@ Context: {context}
 Rules:
 - Word is already dictionary form.
 - Use context and known translation only for nuance.
-""";
-    }
-
-    private static string BuildInstructions()
-    {
-        return """
-You create concise vocabulary data for language learners.
+- For notes, write only something genuinely useful or interesting.
 """;
     }
 
@@ -170,9 +174,9 @@ You create concise vocabulary data for language learners.
                 notes = new
                 {
                     type = "string",
-                    description = $"One practical learner note in {translationLanguage}. Empty string if there is nothing useful to add.",
+                    description = $"Optional interesting learner note in {translationLanguage}: word formation, root, prefix/suffix, compound structure, usage pattern, false friend, register, or memorable nuance. Use empty string if there is no genuinely useful or interesting note. Do not write generic advice.",
                     maxLength = 220
-                },
+                }
             }
         };
 

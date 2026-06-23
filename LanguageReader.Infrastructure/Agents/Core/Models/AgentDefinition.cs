@@ -7,10 +7,11 @@ namespace LanguageReader.Infrastructure.Agents.Core.Models;
 /// </summary>
 public sealed record AgentDefinition(
     string Name,
-    string Instructions,
+    IReadOnlyList<AgentMessage> Messages,
     AgentResponseFormat ResponseFormat,
     IReadOnlyList<AgentToolDefinition> Tools,
     int MaxToolIterations = 4,
     string? Model = null,
+    string? SchemaName = null,
+    string? JsonSchema = null,
     bool CompleteOnToolResult = false);
-

@@ -1,7 +1,6 @@
 using System.Text;
 using System.Xml.Linq;
 using LanguageReader.Infrastructure.Features.Books.Parsing.Models;
-using LanguageReader.Shared.Features.ReadingItems;
 
 namespace LanguageReader.Infrastructure.Features.Books.Parsing;
 

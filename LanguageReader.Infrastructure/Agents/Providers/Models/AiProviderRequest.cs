@@ -7,7 +7,6 @@ namespace LanguageReader.Infrastructure.Agents.Providers.Models;
 /// Provider-neutral AI request.
 /// </summary>
 public sealed record AiProviderRequest(
-    string Instructions,
     IReadOnlyList<AgentMessage> Messages,
     IReadOnlyList<AgentToolDefinition> Tools,
     IReadOnlyList<AgentToolResult> ToolResults,
