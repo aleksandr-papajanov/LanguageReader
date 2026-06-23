@@ -946,3 +946,45 @@ function scrollRectIntoViewIfNeeded(rect) {
         behavior: "smooth"
     });
 }
+
+(function installGlobalSelectionGuard() {
+    const controlSelector = "input, textarea, select, [contenteditable='true'], [contenteditable='plaintext-only']";
+    const readerTextSelector = ".reader-page [data-block-index]";
+
+    function isAllowedSelectionTarget(target) {
+        const element = target?.nodeType === Node.TEXT_NODE
+            ? target.parentElement
+            : target;
+
+        return !!element?.closest?.(`${controlSelector}, ${readerTextSelector}`);
+    }
+
+    document.addEventListener("selectstart", (event) => {
+        if (isAllowedSelectionTarget(event.target)) {
+            return;
+        }
+
+        event.preventDefault();
+    }, true);
+
+    document.addEventListener("selectionchange", () => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+            return;
+        }
+
+        if (isAllowedSelectionTarget(selection.anchorNode) && isAllowedSelectionTarget(selection.focusNode)) {
+            return;
+        }
+
+        clearNativeSelection();
+    });
+
+    document.addEventListener("contextmenu", (event) => {
+        if (event.target?.closest?.(controlSelector)) {
+            return;
+        }
+
+        event.preventDefault();
+    }, true);
+})();

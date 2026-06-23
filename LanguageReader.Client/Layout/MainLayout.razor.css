@@ -18,10 +18,6 @@ body {
     overflow-x: clip;
     background: var(--color-bg);
     color: var(--color-text);
-
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
 }
 
 .app-layout__top {
