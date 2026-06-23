@@ -305,11 +305,19 @@ window.languageReaderSelection = {
         const id = `reader-selection-${++languageReaderSelectionObserverId}`;
         let timeout = 0;
         let lastSignature = "";
+        let pointerSelection = null;
+        let pointerSelectionTimer = 0;
+        let suppressClickUntil = 0;
 
         const notify = () => {
             window.clearTimeout(timeout);
 
             timeout = window.setTimeout(() => {
+                if (pointerSelection?.isSelecting || usesCustomTouchSelection()) {
+                    clearNativeSelection();
+                    return;
+                }
+
                 const selection = window.getSelection();
                 if (!selectionIntersectsRoot(root, selection)) {
                     return;
@@ -336,16 +344,145 @@ window.languageReaderSelection = {
             }, 220);
         };
 
+        const startPointerSelection = (event) => {
+            if (!isCustomSelectionPointer(event) || isReaderInteractiveTarget(event.target)) {
+                return;
+            }
+
+            const hit = window.languageReaderSelection.getTextOffsetAtPoint(root, event.clientX, event.clientY);
+            if (!hit) {
+                return;
+            }
+
+            pointerSelection = {
+                pointerId: event.pointerId,
+                startHit: hit,
+                latestHit: hit,
+                startX: event.clientX,
+                startY: event.clientY,
+                isSelecting: false
+            };
+
+            window.clearTimeout(pointerSelectionTimer);
+            pointerSelectionTimer = window.setTimeout(() => {
+                if (!pointerSelection || pointerSelection.pointerId !== event.pointerId) {
+                    return;
+                }
+
+                pointerSelection.isSelecting = true;
+                root.classList.add("reader-page--touch-selecting");
+                setPointerCaptureSafely(root, event.pointerId);
+                clearNativeSelection();
+            }, 120);
+        };
+
+        const updatePointerSelection = (event) => {
+            if (!pointerSelection || pointerSelection.pointerId !== event.pointerId) {
+                return;
+            }
+
+            const deltaX = event.clientX - pointerSelection.startX;
+            const deltaY = event.clientY - pointerSelection.startY;
+            const distance = Math.hypot(deltaX, deltaY);
+            if (!pointerSelection.isSelecting && distance > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 0.55) {
+                pointerSelection.isSelecting = true;
+                root.classList.add("reader-page--touch-selecting");
+                setPointerCaptureSafely(root, event.pointerId);
+                clearNativeSelection();
+            }
+
+            if (!pointerSelection.isSelecting) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            clearNativeSelection();
+
+            const hit = window.languageReaderSelection.getTextOffsetAtPoint(root, event.clientX, event.clientY);
+            if (hit && hit.blockIndex === pointerSelection.startHit.blockIndex) {
+                pointerSelection.latestHit = hit;
+            }
+        };
+
+        const finishPointerSelection = (event) => {
+            if (!pointerSelection || pointerSelection.pointerId !== event.pointerId) {
+                return;
+            }
+
+            window.clearTimeout(pointerSelectionTimer);
+            const completedSelection = pointerSelection;
+            pointerSelection = null;
+            root.classList.remove("reader-page--touch-selecting");
+            releasePointerCaptureSafely(root, event.pointerId);
+
+            if (!completedSelection.isSelecting) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            clearNativeSelection();
+
+            const selectedRange = getPointerSelectedRange(root, completedSelection.startHit, completedSelection.latestHit);
+            if (!selectedRange || !selectedRange.selectedText?.trim()) {
+                dotNetReference.invokeMethodAsync("NotifyNativeSelectionRejectedAsync");
+                return;
+            }
+
+            const signature = `${selectedRange.blockIndex}:${selectedRange.startOffset}:${selectedRange.endOffset}:${selectedRange.selectedText}`;
+            if (signature === lastSignature) {
+                return;
+            }
+
+            lastSignature = signature;
+            suppressClickUntil = Date.now() + 350;
+            dotNetReference.invokeMethodAsync(
+                "NotifyNativeSelectionChangedAsync",
+                selectedRange.blockIndex,
+                selectedRange.startOffset,
+                selectedRange.endOffset,
+                selectedRange.selectedText);
+        };
+
+        const cancelPointerSelection = (event) => {
+            if (!pointerSelection || pointerSelection.pointerId !== event.pointerId) {
+                return;
+            }
+
+            window.clearTimeout(pointerSelectionTimer);
+            pointerSelection = null;
+            root.classList.remove("reader-page--touch-selecting");
+            releasePointerCaptureSafely(root, event.pointerId);
+            clearNativeSelection();
+        };
+
+        const suppressSyntheticClick = (event) => {
+            if (Date.now() >= suppressClickUntil) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
         document.addEventListener("selectionchange", notify);
-        root.addEventListener("touchend", notify, { passive: true });
-        root.addEventListener("pointerup", notify, { passive: true });
+        root.addEventListener("pointerdown", startPointerSelection, { passive: true });
+        root.addEventListener("pointermove", updatePointerSelection, { passive: false });
+        root.addEventListener("pointerup", finishPointerSelection, { passive: false });
+        root.addEventListener("pointercancel", cancelPointerSelection, { passive: true });
+        root.addEventListener("click", suppressSyntheticClick, true);
 
         languageReaderSelectionObservers.set(id, {
             disconnect: () => {
                 window.clearTimeout(timeout);
+                window.clearTimeout(pointerSelectionTimer);
                 document.removeEventListener("selectionchange", notify);
-                root.removeEventListener("touchend", notify);
-                root.removeEventListener("pointerup", notify);
+                root.removeEventListener("pointerdown", startPointerSelection);
+                root.removeEventListener("pointermove", updatePointerSelection);
+                root.removeEventListener("pointerup", finishPointerSelection);
+                root.removeEventListener("pointercancel", cancelPointerSelection);
+                root.removeEventListener("click", suppressSyntheticClick, true);
             }
         });
 
@@ -417,6 +554,71 @@ function clearNativeSelection() {
         currentSelection?.removeAllRanges();
         currentSelection?.empty?.();
     });
+}
+
+function usesCustomTouchSelection() {
+    return window.matchMedia?.("(pointer: coarse)")?.matches || navigator.maxTouchPoints > 0;
+}
+
+function isCustomSelectionPointer(event) {
+    return event.pointerType === "touch"
+        || event.pointerType === "pen"
+        || (!event.pointerType && usesCustomTouchSelection());
+}
+
+function isReaderInteractiveTarget(target) {
+    const element = target?.nodeType === Node.TEXT_NODE
+        ? target.parentElement
+        : target;
+
+    return !!element?.closest?.(
+        "button,a,input,textarea,select,[contenteditable='true'],[contenteditable='plaintext-only']," +
+        ".reader-fragment-action,.reader-fragment-actions,.reader-selection-actions");
+}
+
+function getPointerSelectedRange(root, startHit, endHit) {
+    if (!root || !startHit || !endHit || startHit.blockIndex !== endHit.blockIndex) {
+        return null;
+    }
+
+    const startOffset = Math.min(startHit.offset, endHit.offset);
+    const endOffset = Math.max(startHit.offset, endHit.offset);
+    if (endOffset <= startOffset) {
+        return null;
+    }
+
+    const paragraph = root.querySelector(`[data-block-index="${startHit.blockIndex}"]`);
+    if (!paragraph) {
+        return null;
+    }
+
+    const trimmedRange = trimOriginalRange(paragraph, startOffset, endOffset);
+    if (!trimmedRange) {
+        return null;
+    }
+
+    return {
+        blockIndex: startHit.blockIndex,
+        startOffset: trimmedRange.startOffset,
+        endOffset: trimmedRange.endOffset,
+        selectedText: trimmedRange.selectedText
+    };
+}
+
+function setPointerCaptureSafely(element, pointerId) {
+    try {
+        element.setPointerCapture?.(pointerId);
+    } catch {
+        // Some mobile browsers can release the pointer before capture is available.
+    }
+}
+
+function releasePointerCaptureSafely(element, pointerId) {
+    try {
+        element.releasePointerCapture?.(pointerId);
+    } catch {
+        // Ignore stale pointer captures; the selection state has already been reset.
+    }
 }
 
 function selectionIntersectsRoot(root, selection) {
@@ -956,7 +1158,11 @@ function scrollRectIntoViewIfNeeded(rect) {
             ? target.parentElement
             : target;
 
-        return !!element?.closest?.(`${controlSelector}, ${readerTextSelector}`);
+        if (element?.closest?.(controlSelector)) {
+            return true;
+        }
+
+        return !usesCustomTouchSelection() && !!element?.closest?.(readerTextSelector);
     }
 
     document.addEventListener("selectstart", (event) => {

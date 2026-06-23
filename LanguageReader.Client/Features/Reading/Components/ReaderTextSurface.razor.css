@@ -25,6 +25,10 @@
     user-select: text;
 }
 
+.reader-page--touch-selecting {
+    cursor: text;
+}
+
 .reader-page__image {
     position: relative;
     z-index: 1;
@@ -217,5 +221,14 @@
 
     .reader-page p {
         font-size: 1.04rem;
+    }
+}
+
+@media (pointer: coarse) {
+    .reader-page p,
+    .reader-page p * {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
     }
 }

@@ -68,7 +68,8 @@ public sealed class ReadingItemContentService(
                 x => new ReadingImageDto(
                     x.Value.Id,
                     x.Value.ContentType,
-                    x.Value.Base64Content)));
+                    x.Value.Base64Content),
+                StringComparer.OrdinalIgnoreCase));
     }
 
     private static async Task<ReadingItemContentPageDto> LoadArticleAsync(

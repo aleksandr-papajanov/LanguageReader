@@ -20,6 +20,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
         var title = GetBookTitle(document);
         var images = ParseImages(document);
+        var addedImageIds = new HashSet<string>(StringComparer.Ordinal);
 
         var bodies = document
             .Root?
@@ -29,6 +30,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
             .ToList() ?? [];
 
         var blocks = new List<ParsedBookBlock>();
+        AddCoverImageBlocks(document, blocks, addedImageIds);
 
         foreach (var body in bodies)
         {
@@ -39,7 +41,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 AddTextBlock(blocks, ReadingContentBlockType.Heading1, bodyName);
             }
 
-            ParseContainer(body, blocks);
+            ParseContainer(body, blocks, addedImageIds);
         }
 
         TrimEmptyLines(blocks);
@@ -68,47 +70,89 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static Dictionary<string, ParsedBookImage> ParseImages(XDocument document)
     {
-        var images = new Dictionary<string, ParsedBookImage>();
+        var images = new Dictionary<string, ParsedBookImage>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var binary in document.Descendants().Where(e => e.Name.LocalName == "binary"))
         {
-            var id = binary.Attribute("id")?.Value;
-            var contentType = binary.Attribute("content-type")?.Value;
+            var id = binary.Attribute("id")?.Value?.Trim();
+            var contentType = binary.Attribute("content-type")?.Value?.Trim();
             var base64 = NormalizeBase64(binary.Value);
 
             if (string.IsNullOrWhiteSpace(id) ||
-                string.IsNullOrWhiteSpace(contentType) ||
                 string.IsNullOrWhiteSpace(base64))
             {
                 continue;
             }
 
+            contentType = NormalizeContentType(contentType, id);
             images[id] = new ParsedBookImage(id, contentType, base64);
         }
 
         return images;
     }
 
-    private static void ParseContainer(XElement container, List<ParsedBookBlock> blocks)
+    private static string NormalizeContentType(string? contentType, string imageId)
     {
-        foreach (var element in container.Elements())
+        if (!string.IsNullOrWhiteSpace(contentType))
         {
-            ParseElement(element, blocks);
+            return string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase)
+                ? "image/jpeg"
+                : contentType;
+        }
+
+        var extension = Path.GetExtension(imageId).ToLowerInvariant();
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".svg" => "image/svg+xml",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private static void AddCoverImageBlocks(
+        XDocument document,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
+    {
+        foreach (var image in document
+            .Descendants()
+            .Where(element => element.Name.LocalName == "coverpage")
+            .Elements()
+            .Where(element => element.Name.LocalName == "image"))
+        {
+            AddImageBlock(blocks, image, addedImageIds);
         }
     }
 
-    private static void ParseElement(XElement element, List<ParsedBookBlock> blocks)
+    private static void ParseContainer(
+        XElement container,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
+    {
+        foreach (var element in container.Elements())
+        {
+            ParseElement(element, blocks, addedImageIds);
+        }
+    }
+
+    private static void ParseElement(
+        XElement element,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         switch (element.Name.LocalName)
         {
             case "body":
             case "section":
-                ParseContainer(element, blocks);
+                ParseContainer(element, blocks, addedImageIds);
                 AddEmptyLine(blocks);
                 break;
 
             case "title":
-                ParseTitle(element, blocks);
+                ParseTitle(element, blocks, addedImageIds);
                 break;
 
             case "subtitle":
@@ -116,7 +160,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "p":
-                AddTextBlock(blocks, ReadingContentBlockType.Paragraph, element.Value);
+                ParseParagraph(element, blocks, addedImageIds);
                 break;
 
             case "empty-line":
@@ -124,19 +168,19 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "image":
-                AddImageBlock(blocks, element);
+                AddImageBlock(blocks, element, addedImageIds);
                 break;
 
             case "epigraph":
-                ParseEpigraph(element, blocks);
+                ParseEpigraph(element, blocks, addedImageIds);
                 break;
 
             case "poem":
-                ParsePoem(element, blocks);
+                ParsePoem(element, blocks, addedImageIds);
                 break;
 
             case "stanza":
-                ParseStanza(element, blocks);
+                ParseStanza(element, blocks, addedImageIds);
                 break;
 
             case "v":
@@ -144,7 +188,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "cite":
-                ParseQuote(element, blocks);
+                ParseQuote(element, blocks, addedImageIds);
                 break;
 
             case "text-author":
@@ -152,39 +196,45 @@ public sealed class Fb2BookContentParser : IBookContentParser
                 break;
 
             case "annotation":
-                ParseAnnotation(element, blocks);
+                ParseAnnotation(element, blocks, addedImageIds);
                 break;
 
             default:
-                ParseContainer(element, blocks);
+                ParseContainer(element, blocks, addedImageIds);
                 break;
         }
     }
 
-    private static void ParseTitle(XElement title, List<ParsedBookBlock> blocks)
+    private static void ParseTitle(
+        XElement title,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         foreach (var child in title.Elements())
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, ReadingContentBlockType.Heading1, child.Value);
+                ParseParagraph(child, blocks, addedImageIds, ReadingContentBlockType.Heading1);
             }
             else
             {
-                ParseElement(child, blocks);
+                ParseElement(child, blocks, addedImageIds);
             }
         }
 
         AddEmptyLine(blocks);
     }
 
-    private static void ParseEpigraph(XElement epigraph, List<ParsedBookBlock> blocks)
+    private static void ParseEpigraph(
+        XElement epigraph,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         foreach (var child in epigraph.Elements())
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, ReadingContentBlockType.Quote, child.Value);
+                ParseParagraph(child, blocks, addedImageIds, ReadingContentBlockType.Quote);
             }
             else if (child.Name.LocalName == "text-author")
             {
@@ -192,24 +242,30 @@ public sealed class Fb2BookContentParser : IBookContentParser
             }
             else
             {
-                ParseElement(child, blocks);
+                ParseElement(child, blocks, addedImageIds);
             }
         }
 
         AddEmptyLine(blocks);
     }
 
-    private static void ParsePoem(XElement poem, List<ParsedBookBlock> blocks)
+    private static void ParsePoem(
+        XElement poem,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         foreach (var child in poem.Elements())
         {
-            ParseElement(child, blocks);
+            ParseElement(child, blocks, addedImageIds);
         }
 
         AddEmptyLine(blocks);
     }
 
-    private static void ParseStanza(XElement stanza, List<ParsedBookBlock> blocks)
+    private static void ParseStanza(
+        XElement stanza,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         foreach (var child in stanza.Elements())
         {
@@ -219,20 +275,23 @@ public sealed class Fb2BookContentParser : IBookContentParser
             }
             else
             {
-                ParseElement(child, blocks);
+                ParseElement(child, blocks, addedImageIds);
             }
         }
 
         AddEmptyLine(blocks);
     }
 
-    private static void ParseQuote(XElement quote, List<ParsedBookBlock> blocks)
+    private static void ParseQuote(
+        XElement quote,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         foreach (var child in quote.Elements())
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, ReadingContentBlockType.Quote, child.Value);
+                ParseParagraph(child, blocks, addedImageIds, ReadingContentBlockType.Quote);
             }
             else if (child.Name.LocalName == "text-author")
             {
@@ -240,45 +299,96 @@ public sealed class Fb2BookContentParser : IBookContentParser
             }
             else
             {
-                ParseElement(child, blocks);
+                ParseElement(child, blocks, addedImageIds);
             }
         }
 
         AddEmptyLine(blocks);
     }
 
-    private static void ParseAnnotation(XElement annotation, List<ParsedBookBlock> blocks)
+    private static void ParseAnnotation(
+        XElement annotation,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds)
     {
         foreach (var child in annotation.Elements())
         {
             if (child.Name.LocalName == "p")
             {
-                AddTextBlock(blocks, ReadingContentBlockType.Quote, child.Value);
+                ParseParagraph(child, blocks, addedImageIds, ReadingContentBlockType.Quote);
             }
             else
             {
-                ParseElement(child, blocks);
+                ParseElement(child, blocks, addedImageIds);
             }
         }
 
         AddEmptyLine(blocks);
     }
 
-    private static void AddImageBlock(List<ParsedBookBlock> blocks, XElement image)
+    private static void ParseParagraph(
+        XElement paragraph,
+        List<ParsedBookBlock> blocks,
+        HashSet<string> addedImageIds,
+        ReadingContentBlockType textBlockType = ReadingContentBlockType.Paragraph)
     {
-        var href =
-            image.Attribute(XLink + "href")?.Value ??
-            image.Attributes().FirstOrDefault(a => a.Name.LocalName == "href")?.Value;
+        var imageChildren = paragraph
+            .Elements()
+            .Where(element => element.Name.LocalName == "image")
+            .ToArray();
+
+        var text = NormalizeWhitespace(string.Concat(
+            paragraph
+                .Nodes()
+                .Where(node => node is not XElement element || element.Name.LocalName != "image")
+                .Select(GetNodeText)));
+
+        AddTextBlock(blocks, textBlockType, text);
+
+        foreach (var image in imageChildren)
+        {
+            AddImageBlock(blocks, image, addedImageIds);
+        }
+    }
+
+    private static string GetNodeText(XNode node)
+    {
+        return node switch
+        {
+            XCData cdata => cdata.Value,
+            XText text => text.Value,
+            XElement element => element.Value,
+            _ => string.Empty
+        };
+    }
+
+    private static void AddImageBlock(
+        List<ParsedBookBlock> blocks,
+        XElement image,
+        HashSet<string> addedImageIds)
+    {
+        var href = GetImageHref(image);
 
         if (string.IsNullOrWhiteSpace(href))
+            return;
+
+        var imageId = href.Trim().TrimStart('#');
+        if (string.IsNullOrWhiteSpace(imageId) || !addedImageIds.Add(imageId))
             return;
 
         blocks.Add(new ParsedBookBlock(
             ReadingContentBlockType.Image,
             null,
-            ImageId: href.TrimStart('#')));
+            ImageId: imageId));
 
         AddEmptyLine(blocks);
+    }
+
+    private static string? GetImageHref(XElement image)
+    {
+        return image.Attribute(XLink + "href")?.Value
+            ?? image.Attributes().FirstOrDefault(attribute =>
+                string.Equals(attribute.Name.LocalName, "href", StringComparison.OrdinalIgnoreCase))?.Value;
     }
 
     private static void AddTextBlock(
