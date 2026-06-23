@@ -10,6 +10,11 @@
                        StopPropagation="true"
                        OnClick="@(() => ModeSelected.InvokeAsync(mode))" />
         }
+
+        @if (ActiveMode == SelectionKind.Unknown)
+        {
+            <span class="reader-selection-kind" title="Custom selection">Custom</span>
+        }
     </div>
 
     <AppButton Variant="ghost"

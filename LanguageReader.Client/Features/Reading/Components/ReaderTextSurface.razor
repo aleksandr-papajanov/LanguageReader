@@ -47,7 +47,7 @@
         @if (BuildSelectionActionAnchor() is { } selectionAnchor)
         {
             <ReaderSelectionActions Style="@GetActionAnchorStyle(selectionAnchor)"
-                                    ActiveMode="@ActiveMode"
+                                    ActiveMode="@(Selection?.SelectionType ?? ActiveMode)"
                                     IsTranslateDisabled="@IsSelectionTranslateDisabled"
                                     IsTranslateLoading="@IsTranslationLoading"
                                     ModeSelected="SelectionModeSelected"

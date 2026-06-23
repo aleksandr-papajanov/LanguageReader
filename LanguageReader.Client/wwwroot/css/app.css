@@ -182,6 +182,11 @@ body * {
     -webkit-touch-callout: inherit;
 }
 
+body.reader-touch-selection-active {
+    overflow: hidden;
+    touch-action: none;
+}
+
 input,
 textarea,
 select,

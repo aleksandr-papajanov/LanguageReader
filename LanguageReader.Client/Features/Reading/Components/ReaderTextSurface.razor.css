@@ -27,6 +27,7 @@
 
 .reader-page--touch-selecting {
     cursor: text;
+    touch-action: none;
 }
 
 .reader-page__image {

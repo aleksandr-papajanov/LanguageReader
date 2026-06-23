@@ -34,6 +34,25 @@
     background: rgba(52, 105, 190, 0.08);
 }
 
+.reader-selection-kind {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.1rem;
+    padding: 0 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--color-warning) 52%, transparent);
+    border-radius: 0.8rem;
+    background: var(--color-warning-soft);
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
 .reader-selection-action:disabled {
     opacity: 0.38;
     cursor: default;

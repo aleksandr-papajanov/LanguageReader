@@ -384,6 +384,7 @@ window.languageReaderSelection = {
 
                 pointerSelection.isSelecting = true;
                 root.classList.add("reader-page--touch-selecting");
+                document.body.classList.add("reader-touch-selection-active");
                 setPointerCaptureSafely(root, event.pointerId);
                 clearNativeSelection();
             }, 120);
@@ -400,6 +401,7 @@ window.languageReaderSelection = {
             if (!pointerSelection.isSelecting && distance > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 0.55) {
                 pointerSelection.isSelecting = true;
                 root.classList.add("reader-page--touch-selecting");
+                document.body.classList.add("reader-touch-selection-active");
                 setPointerCaptureSafely(root, event.pointerId);
                 clearNativeSelection();
             }
@@ -429,6 +431,7 @@ window.languageReaderSelection = {
             const completedSelection = pointerSelection;
             pointerSelection = null;
             root.classList.remove("reader-page--touch-selecting");
+            document.body.classList.remove("reader-touch-selection-active");
             releasePointerCaptureSafely(root, event.pointerId);
 
             if (!completedSelection.isSelecting) {
@@ -478,6 +481,7 @@ window.languageReaderSelection = {
             window.clearTimeout(pointerSelectionTimer);
             pointerSelection = null;
             root.classList.remove("reader-page--touch-selecting");
+            document.body.classList.remove("reader-touch-selection-active");
             releasePointerCaptureSafely(root, event.pointerId);
             clearNativeSelection();
         };
@@ -502,6 +506,7 @@ window.languageReaderSelection = {
             disconnect: () => {
                 window.clearTimeout(timeout);
                 window.clearTimeout(pointerSelectionTimer);
+                document.body.classList.remove("reader-touch-selection-active");
                 document.removeEventListener("selectionchange", notify);
                 root.removeEventListener("pointerdown", startPointerSelection);
                 root.removeEventListener("pointermove", updatePointerSelection);
@@ -1026,16 +1031,16 @@ function trimOriginalRange(paragraph, startOffset, endOffset) {
         return null;
     }
 
-    const leadingWhitespace = selectedText.match(/^\s*/)?.[0].length ?? 0;
-    const trailingWhitespace = selectedText.match(/\s*$/)?.[0].length ?? 0;
-    const trimmedText = selectedText.slice(leadingWhitespace, selectedText.length - trailingWhitespace);
+    const leadingBoundary = selectedText.match(/^[\s\p{P}\p{S}]*/u)?.[0].length ?? 0;
+    const trailingBoundary = selectedText.match(/[\s\p{P}\p{S}]*$/u)?.[0].length ?? 0;
+    const trimmedText = selectedText.slice(leadingBoundary, selectedText.length - trailingBoundary);
     if (!trimmedText) {
         return null;
     }
 
     return {
-        startOffset: startOffset + leadingWhitespace,
-        endOffset: endOffset - trailingWhitespace,
+        startOffset: startOffset + leadingBoundary,
+        endOffset: endOffset - trailingBoundary,
         selectedText: trimmedText
     };
 }

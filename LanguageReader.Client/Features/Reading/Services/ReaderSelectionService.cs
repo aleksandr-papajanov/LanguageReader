@@ -30,20 +30,23 @@ public sealed class ReaderSelectionService
     {
         var startOffset = Math.Clamp(range.StartOffset, 0, paragraph.Text.Length);
         var endOffset = Math.Clamp(range.EndOffset, startOffset, paragraph.Text.Length);
+        (startOffset, endOffset) = TrimSelectionBoundaries(paragraph.Text, startOffset, endOffset);
 
         if (endOffset <= startOffset)
         {
             return null;
         }
 
+        var selectionType = ResolveCustomSelectionKind(paragraph, startOffset, endOffset);
+
         return new ReaderSelection(
-            SelectionKind.Unknown,
+            selectionType,
             paragraph.Text[startOffset..endOffset],
             paragraph.Index,
             startOffset,
             endOffset,
             startOffset,
-            SelectionKind.Unknown,
+            selectionType,
             null);
     }
 
@@ -160,5 +163,52 @@ public sealed class ReaderSelectionService
             offset,
             SelectionKind.Sentence,
             null);
+    }
+
+    private static SelectionKind ResolveCustomSelectionKind(ReaderBlock paragraph, int startOffset, int endOffset)
+    {
+        var paragraphBounds = TrimSelectionBoundaries(paragraph.Text, 0, paragraph.Text.Length);
+        if (startOffset == paragraphBounds.StartOffset && endOffset == paragraphBounds.EndOffset)
+        {
+            return SelectionKind.Paragraph;
+        }
+
+        if (paragraph.Words.Any(word => word.StartOffset == startOffset && word.EndOffset == endOffset))
+        {
+            return SelectionKind.Word;
+        }
+
+        foreach (var sentence in paragraph.Sentences)
+        {
+            var sentenceBounds = TrimSelectionBoundaries(paragraph.Text, sentence.StartOffset, sentence.EndOffset);
+            if (startOffset == sentenceBounds.StartOffset && endOffset == sentenceBounds.EndOffset)
+            {
+                return SelectionKind.Sentence;
+            }
+        }
+
+        return SelectionKind.Unknown;
+    }
+
+    private static (int StartOffset, int EndOffset) TrimSelectionBoundaries(string text, int startOffset, int endOffset)
+    {
+        while (startOffset < endOffset && IsBoundaryCharacter(text[startOffset]))
+        {
+            startOffset++;
+        }
+
+        while (endOffset > startOffset && IsBoundaryCharacter(text[endOffset - 1]))
+        {
+            endOffset--;
+        }
+
+        return (startOffset, endOffset);
+    }
+
+    private static bool IsBoundaryCharacter(char value)
+    {
+        return char.IsWhiteSpace(value)
+            || char.IsPunctuation(value)
+            || char.IsSymbol(value);
     }
 }

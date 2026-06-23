@@ -624,6 +624,11 @@ else if (content is not null)
         translationError = null;
         activeTranslation = null;
 
+        if (readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Sentence or SelectionKind.Paragraph)
+        {
+            activeMode = readerSelection.SelectionType;
+        }
+
         selectionAnchorBlockIndex = readerSelection.BlockIndex;
         selectionAnchorOffset = readerSelection.AnchorOffset;
     }
