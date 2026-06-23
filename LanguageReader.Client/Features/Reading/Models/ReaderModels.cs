@@ -47,6 +47,10 @@ public sealed record ReaderRangeRect(
 
 public sealed record ReaderDomTextHit(int BlockIndex, int Offset);
 
+public sealed record ReaderVisibleBlocks(int ProgressBlockIndex, int BookmarkBlockIndex);
+
+public sealed record ReaderViewportProgress(ReadingPositionDto Position, int ProgressBlockIndex);
+
 public sealed record ReaderBlock(
     int Index,
     string Text,

@@ -60,7 +60,7 @@ else if (content is not null)
                            LoadingTranslationAction="@loadingTranslationAction"
                            OffsetSelected="SelectFromOffsetTapAsync"
                            CustomRangeSelected="SelectCustomRangeAsync"
-                           VisibleBlockChanged="OnVisibleBlockChangedAsync"
+                           VisibleBlocksChanged="OnVisibleBlocksChangedAsync"
                            ScrollBlockIndex="scrollBlockIndex"
                            ScrollOffset="scrollOffset"
                            ScrollRequestKey="scrollRequestKey"
@@ -259,9 +259,11 @@ else if (content is not null)
         blocks.AddRange(ReaderDocumentParser.BuildBlocks(content.Blocks, content.StartBlockIndex));
     }
 
-    private Task OnVisibleBlockChangedAsync(int visibleBlockIndex)
+    private Task OnVisibleBlocksChangedAsync(ReaderVisibleBlocks visibleBlocks)
     {
-        var next = progress.MoveToVisibleBlock(visibleBlockIndex);
+        var next = progress.MoveToVisibleBlocks(
+            visibleBlocks.ProgressBlockIndex,
+            visibleBlocks.BookmarkBlockIndex);
 
         if (next.Equals(progress))
         {
@@ -665,14 +667,18 @@ else if (content is not null)
         return Task.CompletedTask;
     }
 
-    private ReaderProgressState MoveProgressTo(int blockIndex, int characterOffset)
+    private ReaderProgressState MoveProgressTo(int blockIndex, int characterOffset, int? progressBlockIndex = null)
     {
-        return progress.MoveTo(
+        var next = progress.MoveTo(
             blockIndex,
             characterOffset,
             content?.TotalBlocks ?? 0,
             content?.TotalPages ?? 0,
             content?.PageIndex ?? 0);
+
+        return progressBlockIndex.HasValue && next.TotalBlocks > 0
+            ? next with { ProgressBlockIndex = Math.Clamp(progressBlockIndex.Value, 0, next.TotalBlocks - 1) }
+            : next;
     }
 
     private void ClearSelection()
@@ -765,23 +771,25 @@ else if (content is not null)
             return;
         }
 
-        var viewportPosition = textSurface is null
+        var viewportProgress = textSurface is null
             ? null
-            : await textSurface.GetViewportPositionAsync(ReadingItemId);
+            : await textSurface.GetViewportProgressAsync(ReadingItemId);
 
-        await SaveProgressAsync(viewportPosition ?? CurrentPosition());
+        await SaveProgressAsync(
+            viewportProgress?.Position ?? CurrentPosition(),
+            viewportProgress?.ProgressBlockIndex);
     }
 
-    private async Task SaveProgressAsync(ReadingPositionDto position)
+    private async Task SaveProgressAsync(ReadingPositionDto position, int? progressBlockIndex = null)
     {
-        progress = MoveProgressTo(position.BlockIndex, position.CharacterOffset);
+        progress = MoveProgressTo(position.BlockIndex, position.CharacterOffset, progressBlockIndex);
 
         await ReadingApi.SaveReadingProgressAsync(
             new SaveReadingProgressRequest(
                 ReadingItemId,
                 Session.Username!,
                 progress.ReadingPercent,
-                CurrentPosition()));
+                position));
     }
 
     private void StartProgressTimer()

@@ -4,6 +4,7 @@ public readonly record struct ReaderProgressState(
     int TotalBlocks,
     int PageCount,
     int PageIndex,
+    int ProgressBlockIndex,
     int BlockIndex,
     int CharacterOffset)
 {
@@ -17,11 +18,11 @@ public readonly record struct ReaderProgressState(
 
     public double ReadingPercent => TotalBlocks == 0
         ? 0
-        : Math.Clamp(((double)Math.Min(BlockIndex + 1, TotalBlocks) / TotalBlocks) * 100, 0, 100);
+        : Math.Clamp(((double)Math.Min(ProgressBlockIndex + 1, TotalBlocks) / TotalBlocks) * 100, 0, 100);
 
     public static ReaderProgressState Empty()
     {
-        return new ReaderProgressState(0, 0, 0, 0, 0);
+        return new ReaderProgressState(0, 0, 0, 0, 0, 0);
     }
 
     public static ReaderProgressState Create(
@@ -41,6 +42,7 @@ public readonly record struct ReaderProgressState(
             Math.Max(0, pageCount),
             Math.Clamp(pageIndex, 0, pageCount - 1),
             Math.Clamp(blockIndex, 0, totalBlocks - 1),
+            Math.Clamp(blockIndex, 0, totalBlocks - 1),
             Math.Max(0, characterOffset));
     }
 
@@ -54,7 +56,7 @@ public readonly record struct ReaderProgressState(
         return Create(totalBlocks, pageCount, pageIndex, blockIndex, characterOffset);
     }
 
-    public ReaderProgressState MoveToVisibleBlock(int blockIndex)
+    public ReaderProgressState MoveToVisibleBlocks(int progressBlockIndex, int bookmarkBlockIndex)
     {
         if (TotalBlocks <= 0)
         {
@@ -63,7 +65,8 @@ public readonly record struct ReaderProgressState(
 
         return this with
         {
-            BlockIndex = Math.Clamp(blockIndex, 0, TotalBlocks - 1),
+            ProgressBlockIndex = Math.Clamp(progressBlockIndex, 0, TotalBlocks - 1),
+            BlockIndex = Math.Clamp(bookmarkBlockIndex, 0, TotalBlocks - 1),
             CharacterOffset = 0
         };
     }

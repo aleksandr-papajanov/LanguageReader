@@ -197,7 +197,7 @@
     public EventCallback<ReaderCustomSelectionRange> CustomRangeSelected { get; set; }
 
     [Parameter]
-    public EventCallback<int> VisibleBlockChanged { get; set; }
+    public EventCallback<ReaderVisibleBlocks> VisibleBlocksChanged { get; set; }
 
     [Parameter]
     public EventCallback<TranslatedRangeDto> TranslationSelected { get; set; }
@@ -331,9 +331,9 @@
     }
 
     [JSInvokable]
-    public async Task NotifyVisibleBlockChangedAsync(int blockIndex)
+    public async Task NotifyVisibleBlockChangedAsync(int progressBlockIndex, int bookmarkBlockIndex)
     {
-        await VisibleBlockChanged.InvokeAsync(blockIndex);
+        await VisibleBlocksChanged.InvokeAsync(new ReaderVisibleBlocks(progressBlockIndex, bookmarkBlockIndex));
     }
 
     [JSInvokable]
@@ -371,14 +371,19 @@
         await IgnoreCustomSelectionAsync();
     }
 
-    public async Task<ReadingPositionDto?> GetViewportPositionAsync(Guid readingItemId)
+    public async Task<ReaderViewportProgress?> GetViewportProgressAsync(Guid readingItemId)
     {
-        var visibleBlockIndex = await JsRuntime.InvokeAsync<int?>(
+        var bookmarkBlockIndex = await JsRuntime.InvokeAsync<int?>(
+            "languageReaderSelection.getReaderBookmarkBlockIndex",
+            readerPage);
+        var progressBlockIndex = await JsRuntime.InvokeAsync<int?>(
             "languageReaderSelection.getReaderProgressBlockIndex",
             readerPage);
 
-        return visibleBlockIndex.HasValue
-            ? new ReadingPositionDto(readingItemId, visibleBlockIndex.Value, 0)
+        return bookmarkBlockIndex.HasValue && progressBlockIndex.HasValue
+            ? new ReaderViewportProgress(
+                new ReadingPositionDto(readingItemId, bookmarkBlockIndex.Value, 0),
+                progressBlockIndex.Value)
             : null;
     }
 

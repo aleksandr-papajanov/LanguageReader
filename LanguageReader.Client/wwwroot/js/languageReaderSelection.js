@@ -215,8 +215,33 @@ window.languageReaderSelection = {
         return lastParagraphWithVisibleEnd ?? lastPartiallyVisible ?? Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
     },
 
+    getReaderBookmarkBlockIndex: (root) => {
+        if (!root) {
+            return null;
+        }
+
+        const paragraphs = Array.from(root.querySelectorAll("[data-block-index]"));
+        if (paragraphs.length === 0) {
+            return null;
+        }
+
+        const metrics = getReaderViewportInsets();
+        const viewportTop = metrics.top + 12;
+        const viewportBottom = window.innerHeight - metrics.bottom - 12;
+
+        for (const paragraph of paragraphs) {
+            const rect = paragraph.getBoundingClientRect();
+            const isVisible = rect.bottom > viewportTop && rect.top < viewportBottom;
+            if (isVisible) {
+                return Number(paragraph.dataset.blockIndex);
+            }
+        }
+
+        return Number(paragraphs[0].dataset.blockIndex);
+    },
+
     getFirstVisibleBlockIndex: (root) => {
-        return window.languageReaderSelection.getReaderProgressBlockIndex(root);
+        return window.languageReaderSelection.getReaderBookmarkBlockIndex(root);
     },
 
     observeRangeRoot: (root, dotNetReference) => {
@@ -263,13 +288,22 @@ window.languageReaderSelection = {
             window.cancelAnimationFrame(frame);
 
             frame = window.requestAnimationFrame(() => {
-                const blockIndex = window.languageReaderSelection.getReaderProgressBlockIndex(root);
-                if (blockIndex === null || blockIndex === lastBlockIndex) {
+                const progressBlockIndex = window.languageReaderSelection.getReaderProgressBlockIndex(root);
+                const bookmarkBlockIndex = window.languageReaderSelection.getReaderBookmarkBlockIndex(root);
+                if (progressBlockIndex === null || bookmarkBlockIndex === null) {
                     return;
                 }
 
-                lastBlockIndex = blockIndex;
-                dotNetReference.invokeMethodAsync("NotifyVisibleBlockChangedAsync", blockIndex);
+                const signature = `${progressBlockIndex}:${bookmarkBlockIndex}`;
+                if (signature === lastBlockIndex) {
+                    return;
+                }
+
+                lastBlockIndex = signature;
+                dotNetReference.invokeMethodAsync(
+                    "NotifyVisibleBlockChangedAsync",
+                    progressBlockIndex,
+                    bookmarkBlockIndex);
             });
         };
 
