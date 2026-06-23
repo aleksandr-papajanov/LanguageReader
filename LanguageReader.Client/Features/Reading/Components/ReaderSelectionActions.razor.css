@@ -3,11 +3,11 @@
     align-items: center;
     gap: 0.3rem;
     padding-right: 0.45rem;
-    border-right: 1px solid rgba(23, 20, 17, 0.12);
+    border-right: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
 }
 
-.reader-selection-mode,
-.reader-selection-action {
+::deep .reader-selection-mode,
+::deep .reader-selection-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -15,9 +15,9 @@
     height: 2.1rem;
     min-height: 2.1rem;
     padding: 0 0.55rem;
-    border: 1px solid rgba(23, 20, 17, 0.14);
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
     border-radius: 0.8rem;
-    background: #fff;
+    background: var(--color-surface-strong);
     color: var(--color-text-muted);
     font-family: var(--font-ui-serif, var(--font-reading));
     font-size: 0.86rem;
@@ -28,41 +28,23 @@
     transform: none;
 }
 
-.reader-selection-mode--active {
-    border-color: rgba(52, 105, 190, 0.62);
+::deep .reader-selection-mode.reader-selection-mode--active {
+    border-color: color-mix(in srgb, var(--color-text) 62%, var(--color-border));
     color: var(--color-text);
-    background: rgba(52, 105, 190, 0.08);
+    background: var(--color-selection-strong);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 14%, transparent);
 }
 
-.reader-selection-kind {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 2.1rem;
-    padding: 0 0.65rem;
-    border: 1px solid color-mix(in srgb, var(--color-warning) 52%, transparent);
-    border-radius: 0.8rem;
-    background: var(--color-warning-soft);
-    color: var(--color-text);
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    line-height: 1;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.reader-selection-action:disabled {
+::deep .reader-selection-action:disabled {
     opacity: 0.38;
     cursor: default;
 }
 
-.reader-selection-mode:hover,
-.reader-selection-action:hover:not(:disabled),
-.reader-selection-mode:focus-visible,
-.reader-selection-action:focus-visible {
-    border-color: rgba(23, 20, 17, 0.44);
+::deep .reader-selection-mode:hover,
+::deep .reader-selection-action:hover:not(:disabled),
+::deep .reader-selection-mode:focus-visible,
+::deep .reader-selection-action:focus-visible {
+    border-color: var(--color-border-strong);
     color: var(--color-text);
     outline: none;
 }

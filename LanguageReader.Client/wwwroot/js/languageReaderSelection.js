@@ -376,6 +376,8 @@ window.languageReaderSelection = {
                 isSelecting: false
             };
 
+            root.classList.add("reader-page--touch-selecting");
+            document.body.classList.add("reader-touch-selection-active");
             window.clearTimeout(pointerSelectionTimer);
             pointerSelectionTimer = window.setTimeout(() => {
                 if (!pointerSelection || pointerSelection.pointerId !== event.pointerId) {
@@ -383,8 +385,6 @@ window.languageReaderSelection = {
                 }
 
                 pointerSelection.isSelecting = true;
-                root.classList.add("reader-page--touch-selecting");
-                document.body.classList.add("reader-touch-selection-active");
                 setPointerCaptureSafely(root, event.pointerId);
                 clearNativeSelection();
             }, 120);
@@ -398,10 +398,11 @@ window.languageReaderSelection = {
             const deltaX = event.clientX - pointerSelection.startX;
             const deltaY = event.clientY - pointerSelection.startY;
             const distance = Math.hypot(deltaX, deltaY);
+            event.preventDefault();
+            event.stopPropagation();
+
             if (!pointerSelection.isSelecting && distance > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 0.55) {
                 pointerSelection.isSelecting = true;
-                root.classList.add("reader-page--touch-selecting");
-                document.body.classList.add("reader-touch-selection-active");
                 setPointerCaptureSafely(root, event.pointerId);
                 clearNativeSelection();
             }
@@ -410,8 +411,6 @@ window.languageReaderSelection = {
                 return;
             }
 
-            event.preventDefault();
-            event.stopPropagation();
             clearNativeSelection();
 
             const hit = window.languageReaderSelection.getTextOffsetAtPoint(root, event.clientX, event.clientY);

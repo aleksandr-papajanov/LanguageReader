@@ -8,12 +8,7 @@
                        AdditionalClass="@GetModeClass(mode)"
                        Title="@SelectionModeLabelFor(mode)"
                        StopPropagation="true"
-                       OnClick="@(() => ModeSelected.InvokeAsync(mode))" />
-        }
-
-        @if (ActiveMode == SelectionKind.Unknown)
-        {
-            <span class="reader-selection-kind" title="Custom selection">Custom</span>
+                       OnClick="@(() => SelectModeAsync(mode))" />
         }
     </div>
 
@@ -35,7 +30,8 @@
     [
         SelectionKind.Word,
         SelectionKind.Sentence,
-        SelectionKind.Paragraph
+        SelectionKind.Paragraph,
+        SelectionKind.Unknown
     ];
 
     [Parameter]
@@ -71,6 +67,13 @@
             : "reader-selection-mode";
     }
 
+    private Task SelectModeAsync(SelectionKind mode)
+    {
+        return mode == SelectionKind.Unknown
+            ? Task.CompletedTask
+            : ModeSelected.InvokeAsync(mode);
+    }
+
     private static string SelectionModeShortLabelFor(SelectionKind mode)
     {
         return mode switch
@@ -78,6 +81,7 @@
             SelectionKind.Word => "W",
             SelectionKind.Sentence => "S",
             SelectionKind.Paragraph => "P",
+            SelectionKind.Unknown => "C",
             _ => mode.ToString()
         };
     }
@@ -89,6 +93,7 @@
             SelectionKind.Word => "Word",
             SelectionKind.Sentence => "Sentence",
             SelectionKind.Paragraph => "Paragraph",
+            SelectionKind.Unknown => "Custom",
             _ => mode.ToString()
         };
     }
