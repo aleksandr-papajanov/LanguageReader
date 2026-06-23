@@ -4,6 +4,7 @@ using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Models;
 using LanguageReader.Infrastructure.Storage;
+using LanguageReader.Shared.Features.Books;
 
 namespace LanguageReader.Infrastructure.Features.ReadingItems.Services;
 
@@ -37,7 +38,17 @@ public sealed class ReadingItemContentService(
             parsedBook.Title ?? item.Title,
             item.Type,
             LanguageNameNormalizer.Normalize(item.OriginalLanguage),
-            parsedBook.Pages);
+            parsedBook.Blocks.Select(x => new BookContentBlockDto(
+                x.Type,
+                x.Text,
+                x.ImageId))
+                .ToArray(),
+            parsedBook.Images.ToDictionary(
+                x => x.Key,
+                x => new BookImageDto(
+                    x.Value.Id,
+                    x.Value.ContentType,
+                    x.Value.Base64Content)));
     }
 
     private static async Task<ReadingItemContentDto> LoadArticleAsync(
@@ -45,14 +56,26 @@ public sealed class ReadingItemContentService(
         Stream stream,
         CancellationToken cancellationToken)
     {
-        var document = await JsonSerializer.DeserializeAsync<StoredArticleDocument>(stream, JsonOptions, cancellationToken)
+        var document = await JsonSerializer.DeserializeAsync<StoredArticleDocument>(
+            stream,
+            JsonOptions,
+            cancellationToken)
             ?? throw new InvalidOperationException("Stored article content is invalid.");
+
+        var blocks = document.Paragraphs
+            .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
+            .Select(paragraph => new BookContentBlockDto(
+                BookBlockType.Paragraph,
+                paragraph.Trim(),
+                ImageId: null))
+            .ToArray();
 
         return new ReadingItemContentDto(
             item.Id,
             document.Title,
             item.Type,
             LanguageNameNormalizer.Normalize(item.OriginalLanguage),
-            document.Paragraphs);
+            blocks,
+            Images: new Dictionary<string, BookImageDto>());
     }
 }

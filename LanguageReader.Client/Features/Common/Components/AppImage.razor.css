@@ -4,7 +4,6 @@
     width: 100%;
     height: auto;
     overflow: hidden;
-    background: var(--color-surface-strong);
 }
 
 .app-image--fill {
@@ -25,6 +24,23 @@
     height: 100%;
 }
 
+.app-image--mask .app-image__media {
+    display: block;
+    width: 100%;
+    height: 100%;
+
+    background: var(--app-image-mask-color, currentColor);
+
+    -webkit-mask-image: var(--app-image-mask-src);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+
+    mask-image: var(--app-image-mask-src);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+}
 .app-image canvas.app-image__media {
     background: #fff;
 }

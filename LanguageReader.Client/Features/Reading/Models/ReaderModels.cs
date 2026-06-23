@@ -50,6 +50,8 @@ public sealed record ReaderDomTextHit(int ParagraphIndex, int Offset);
 public sealed record ReaderParagraph(
     int Index,
     string Text,
+    BookBlockType Type,
+    string? ImageId,
     IReadOnlyList<InlineSegment> Segments,
     IReadOnlyList<WordToken> Words,
     IReadOnlyList<TextRange> Sentences);

@@ -18,6 +18,10 @@ body {
     overflow-x: clip;
     background: var(--color-bg);
     color: var(--color-text);
+
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .app-layout__top {
@@ -47,7 +51,7 @@ body {
 }
 
 .app-layout__top-inner {
-    padding-block: 0;
+    padding-inline: 0;
 }
 
 .app-layout__bottom-inner {

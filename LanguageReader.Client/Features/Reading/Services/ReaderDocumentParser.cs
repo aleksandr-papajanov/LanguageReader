@@ -1,17 +1,18 @@
-#pragma warning disable CS1591
-
 using System.Text.RegularExpressions;
 
 namespace LanguageReader.Client.Features.Reading.Services;
 
 public static class ReaderDocumentParser
 {
-    private static readonly Regex WordRegex = new(@"[\p{L}\p{N}]+(?:['\u2019-][\p{L}\p{N}]+)*", RegexOptions.Compiled);
+    private static readonly Regex WordRegex = new(
+        @"[\p{L}\p{N}]+(?:['\u2019-][\p{L}\p{N}]+)*",
+        RegexOptions.Compiled);
 
-    public static IReadOnlyList<ReaderParagraph> BuildParagraphs(IReadOnlyList<string> pages)
+    public static IReadOnlyList<ReaderParagraph> BuildParagraphs(
+        IReadOnlyList<BookContentBlockDto> blocks)
     {
-        return pages
-            .Select((text, index) => BuildParagraph(index, text))
+        return blocks
+            .Select((block, index) => BuildParagraph(index, block))
             .ToList();
     }
 
@@ -20,6 +21,7 @@ public static class ReaderDocumentParser
         int paragraphsPerPage)
     {
         var pages = new List<IReadOnlyList<ReaderParagraph>>();
+
         for (var i = 0; i < paragraphs.Count; i += paragraphsPerPage)
         {
             pages.Add(paragraphs.Skip(i).Take(paragraphsPerPage).ToList());
@@ -37,27 +39,69 @@ public static class ReaderDocumentParser
 
         var trimmed = text.Trim();
         var matches = WordRegex.Matches(trimmed);
+
         if (matches.Count != 1)
         {
             return null;
         }
 
         var match = matches[0];
-        return match.Index == 0 && match.Length == trimmed.Length ? match.Value : null;
+        return match.Index == 0 && match.Length == trimmed.Length
+            ? match.Value
+            : null;
     }
 
-    private static ReaderParagraph BuildParagraph(int index, string text)
+    private static ReaderParagraph BuildParagraph(int index, BookContentBlockDto block)
     {
+        var text = block.Text ?? string.Empty;
+
+        if (!CanTokenize(block.Type))
+        {
+            return new ReaderParagraph(
+                index,
+                text,
+                block.Type,
+                block.ImageId,
+                Segments: [],
+                Words: [],
+                Sentences: []);
+        }
+
         var words = WordRegex.Matches(text)
-            .Select((match, wordIndex) => new WordToken(wordIndex, match.Index, match.Index + match.Length, match.Value))
+            .Select((match, wordIndex) => new WordToken(
+                wordIndex,
+                match.Index,
+                match.Index + match.Length,
+                match.Value))
             .ToList();
+
         var sentences = BuildSentences(text);
         var segments = BuildSegments(text, words);
 
-        return new ReaderParagraph(index, text, segments, words, sentences);
+        return new ReaderParagraph(
+            index,
+            text,
+            block.Type,
+            block.ImageId,
+            segments,
+            words,
+            sentences);
     }
 
-    private static IReadOnlyList<InlineSegment> BuildSegments(string text, IReadOnlyList<WordToken> words)
+    private static bool CanTokenize(BookBlockType type)
+    {
+        return type is
+            BookBlockType.Paragraph or
+            BookBlockType.Heading1 or
+            BookBlockType.Heading2 or
+            BookBlockType.Quote or
+            BookBlockType.Verse or
+            BookBlockType.Author;
+    }
+
+    private static IReadOnlyList<InlineSegment> BuildSegments(
+        string text,
+        IReadOnlyList<WordToken> words)
     {
         var segments = new List<InlineSegment>();
         var cursor = 0;
@@ -66,16 +110,29 @@ public static class ReaderDocumentParser
         {
             if (word.StartOffset > cursor)
             {
-                segments.Add(new InlineSegment(text[cursor..word.StartOffset], cursor, word.StartOffset, null));
+                segments.Add(new InlineSegment(
+                    text[cursor..word.StartOffset],
+                    cursor,
+                    word.StartOffset,
+                    null));
             }
 
-            segments.Add(new InlineSegment(text[word.StartOffset..word.EndOffset], word.StartOffset, word.EndOffset, word));
+            segments.Add(new InlineSegment(
+                text[word.StartOffset..word.EndOffset],
+                word.StartOffset,
+                word.EndOffset,
+                word));
+
             cursor = word.EndOffset;
         }
 
         if (cursor < text.Length)
         {
-            segments.Add(new InlineSegment(text[cursor..], cursor, text.Length, null));
+            segments.Add(new InlineSegment(
+                text[cursor..],
+                cursor,
+                text.Length,
+                null));
         }
 
         return segments;
@@ -94,6 +151,7 @@ public static class ReaderDocumentParser
             }
 
             var end = i + 1;
+
             while (end < text.Length && char.IsWhiteSpace(text[end]))
             {
                 end++;
@@ -104,10 +162,17 @@ public static class ReaderDocumentParser
         }
 
         AddSentence(sentences, text, start, text.Length);
-        return sentences.Count == 0 ? [new TextRange(0, text.Length)] : sentences;
+
+        return sentences.Count == 0
+            ? [new TextRange(0, text.Length)]
+            : sentences;
     }
 
-    private static void AddSentence(List<TextRange> sentences, string text, int start, int end)
+    private static void AddSentence(
+        List<TextRange> sentences,
+        string text,
+        int start,
+        int end)
     {
         while (start < end && char.IsWhiteSpace(text[start]))
         {
@@ -125,6 +190,3 @@ public static class ReaderDocumentParser
         }
     }
 }
-
-#pragma warning restore CS1591
-

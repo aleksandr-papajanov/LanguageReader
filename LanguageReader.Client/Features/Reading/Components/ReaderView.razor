@@ -236,9 +236,13 @@ else if (content is not null)
             return;
         }
 
-        paragraphs.AddRange(ReaderDocumentParser.BuildParagraphs(content.Paragraphs));
+        paragraphs.AddRange(ReaderDocumentParser.BuildParagraphs(content.Blocks));
         pages.AddRange(ReaderDocumentParser.BuildPages(paragraphs, ParagraphsPerPage));
-        progress = ReaderProgressState.Create(ParagraphsPerPage, paragraphs.Count, pages.Count);
+
+        progress = ReaderProgressState.Create(
+            ParagraphsPerPage,
+            paragraphs.Count,
+            pages.Count);
     }
 
     private Task OnVisibleParagraphChangedAsync(int visibleParagraphIndex)

@@ -12,12 +12,12 @@
     justify-content: center;
     gap: var(--space-3);
     padding: 0.1rem 0 0.35rem;
-    background: linear-gradient(
+    /* background: linear-gradient(
         to bottom,
         color-mix(in srgb, var(--color-bg) 96%, transparent),
         color-mix(in srgb, var(--color-bg) 68%, transparent)
-    );
-    backdrop-filter: blur(12px);
+    ); */
+    backdrop-filter: blur(3px);
 }
 
 .library-filter {

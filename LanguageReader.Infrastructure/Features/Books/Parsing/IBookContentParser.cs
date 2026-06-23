@@ -1,3 +1,5 @@
+using LanguageReader.Infrastructure.Features.Books.Parsing.Models;
+
 namespace LanguageReader.Infrastructure.Features.Books.Parsing;
 
 /// <summary>
@@ -13,4 +15,3 @@ public interface IBookContentParser
     /// <returns>Parsed book content.</returns>
     Task<ParsedBook> ParseAsync(Stream content, CancellationToken cancellationToken = default);
 }
-

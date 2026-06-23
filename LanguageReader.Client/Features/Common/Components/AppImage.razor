@@ -2,7 +2,15 @@
 @implements IAsyncDisposable
 
 <div class="@WrapperClass" style="@WrapperStyle">
-    @if (ShouldRenderImage)
+    @if (UseMask)
+    {
+        <span class="@MediaClassName"
+              style="@MaskStyle"
+              role="@CanvasRole"
+              aria-label="@CanvasLabel"
+              aria-hidden="@Decorative"></span>
+    }
+    else if (ShouldRenderImage)
     {
         <img src="@Src"
              alt="@ResolvedAlt"
@@ -90,6 +98,31 @@
     [Parameter]
     public double HalftoneUnderlayBlur { get; set; } = 0.8;
 
+    [Parameter]
+    public bool UseMask { get; set; }
+
+    [Parameter]
+    public string MaskColor { get; set; } = "currentColor";
+
+    private string? MaskStyle
+    {
+        get
+        {
+            var styles = new List<string>
+            {
+                $"--app-image-mask-src: url('{Src}')",
+                $"--app-image-mask-color: {MaskColor}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(MediaStyle))
+            {
+                styles.Add(MediaStyle);
+            }
+
+            return string.Join("; ", styles);
+        }
+    }
+
     private string ResolvedAlt => Decorative ? string.Empty : Alt;
 
     private bool ShouldRenderImage => Effect == AppImageEffect.None || effectFailed;
@@ -105,6 +138,11 @@
         get
         {
             var classes = new List<string> { "app-image" };
+            
+            if (UseMask)
+            {
+                classes.Add("app-image--mask");
+            }
 
             if (Inline)
             {
@@ -170,7 +208,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (ShouldRenderImage || string.IsNullOrWhiteSpace(Src) || string.Equals(renderedEffectKey, EffectKey, StringComparison.Ordinal))
+        if (UseMask || ShouldRenderImage || string.IsNullOrWhiteSpace(Src) || string.Equals(renderedEffectKey, EffectKey, StringComparison.Ordinal))
         {
             return;
         }

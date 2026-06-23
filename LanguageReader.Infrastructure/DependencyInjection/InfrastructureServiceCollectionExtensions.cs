@@ -19,6 +19,7 @@ using LanguageReader.Infrastructure.Features.ReadingItems.Services;
 using LanguageReader.Infrastructure.Features.Translation.Services;
 using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
 using LanguageReader.Infrastructure.Features.Ai.Settings;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace LanguageReader.Infrastructure.DependencyInjection;
 
@@ -27,8 +28,7 @@ namespace LanguageReader.Infrastructure.DependencyInjection;
 /// </summary>
 public static class InfrastructureServiceCollectionExtensions
 {
-    private const string BrowserUserAgent =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+    private const string BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 
     /// <summary>
     /// Registers all infrastructure services.
@@ -62,7 +62,13 @@ public static class InfrastructureServiceCollectionExtensions
 
             options.UseNpgsql(
                 databaseOptions.ConnectionString,
-                npgsqlOptions => npgsqlOptions.CommandTimeout(databaseOptions.CommandTimeoutSeconds));
+                npgsqlOptions => 
+                {
+                    npgsqlOptions.CommandTimeout(databaseOptions.CommandTimeoutSeconds);
+                    npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                });
+            
+            options.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
         });
 
         return services;

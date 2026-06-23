@@ -4,39 +4,56 @@
 @implements IDisposable
 
 <div class="top-row">
-    @if (ShowBackButton)
-    {
-        <AppButton Variant="ghost"
-                   Size="sm"
-                   Icon="arrow_back"
-                   IconOnly="true"
-                   Title="Back"
-                   OnClick="@(_ => NavigateBackAsync())" />
-    }
+    <div class="top-row__left">
+        @if (ShowBackButton)
+        {
+            <AppButton Variant="ghost"
+                       Size="sm"
+                       Icon="arrow_back"
+                       IconOnly="true"
+                       Title="Back"
+                       OnClick="@(_ => NavigateBackAsync())" />
+        }
+
+        @if (Session.IsSignedIn)
+        {
+            <div class="session-status">
+                <strong class="session-status__user">@Session.Username</strong>
+            </div>
+        }
+        else
+        {
+            <NavLink class="session-link" href="login">Login</NavLink>
+        }
+    </div>
 
     @if (Session.IsSignedIn)
     {
-        <div class="session-status">
-            <span class="session-status__label">Signed in as</span>
-            <strong class="session-status__user">@Session.Username</strong>
+        <div class="top-row__brand">
+            <div class="top-row__brand-visual">
+                <AppImage Src="/assets/logo-full.svg"
+                        Decorative="true"
+                        UseMask="true"
+                        FillContainer="true"
+                        AdditionalClass="top-row-logo" />
+            </div>
         </div>
-        <AppButton Variant="ghost"
-                   Size="sm"
-                   Icon="@ThemeIcon"
-                   IconOnly="true"
-                   Title="@ThemeTitle"
-                   AdditionalClass="session-status__theme-toggle"
-                   OnClick="@(_ => ToggleThemeAsync())" />
-        <AppButton Variant="ghost"
-                   Size="sm"
-                   Icon="logout"
-                   IconOnly="true"
-                   Title="Logout"
-                   OnClick="@(_ => LogoutAsync())" />
-    }
-    else
-    {
-        <NavLink class="session-link" href="login">Login</NavLink>
+
+        <div class="top-row__right">
+            <AppButton Variant="ghost"
+                       Size="sm"
+                       Icon="@ThemeIcon"
+                       IconOnly="true"
+                       Title="@ThemeTitle"
+                       OnClick="@(_ => ToggleThemeAsync())" />
+
+            <AppButton Variant="ghost"
+                       Size="sm"
+                       Icon="logout"
+                       IconOnly="true"
+                       Title="Logout"
+                       OnClick="@(_ => LogoutAsync())" />
+        </div>
     }
 </div>
 
