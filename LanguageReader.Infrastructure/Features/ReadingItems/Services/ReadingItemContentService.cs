@@ -1,143 +1,219 @@
-using System.Text.Json;
-using LanguageReader.Infrastructure.Features.Books.Parsing;
+using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
-using LanguageReader.Infrastructure.Features.ReadingItems.Models;
 using LanguageReader.Infrastructure.Storage;
+using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Infrastructure.Features.ReadingItems.Services;
 
 public sealed class ReadingItemContentService(
-    IFileStorage storage,
-    IBookContentParser bookContentParser) : IReadingItemContentService
+    ApplicationDbContext dbContext,
+    IFileStorage fileStorage) : IReadingItemContentService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public async Task<ReadingItemContentPageDto> LoadPageAsync(
         ReadingItemEntity item,
         GetReadingItemContentRequest request,
         CancellationToken cancellationToken = default)
     {
-        await using var stream = await storage.OpenReadAsync(item.StoragePath, cancellationToken);
-
-        return item.ContentFormat switch
-        {
-            ReadingContentFormat.Fb2 => await LoadBookAsync(item, request, stream, cancellationToken),
-            ReadingContentFormat.ExtractedArticle => await LoadArticleAsync(item, request, stream, cancellationToken),
-            _ => throw new InvalidOperationException($"Unsupported content format '{item.ContentFormat}'.")
-        };
-    }
-
-    private async Task<ReadingItemContentPageDto> LoadBookAsync(
-        ReadingItemEntity item,
-        GetReadingItemContentRequest request,
-        Stream stream,
-        CancellationToken cancellationToken)
-    {
-        var parsedBook = await bookContentParser.ParseAsync(stream, cancellationToken);
-        var blocks = AssignAddressableBlockIndexes(parsedBook.Blocks.Select(x => new ReadingContentBlockDto(
-            x.Type,
-            x.Text,
-            x.ImageId)))
+        var document = await dbContext.ReadingItemDocuments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(candidate => candidate.ReadingItemId == item.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Reading item '{item.Id}' does not have a canonical document.");
+        var page = await ResolvePageAsync(item.Id, request, cancellationToken);
+        var blockEntities = await dbContext.ReadingItemBlocks
+            .AsNoTracking()
+            .Where(block =>
+                block.ReadingItemId == item.Id
+                && block.SequenceIndex >= page.StartSequenceIndex
+                && block.SequenceIndex <= page.EndSequenceIndex)
+            .OrderBy(block => block.SequenceIndex)
+            .ToListAsync(cancellationToken);
+        var blocks = blockEntities
+            .Select(block => new ReadingContentBlockDto(
+                block.Type,
+                block.Text,
+                block.ImageId,
+                block.BlockIndex))
             .ToArray();
-        var page = ReadingItemContentPager.Slice(
-            blocks,
-            request.PageIndex,
-            request.BlockIndex,
-            request.TargetPageWeight);
-        var pageImageIds = page.Blocks
+        var imageIds = blocks
             .Select(block => block.ImageId)
             .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToHashSet(StringComparer.Ordinal);
+            .Select(id => id!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var images = await LoadImagesAsync(item.Id, imageIds, cancellationToken);
 
         return new ReadingItemContentPageDto(
             item.Id,
-            parsedBook.Title ?? item.Title,
+            item.Title,
             item.Type,
             LanguageNameNormalizer.Normalize(item.OriginalLanguage),
             page.PageIndex,
             page.TotalPages,
             page.StartBlockIndex,
             page.EndBlockIndex,
-            page.TotalBlocks,
-            page.Blocks,
-            parsedBook.Images
-                .Where(image => pageImageIds.Contains(image.Key))
-                .ToDictionary(
-                x => x.Key,
-                x => new ReadingImageDto(
-                    x.Value.Id,
-                    x.Value.ContentType,
-                    x.Value.Base64Content),
-                StringComparer.OrdinalIgnoreCase));
+            document.TotalBlocks,
+            blocks,
+            images);
     }
 
-    private static async Task<ReadingItemContentPageDto> LoadArticleAsync(
-        ReadingItemEntity item,
+    private async Task<ResolvedReadingItemPage> ResolvePageAsync(
+        Guid readingItemId,
         GetReadingItemContentRequest request,
-        Stream stream,
         CancellationToken cancellationToken)
     {
-        var document = await JsonSerializer.DeserializeAsync<StoredArticleDocument>(
-            stream,
-            JsonOptions,
-            cancellationToken)
-            ?? throw new InvalidOperationException("Stored article content is invalid.");
+        var blockPlan = await dbContext.ReadingItemBlocks
+            .AsNoTracking()
+            .Where(block => block.ReadingItemId == readingItemId)
+            .OrderBy(block => block.SequenceIndex)
+            .Select(block => new ReadingItemBlockPageSource(
+                block.SequenceIndex,
+                block.BlockIndex,
+                block.Weight))
+            .ToListAsync(cancellationToken);
+        var pages = BuildPages(blockPlan);
 
-        var blocks = AssignAddressableBlockIndexes(document.Paragraphs
-            .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
-            .Select(paragraph => new ReadingContentBlockDto(
-                ReadingContentBlockType.Paragraph,
-                paragraph.Trim(),
-                ImageId: null)))
-            .ToArray();
-        var page = ReadingItemContentPager.Slice(
-            blocks,
-            request.PageIndex,
-            request.BlockIndex,
-            request.TargetPageWeight);
+        if (pages.Count == 0)
+        {
+            return new ResolvedReadingItemPage(0, 1, 0, 0, 0, 0);
+        }
 
-        return new ReadingItemContentPageDto(
-            item.Id,
-            document.Title,
-            item.Type,
-            LanguageNameNormalizer.Normalize(item.OriginalLanguage),
-            page.PageIndex,
-            page.TotalPages,
-            page.StartBlockIndex,
-            page.EndBlockIndex,
-            page.TotalBlocks,
-            page.Blocks,
-            Images: new Dictionary<string, ReadingImageDto>());
+        if (request.BlockIndex.HasValue)
+        {
+            var blockIndex = Math.Max(0, request.BlockIndex.Value);
+            var pageByBlock = pages
+                .OrderBy(page => page.PageIndex)
+                .FirstOrDefault(page =>
+                    page.StartBlockIndex <= blockIndex
+                    && page.EndBlockIndex >= blockIndex);
+
+            if (pageByBlock is not null)
+            {
+                return pageByBlock;
+            }
+        }
+
+        var requestedPageIndex = Math.Max(0, request.PageIndex ?? 0);
+        return pages[Math.Clamp(requestedPageIndex, 0, pages.Count - 1)];
     }
 
-    private static IEnumerable<ReadingContentBlockDto> AssignAddressableBlockIndexes(
-        IEnumerable<ReadingContentBlockDto> blocks)
+    private static IReadOnlyList<ResolvedReadingItemPage> BuildPages(
+        IReadOnlyList<ReadingItemBlockPageSource> blocks)
     {
-        var blockIndex = 0;
-
-        foreach (var block in blocks)
+        if (blocks.Count == 0)
         {
-            if (!IsAddressableTextBlock(block))
+            return [];
+        }
+
+        var pages = new List<ResolvedReadingItemPage>();
+        var pageStartSequenceIndex = blocks[0].SequenceIndex;
+        var pageWeight = 0;
+
+        for (var index = 0; index < blocks.Count; index++)
+        {
+            var block = blocks[index];
+            var blockWeight = Math.Max(0, block.Weight);
+            var wouldOverfill = pageWeight > 0
+                && pageWeight + blockWeight > ReadingItemContentPager.DefaultTargetPageWeight;
+            var isLargeBlock = blockWeight >= ReadingItemContentPager.DefaultTargetPageWeight;
+
+            if (wouldOverfill)
             {
-                yield return block with { BlockIndex = null };
-                continue;
+                AddPage(pages, blocks, pageStartSequenceIndex, blocks[index - 1].SequenceIndex);
+                pageStartSequenceIndex = block.SequenceIndex;
+                pageWeight = 0;
             }
 
-            yield return block with { BlockIndex = blockIndex };
-            blockIndex++;
+            pageWeight += blockWeight;
+
+            if (isLargeBlock)
+            {
+                AddPage(pages, blocks, pageStartSequenceIndex, block.SequenceIndex);
+                if (index + 1 < blocks.Count)
+                {
+                    pageStartSequenceIndex = blocks[index + 1].SequenceIndex;
+                }
+
+                pageWeight = 0;
+            }
         }
+
+        if (pages.Count == 0 || pages[^1].EndSequenceIndex < blocks[^1].SequenceIndex)
+        {
+            AddPage(pages, blocks, pageStartSequenceIndex, blocks[^1].SequenceIndex);
+        }
+
+        return pages
+            .Select(page => page with { TotalPages = pages.Count })
+            .ToArray();
     }
 
-    private static bool IsAddressableTextBlock(ReadingContentBlockDto block)
+    private static void AddPage(
+        List<ResolvedReadingItemPage> pages,
+        IReadOnlyList<ReadingItemBlockPageSource> blocks,
+        int startSequenceIndex,
+        int endSequenceIndex)
     {
-        return !string.IsNullOrWhiteSpace(block.Text)
-            && block.Type is
-                ReadingContentBlockType.Paragraph or
-                ReadingContentBlockType.Heading1 or
-                ReadingContentBlockType.Heading2 or
-                ReadingContentBlockType.Quote or
-                ReadingContentBlockType.Verse or
-                ReadingContentBlockType.Author;
+        var pageBlocks = blocks
+            .Where(block => block.SequenceIndex >= startSequenceIndex && block.SequenceIndex <= endSequenceIndex)
+            .ToArray();
+        var addressableBlockIndexes = pageBlocks
+            .Select(block => block.BlockIndex)
+            .Where(blockIndex => blockIndex.HasValue)
+            .Select(blockIndex => blockIndex!.Value)
+            .ToArray();
+        var startBlockIndex = addressableBlockIndexes.Length == 0 ? 0 : addressableBlockIndexes.Min();
+        var endBlockIndex = addressableBlockIndexes.Length == 0 ? startBlockIndex : addressableBlockIndexes.Max();
+
+        pages.Add(new ResolvedReadingItemPage(
+            pages.Count,
+            0,
+            startSequenceIndex,
+            endSequenceIndex,
+            startBlockIndex,
+            endBlockIndex));
     }
+
+    private async Task<IReadOnlyDictionary<string, ReadingImageDto>> LoadImagesAsync(
+        Guid readingItemId,
+        IReadOnlySet<string> imageIds,
+        CancellationToken cancellationToken)
+    {
+        if (imageIds.Count == 0)
+        {
+            return new Dictionary<string, ReadingImageDto>();
+        }
+
+        var assets = await dbContext.ReadingItemAssets
+            .AsNoTracking()
+            .Where(asset => asset.ReadingItemId == readingItemId && imageIds.Contains(asset.AssetId))
+            .ToListAsync(cancellationToken);
+        var images = new Dictionary<string, ReadingImageDto>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var asset in assets)
+        {
+            await using var stream = await fileStorage.OpenReadAsync(asset.StoragePath, cancellationToken);
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory, cancellationToken);
+
+            images[asset.AssetId] = new ReadingImageDto(
+                asset.AssetId,
+                asset.ContentType,
+                Convert.ToBase64String(memory.ToArray()));
+        }
+
+        return images;
+    }
+
+    private sealed record ReadingItemBlockPageSource(
+        int SequenceIndex,
+        int? BlockIndex,
+        int Weight);
+
+    private sealed record ResolvedReadingItemPage(
+        int PageIndex,
+        int TotalPages,
+        int StartSequenceIndex,
+        int EndSequenceIndex,
+        int StartBlockIndex,
+        int EndBlockIndex);
 }

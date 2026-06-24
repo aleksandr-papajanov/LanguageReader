@@ -103,62 +103,6 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.ToTable("ai_operations", (string)null);
                 });
 
-            modelBuilder.Entity("LanguageReader.Infrastructure.Features.Books.Entities.BookEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_public");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("original_file_name");
-
-                    b.Property<string>("OriginalLanguage")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasDefaultValue("Unknown")
-                        .HasColumnName("original_language");
-
-                    b.Property<string>("OwnerUsername")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("owner_username");
-
-                    b.Property<string>("StoragePath")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)")
-                        .HasColumnName("storage_path");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("title");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsPublic");
-
-                    b.HasIndex("OwnerUsername");
-
-                    b.ToTable("books", (string)null);
-                });
-
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.News.Entities.RssArticleCandidateEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -410,6 +354,132 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.HasIndex("ExternalId");
 
                     b.ToTable("article_metadata", (string)null);
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemAssetEntity", b =>
+                {
+                    b.Property<Guid>("ReadingItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reading_item_id");
+
+                    b.Property<string>("AssetId")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("asset_id");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("alt_text");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("content_type");
+
+                    b.Property<int?>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<bool>("IsCover")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_cover");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("storage_path");
+
+                    b.Property<int?>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("ReadingItemId", "AssetId");
+
+                    b.HasIndex("ReadingItemId", "IsCover");
+
+                    b.ToTable("reading_item_assets", (string)null);
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemBlockEntity", b =>
+                {
+                    b.Property<Guid>("ReadingItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reading_item_id");
+
+                    b.Property<int>("SequenceIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence_index");
+
+                    b.Property<int?>("BlockIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("block_index");
+
+                    b.Property<string>("ImageId")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("image_id");
+
+                    b.Property<string>("Text")
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("type");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("integer")
+                        .HasColumnName("weight");
+
+                    b.HasKey("ReadingItemId", "SequenceIndex");
+
+                    b.HasIndex("ReadingItemId", "BlockIndex");
+
+                    b.ToTable("reading_item_blocks", (string)null);
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemDocumentEntity", b =>
+                {
+                    b.Property<Guid>("ReadingItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reading_item_id");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("schema_version");
+
+                    b.Property<int>("TotalBlocks")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_blocks");
+
+                    b.Property<int>("TotalPages")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_pages");
+
+                    b.HasKey("ReadingItemId");
+
+                    b.ToTable("reading_item_documents", (string)null);
                 });
 
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", b =>
@@ -787,6 +857,39 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.Navigation("ReadingItem");
                 });
 
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemAssetEntity", b =>
+                {
+                    b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "ReadingItem")
+                        .WithMany("Assets")
+                        .HasForeignKey("ReadingItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReadingItem");
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemBlockEntity", b =>
+                {
+                    b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "ReadingItem")
+                        .WithMany("Blocks")
+                        .HasForeignKey("ReadingItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReadingItem");
+                });
+
+            modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemDocumentEntity", b =>
+                {
+                    b.HasOne("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", "ReadingItem")
+                        .WithOne("Document")
+                        .HasForeignKey("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemDocumentEntity", "ReadingItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReadingItem");
+                });
+
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.Vocabulary.Entities.RelatedWordEntity", b =>
                 {
                     b.HasOne("LanguageReader.Infrastructure.Features.Vocabulary.Entities.VocabularyEntryEntity", "VocabularyEntry")
@@ -845,6 +948,12 @@ namespace LanguageReader.Infrastructure.Data.Migrations
             modelBuilder.Entity("LanguageReader.Infrastructure.Features.ReadingItems.Entities.ReadingItemEntity", b =>
                 {
                     b.Navigation("ArticleMetadata");
+
+                    b.Navigation("Assets");
+
+                    b.Navigation("Blocks");
+
+                    b.Navigation("Document");
 
                     b.Navigation("ReadingProgresses");
 

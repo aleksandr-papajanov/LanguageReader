@@ -1,3 +1,4 @@
+using LanguageReader.Api.Features.Maintenance;
 using LanguageReader.Api.Features.ReadingItemTranslations;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Api.Features.News;
@@ -16,13 +17,21 @@ internal static class FeatureRegistration
     public static IServiceCollection AddFeatureHandlers(this IServiceCollection services)
     {
         services.AddScoped<UserSettingsAccessor>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ReadingItemApiUrlBuilder>();
+        services.AddScoped<ReadingItemImportWriter>();
 
         services.AddScoped<ImportReadingItemHandler>();
+        services.AddScoped<PreviewReadingItemUrlImportHandler>();
+        services.AddScoped<ImportReadingItemFromUrlHandler>();
         services.AddScoped<GetReadingItemsHandler>();
         services.AddScoped<GetReadingItemHandler>();
         services.AddScoped<GetReadingItemContentHandler>();
+        services.AddScoped<GetReadingItemAssetHandler>();
         services.AddScoped<UpdateReadingItemVisibilityHandler>();
         services.AddScoped<DeleteReadingItemHandler>();
+        services.AddScoped<ResetImportedReadingContentHandler>();
+        services.AddScoped<PreviewNewsArticleHandler>();
         services.AddScoped<ImportNewsArticleHandler>();
 
         services.AddScoped<GetReadingItemTranslationsHandler>();

@@ -24,12 +24,10 @@ else if (!string.IsNullOrWhiteSpace(state.Error))
 else
 {
     <section class="library-shell">
-        <div class="library-header-row">
-            <AppTabs Items="LibraryHomeState.Tabs"
-                     ActiveValue="@state.ActiveTab"
-                     ActiveValueChanged="SelectTab"
-                     AriaLabel="Library filters" />
-        </div>
+        <AppTabs Items="LibraryHomeState.Tabs"
+                 ActiveValue="@state.ActiveTab"
+                 ActiveValueChanged="SelectTab"
+                 AriaLabel="Library filters" />
 
         @if (state.ActiveTab is "reading")
         {

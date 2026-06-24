@@ -2,6 +2,13 @@
 @implements IAsyncDisposable
 
 <div class="@WrapperClass" style="@WrapperStyle">
+    @if (ShouldShowLoading)
+    {
+        <span class="app-image__loading" aria-hidden="true">
+            <span class="app-image__loading-glow"></span>
+        </span>
+    }
+
     @if (UseMask)
     {
         <span class="@MediaClassName"
@@ -19,6 +26,8 @@
              loading="@Loading"
              decoding="@Decoding"
              draggable="false"
+             @onload="HandleImageLoaded"
+             @onerror="HandleImageError"
              aria-hidden="@Decorative" />
     }
     else
@@ -36,6 +45,9 @@
     private ElementReference canvas;
     private CancellationTokenSource? renderCancellation;
     private string? renderedEffectKey;
+    private string? mediaStateKey;
+    private bool mediaLoaded;
+    private bool mediaFailed;
     private bool effectFailed;
 
     [Parameter, EditorRequired]
@@ -84,19 +96,19 @@
     public int HalftoneSize { get; set; } = 900;
 
     [Parameter]
-    public int HalftoneCell { get; set; } = 3;
+    public int HalftoneCell { get; set; } = 6;
 
     [Parameter]
-    public int HalftoneBlackCell { get; set; } = 6;
+    public int HalftoneBlackCell { get; set; } = 8;
 
     [Parameter]
     public int HalftoneReferenceSize { get; set; } = 180;
 
     [Parameter]
-    public double HalftoneUnderlayOpacity { get; set; } = 0.28;
+    public double HalftoneUnderlayOpacity { get; set; } = 0.88;
 
     [Parameter]
-    public double HalftoneUnderlayBlur { get; set; } = 0.8;
+    public double HalftoneUnderlayBlur { get; set; } = 0.18;
 
     [Parameter]
     public bool UseMask { get; set; }
@@ -127,11 +139,18 @@
 
     private bool ShouldRenderImage => Effect == AppImageEffect.None || effectFailed;
 
+    private bool ShouldShowLoading => !UseMask
+        && !mediaLoaded
+        && !mediaFailed
+        && !string.IsNullOrWhiteSpace(Src);
+
     private string? CanvasRole => Decorative ? null : "img";
 
     private string? CanvasLabel => Decorative ? null : ResolvedAlt;
 
     private string EffectKey => $"{Src}|{Effect}|{HalftoneSize}|{HalftoneCell}|{HalftoneBlackCell}|{HalftoneReferenceSize}|{HalftoneUnderlayOpacity}|{HalftoneUnderlayBlur}";
+
+    private string MediaStateKey => $"{EffectKey}|{UseMask}|{Fit}|{AspectRatio}";
 
     private string WrapperClass
     {
@@ -152,6 +171,21 @@
             if (Effect != AppImageEffect.None && !effectFailed)
             {
                 classes.Add($"app-image--effect-{Effect.ToString().ToLowerInvariant()}");
+            }
+
+            if (!mediaLoaded && !UseMask)
+            {
+                classes.Add("app-image--loading");
+            }
+
+            if (mediaLoaded)
+            {
+                classes.Add("app-image--loaded");
+            }
+
+            if (mediaFailed)
+            {
+                classes.Add("app-image--failed");
             }
 
             if (FillContainer)
@@ -200,8 +234,11 @@
 
     protected override void OnParametersSet()
     {
-        if (!string.Equals(renderedEffectKey, EffectKey, StringComparison.Ordinal))
+        if (!string.Equals(mediaStateKey, MediaStateKey, StringComparison.Ordinal))
         {
+            mediaStateKey = MediaStateKey;
+            mediaLoaded = UseMask;
+            mediaFailed = false;
             effectFailed = false;
         }
     }
@@ -218,26 +255,54 @@
         renderCancellation?.Dispose();
         renderCancellation = new CancellationTokenSource();
 
-        var rendered = await JsRuntime.InvokeAsync<bool>(
-            "appImage.renderHalftone",
-            renderCancellation.Token,
-            canvas,
-            Src,
-            new
-            {
-                size = HalftoneSize,
-                cell = HalftoneCell,
-                blackCell = HalftoneBlackCell,
-                referenceSize = HalftoneReferenceSize,
-                underlayOpacity = HalftoneUnderlayOpacity,
-                underlayBlur = HalftoneUnderlayBlur
-            });
+        bool rendered;
+        try
+        {
+            rendered = await JsRuntime.InvokeAsync<bool>(
+                "appImage.renderHalftone",
+                renderCancellation.Token,
+                canvas,
+                Src,
+                new
+                {
+                    size = HalftoneSize,
+                    cell = HalftoneCell,
+                    blackCell = HalftoneBlackCell,
+                    referenceSize = HalftoneReferenceSize,
+                    underlayOpacity = HalftoneUnderlayOpacity,
+                    underlayBlur = HalftoneUnderlayBlur
+                });
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (JSException)
+        {
+            rendered = false;
+        }
 
         if (!rendered)
         {
             effectFailed = true;
             await InvokeAsync(StateHasChanged);
+            return;
         }
+
+        mediaLoaded = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleImageLoaded()
+    {
+        mediaLoaded = true;
+        mediaFailed = false;
+    }
+
+    private void HandleImageError()
+    {
+        mediaLoaded = false;
+        mediaFailed = true;
     }
 
     public async ValueTask DisposeAsync()

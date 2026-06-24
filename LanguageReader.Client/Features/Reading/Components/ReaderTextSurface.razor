@@ -227,6 +227,9 @@
     public EventCallback ClearSelectionRequested { get; set; }
 
     [Parameter]
+    public EventCallback ScrollRestored { get; set; }
+
+    [Parameter]
     public int? ScrollBlockIndex { get; set; }
 
     [Parameter]
@@ -234,6 +237,9 @@
 
     [Parameter]
     public long ScrollRequestKey { get; set; }
+
+    [Parameter]
+    public bool ScrollForce { get; set; }
 
     private ReaderSelection? previousSelection;
 
@@ -289,11 +295,19 @@
         {
             lastScrollRequestKey = ScrollRequestKey;
 
-            await JsRuntime.InvokeVoidAsync(
+            var didScroll = await JsRuntime.InvokeAsync<bool>(
                 "languageReaderSelection.scrollParagraphOffsetIntoViewIfNeeded",
                 readerPage,
                 ScrollBlockIndex.Value,
-                ScrollOffset ?? 0);
+                ScrollOffset ?? 0,
+                ScrollForce);
+
+            if (didScroll)
+            {
+                await Task.Delay(350);
+            }
+
+            await ScrollRestored.InvokeAsync();
         }
 
         if (Selection is not null && !IsSameSelection(Selection, previousSelection))
@@ -379,6 +393,15 @@
         var progressBlockIndex = await JsRuntime.InvokeAsync<int?>(
             "languageReaderSelection.getReaderProgressBlockIndex",
             readerPage);
+
+        await JsRuntime.InvokeVoidAsync(
+            "console.debug",
+            "[LanguageReader Reader] viewport-progress-read",
+            new
+            {
+                bookmarkBlockIndex,
+                progressBlockIndex
+            });
 
         return bookmarkBlockIndex.HasValue && progressBlockIndex.HasValue
             ? new ReaderViewportProgress(

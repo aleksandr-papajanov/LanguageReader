@@ -25,5 +25,10 @@ internal sealed class ReadingItemConfiguration : IEntityTypeConfiguration<Readin
         entity.HasIndex(item => item.OwnerUsername);
         entity.HasIndex(item => item.IsPublic);
         entity.HasIndex(item => item.Type);
+
+        entity.HasOne(item => item.Document)
+            .WithOne(item => item.ReadingItem)
+            .HasForeignKey<ReadingItemDocumentEntity>(item => item.ReadingItemId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

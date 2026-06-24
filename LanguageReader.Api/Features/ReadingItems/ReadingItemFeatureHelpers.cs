@@ -81,6 +81,22 @@ internal static class ReadingItemFeatureHelpers
         return null;
     }
 
+    public static string? GetCoverImageUrl(ReadingItemEntity item, string? username)
+    {
+        var hasImageAsset = item.Assets.Any(asset => string.Equals(asset.Kind, "Image", StringComparison.OrdinalIgnoreCase));
+        if (!hasImageAsset)
+        {
+            return item.ArticleMetadata?.ImageUrl;
+        }
+
+        var normalizedUsername = NormalizeUsername(username);
+        var query = string.IsNullOrWhiteSpace(normalizedUsername)
+            ? string.Empty
+            : $"?username={Uri.EscapeDataString(normalizedUsername)}";
+
+        return $"/api/reading-items/{item.Id}/assets/cover{query}";
+    }
+
     private static bool MatchesSource(
         string? sourceName,
         string? rssFeedUrl,

@@ -1,10 +1,9 @@
-using System.Text.Json;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.News.Services;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
-using LanguageReader.Infrastructure.Features.ReadingItems.Models;
-using LanguageReader.Infrastructure.Storage;
+using LanguageReader.Infrastructure.Features.ReadingItems.Parsing.Models;
+using LanguageReader.Infrastructure.Features.ReadingItems.Services;
 using Microsoft.EntityFrameworkCore;
 using LanguageReader.Api.Features.ReadingItems;
 
@@ -13,10 +12,8 @@ namespace LanguageReader.Api.Features.News;
 internal sealed class ImportNewsArticleHandler(
     ApplicationDbContext dbContext,
     IArticleImportService articleImportService,
-    IFileStorage storage)
+    ReadingItemDocumentStorageService documentStorage)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public async Task<ReadingItemDetailsDto> HandleAsync(ImportNewsArticleRequest request, CancellationToken ct)
     {
         var username = UsernameHelper.Require(request.Username);
@@ -72,18 +69,6 @@ internal sealed class ImportNewsArticleHandler(
         }
 
         var readingItemId = Guid.NewGuid();
-        var storagePath = Path.Combine("articles", username, $"{readingItemId}.json");
-
-        await using (var contentStream = new MemoryStream())
-        {
-            await JsonSerializer.SerializeAsync(
-                contentStream,
-                new StoredArticleDocument(extracted.Title, normalizedLanguage, extracted.Paragraphs),
-                JsonOptions,
-                ct);
-            contentStream.Position = 0;
-            await storage.SaveAsync(storagePath, contentStream, ct);
-        }
 
         var readingItem = new ReadingItemEntity
         {
@@ -91,9 +76,9 @@ internal sealed class ImportNewsArticleHandler(
             OwnerUsername = username,
             Title = extracted.Title,
             OriginalLanguage = normalizedLanguage,
-            StoragePath = storagePath,
+            StoragePath = string.Empty,
             Type = ReadingItemType.Article,
-            ContentFormat = ReadingContentFormat.ExtractedArticle,
+            ContentFormat = ReadingContentFormat.Canonical,
             IsPublic = false,
             CreatedAtUtc = now,
             UpdatedAtUtc = now
@@ -111,6 +96,22 @@ internal sealed class ImportNewsArticleHandler(
             RssFeedUrl = extracted.RssFeedUrl,
             ExternalId = extracted.ExternalId
         };
+
+        var sourceBlocks = extracted.Paragraphs
+            .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
+            .Select(paragraph => new ReadingContentBlockDto(
+                ReadingContentBlockType.Paragraph,
+                paragraph.Trim(),
+                ImageId: null))
+            .ToArray();
+
+        await documentStorage.StoreAsync(
+            readingItem,
+            sourceBlocks,
+            new Dictionary<string, ParsedReadingAsset>(),
+            coverImageId: null,
+            now,
+            ct);
 
         dbContext.ReadingItems.Add(readingItem);
         dbContext.ArticleMetadata.Add(metadata);

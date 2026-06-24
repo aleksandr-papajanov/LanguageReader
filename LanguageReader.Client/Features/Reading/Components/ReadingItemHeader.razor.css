@@ -4,10 +4,6 @@
 }
 
 .reader-progress-dock {
-    position: sticky;
-    top: var(--reader-header-offset);
-    z-index: 8;
-
     width: 100%;
     min-width: 0;
 

@@ -1,3 +1,4 @@
+using LanguageReader.Api.Features.Maintenance;
 using LanguageReader.Api.Features.ReadingItemTranslations;
 using LanguageReader.Api.Features.ReadingItems;
 using LanguageReader.Api.Features.News;
@@ -27,6 +28,7 @@ internal static class FeatureEndpointRegistration
         api.MapTranslationEndpoints();
         api.MapVocabularyEndpoints();
         api.MapReadingItemTranslationsEndpoints();
+        api.MapMaintenanceEndpoints();
 
         return app;
     }

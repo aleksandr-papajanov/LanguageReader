@@ -7,6 +7,10 @@ internal static class ReadingItemsEndpoints
         api.MapGetReadingItemsEndpoint();
         api.MapGetReadingItemEndpoint();
         api.MapGetReadingItemContentEndpoint();
+        api.MapGetReadingItemAssetEndpoint();
+        api.MapImportReadingItemEndpoint();
+        api.MapPreviewReadingItemUrlImportEndpoint();
+        api.MapImportReadingItemFromUrlEndpoint();
         api.MapUpdateReadingItemVisibilityEndpoint();
         api.MapDeleteReadingItemEndpoint();
 

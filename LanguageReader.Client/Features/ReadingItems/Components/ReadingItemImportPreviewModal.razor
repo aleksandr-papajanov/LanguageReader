@@ -1,0 +1,132 @@
+<AppModal IsOpen="@IsOpen"
+          IsOpenChanged="HandleOpenChangedAsync"
+          Title="@Title"
+          Eyebrow="@Eyebrow">
+    <ChildContent>
+        @if (IsLoading)
+        {
+            <AppLoader Label="Parsing content" />
+        }
+        else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+        {
+            <AppAlert Tone="error"
+                      Title="Could not parse this page"
+                      Message="@ErrorMessage" />
+        }
+        else if (Preview is not null)
+        {
+            <div class="reading-item-import-preview">
+                @if (!string.IsNullOrWhiteSpace(Preview.ImageUrl))
+                {
+                    <AppImage Src="@Preview.ImageUrl"
+                              Alt="@Preview.Title"
+                              Decorative="true"
+                              FillContainer="true"
+                              AdditionalClass="reading-item-import-preview__image" />
+                }
+
+                <div class="reading-item-import-preview__main">
+                    <div class="reading-item-import-preview__badges">
+                        <AppBadge Tone="info">@Preview.Type</AppBadge>
+                        <AppBadge>@Preview.OriginalLanguage</AppBadge>
+                        @if (!string.IsNullOrWhiteSpace(Preview.SourceName))
+                        {
+                            <AppBadge Tone="warning">@Preview.SourceName</AppBadge>
+                        }
+                    </div>
+
+                    <h3>@Preview.Title</h3>
+
+                    @if (!string.IsNullOrWhiteSpace(Preview.Author))
+                    {
+                        <p class="reading-item-import-preview__meta">@Preview.Author</p>
+                    }
+
+                    @if (Preview.PublishedAtUtc.HasValue)
+                    {
+                        <p class="reading-item-import-preview__meta">@Preview.PublishedAtUtc.Value.LocalDateTime.ToString("d MMM yyyy")</p>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Preview.OriginalUrl))
+                    {
+                        <a class="reading-item-import-preview__link"
+                           href="@Preview.OriginalUrl"
+                           target="_blank"
+                           rel="noreferrer">Open source</a>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Preview.Excerpt))
+                    {
+                        <p class="reading-item-import-preview__excerpt">@Preview.Excerpt</p>
+                    }
+
+                    <div class="reading-item-import-preview__stats">
+                        <span>@Preview.TextBlockCount text blocks</span>
+                        <span>@Preview.ImageCount images</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </ChildContent>
+    <Footer>
+        <AppButton Label="Cancel"
+                   Variant="ghost"
+                   Disabled="@IsBusy"
+                   OnClick="HandleCancelClickedAsync" />
+        @if (!IsLoading && Preview is not null && string.IsNullOrWhiteSpace(ErrorMessage))
+        {
+            <AppButton Label="@ConfirmLabel"
+                       Variant="primary"
+                       Icon="check"
+                       IsLoading="@IsBusy"
+                       OnClick="HandleConfirmClickedAsync" />
+        }
+    </Footer>
+</AppModal>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public ReadingItemImportPreviewDto? Preview { get; set; }
+
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    [Parameter]
+    public bool IsBusy { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Review import";
+
+    [Parameter]
+    public string? Eyebrow { get; set; } = "Parsed content";
+
+    [Parameter]
+    public string ConfirmLabel { get; set; } = "Save";
+
+    [Parameter]
+    public EventCallback Confirmed { get; set; }
+
+    [Parameter]
+    public EventCallback Closed { get; set; }
+
+    private Task HandleOpenChangedAsync(bool isOpen)
+    {
+        return isOpen ? Task.CompletedTask : Closed.InvokeAsync();
+    }
+
+    private Task HandleCancelClickedAsync(MouseEventArgs _)
+    {
+        return Closed.InvokeAsync();
+    }
+
+    private Task HandleConfirmClickedAsync(MouseEventArgs _)
+    {
+        return Confirmed.InvokeAsync();
+    }
+}

@@ -7,10 +7,38 @@ namespace LanguageReader.Api.Features.ReadingItems;
 
 internal static class ReadingItemMappingExtensions
 {
+    public static ReadingItemDetailsDto ToReadingItemDetailsDto(
+        this ReadingItemEntity item,
+        string normalizedUsername,
+        ReadingItemApiUrlBuilder apiUrls)
+    {
+        return new ReadingItemDetailsDto(
+            item.Id,
+            item.Title,
+            item.Type,
+            LanguageNameNormalizer.Normalize(item.OriginalLanguage),
+            item.IsPublic,
+            item.CreatedAtUtc,
+            item.UpdatedAtUtc,
+            ReadingItemFeatureHelpers.ResolveSourceKey(
+                item.ArticleMetadata?.SourceName,
+                item.ArticleMetadata?.RssFeedUrl,
+                item.ArticleMetadata?.OriginalUrl),
+            item.ArticleMetadata?.SourceName,
+            item.ArticleMetadata?.Author,
+            item.ArticleMetadata?.PublishedAtUtc,
+            item.ArticleMetadata?.OriginalUrl,
+            apiUrls.GetCoverImageUrl(item, normalizedUsername),
+            item.ArticleMetadata?.Excerpt,
+            item.ArticleMetadata?.RssFeedUrl,
+            item.ArticleMetadata?.ExternalId);
+    }
+
     public static ReadingItemSummaryDto ToReadingItemSummaryDto(
         this ReadingItemEntity item,
         string normalizedUsername,
-        ReadingProgressEntity? progress)
+        ReadingProgressEntity? progress,
+        ReadingItemApiUrlBuilder apiUrls)
     {
         var isOwnedByCurrentUser = !string.IsNullOrWhiteSpace(normalizedUsername)
             && string.Equals(item.OwnerUsername, normalizedUsername, StringComparison.OrdinalIgnoreCase);
@@ -29,7 +57,7 @@ internal static class ReadingItemMappingExtensions
             item.ArticleMetadata?.Author,
             item.ArticleMetadata?.PublishedAtUtc,
             item.ArticleMetadata?.OriginalUrl,
-            item.ArticleMetadata?.ImageUrl,
+            apiUrls.GetCoverImageUrl(item, normalizedUsername),
             item.ArticleMetadata?.Excerpt,
             isOwnedByCurrentUser,
             isOwnedByCurrentUser,
@@ -57,7 +85,8 @@ internal static class ReadingItemMappingExtensions
         this RssArticleCandidateEntity candidate,
         string normalizedUsername,
         ReadingItemEntity? savedItem,
-        ReadingProgressEntity? progress)
+        ReadingProgressEntity? progress,
+        ReadingItemApiUrlBuilder apiUrls)
     {
         var isOwnedByCurrentUser = savedItem is not null
             && !string.IsNullOrWhiteSpace(normalizedUsername)
@@ -77,7 +106,9 @@ internal static class ReadingItemMappingExtensions
             savedItem?.ArticleMetadata?.Author ?? candidate.Author,
             savedItem?.ArticleMetadata?.PublishedAtUtc ?? candidate.PublishedAtUtc,
             savedItem?.ArticleMetadata?.OriginalUrl ?? candidate.Url,
-            savedItem?.ArticleMetadata?.ImageUrl ?? candidate.ImageUrl,
+            savedItem is null
+                ? candidate.ImageUrl
+                : apiUrls.GetCoverImageUrl(savedItem, normalizedUsername),
             savedItem?.ArticleMetadata?.Excerpt ?? candidate.Summary,
             isOwnedByCurrentUser,
             isOwnedByCurrentUser,

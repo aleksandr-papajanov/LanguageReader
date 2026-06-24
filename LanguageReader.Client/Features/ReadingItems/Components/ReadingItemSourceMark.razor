@@ -1,16 +1,21 @@
 @using LanguageReader.Client.Features.ReadingItems.Services
 
-@if (!string.IsNullOrWhiteSpace(logoPath))
+@if (!string.IsNullOrWhiteSpace(LogoPath))
 {
-    <AppImage Src="@logoPath"
-              Alt="@displayName"
-              Decorative="true"
-              Inline="true"
-              Fit="contain"
-              Style="@WrapperStyle"
-              MediaStyle="@MediaStyle"
-              AdditionalClass="reading-item-source-mark"
-              ImageClass="reading-item-source-mark__image" />
+    <span class="@CssClass" title="@DisplayName" aria-label="@DisplayName">
+        <AppImage Src="@LogoPath"
+                  Alt="@DisplayName"
+                  Decorative="true"
+                  UseMask="true"
+                  MaskColor="currentColor"
+                  FillContainer="true"
+                  Fit="contain"
+                  AdditionalClass="reading-item-source-mark__logo" />
+    </span>
+}
+else if (!string.IsNullOrWhiteSpace(DisplayName))
+{
+    <span class="@CssClass">@DisplayName</span>
 }
 
 @code {
@@ -23,29 +28,28 @@
     [Parameter]
     public string Size { get; set; } = "md";
 
-    private string? displayName;
-    private string? logoPath;
-
-    private string WrapperStyle =>
-        $"background: transparent; height: {ResolvedHeight}; width: auto; max-width: 100%;";
-
-    private string MediaStyle =>
-        "height: 100%; width: auto; max-width: 100%; object-fit: contain;";
-
-    private string ResolvedHeight => Size switch
+    private string? LogoPath => NormalizeSourceKey() switch
     {
-        "sm" => "1.8rem",
-        "md" => "3.2rem",
-        "lg" => "5.4rem",
-        _ => "3.2rem"
+        "svt" => "/assets/svt.svg",
+        "aftonbladet" => "/assets/aftonbladet.svg",
+        "sverigesradio" => "/assets/sverigesradio.svg",
+        _ => null
     };
 
-    protected override void OnParametersSet()
+    private string DisplayName => NormalizeSourceKey() switch
     {
-        var source = ReadingItemSourceCatalog.Find(SourceKey);
-        displayName = !string.IsNullOrWhiteSpace(SourceName)
-            ? SourceName
-            : source?.DisplayName;
-        logoPath = source?.LogoAssetPath;
+        "svt" => "SVT",
+        "aftonbladet" => "Aftonbladet",
+        "sverigesradio" => "Sveriges Radio",
+        _ => SourceName ?? SourceKey ?? "Source"
+    };
+
+    private string? NormalizeSourceKey()
+    {
+        var value = SourceKey ?? SourceName;
+        return value?.Trim().ToLowerInvariant().Replace(" ", string.Empty);
     }
+
+    private string CssClass =>
+        $"reading-item-source-mark reading-item-source-mark--{Size.ToLowerInvariant()}";
 }

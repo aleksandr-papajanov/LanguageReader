@@ -1,14 +1,14 @@
 using System.Text;
 using System.Xml.Linq;
-using LanguageReader.Infrastructure.Features.Books.Parsing.Models;
+using LanguageReader.Infrastructure.Features.ReadingItems.Parsing.Models;
 
-namespace LanguageReader.Infrastructure.Features.Books.Parsing;
+namespace LanguageReader.Infrastructure.Features.ReadingItems.Parsing;
 
-public sealed class Fb2BookContentParser : IBookContentParser
+public sealed class Fb2ReadingItemContentParser : IReadingItemContentParser
 {
     private static readonly XNamespace XLink = "http://www.w3.org/1999/xlink";
 
-    public async Task<ParsedBook> ParseAsync(
+    public async Task<ParsedReadingDocument> ParseAsync(
         Stream content,
         CancellationToken cancellationToken = default)
     {
@@ -18,7 +18,8 @@ public sealed class Fb2BookContentParser : IBookContentParser
             cancellationToken);
 
         var title = GetBookTitle(document);
-        var images = ParseImages(document);
+        var assets = ParseAssets(document);
+        var coverAssetId = GetCoverAssetId(document);
         var addedImageIds = new HashSet<string>(StringComparer.Ordinal);
 
         var bodies = document
@@ -28,7 +29,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
             .Where(e => e.Attribute("name")?.Value != "notes")
             .ToList() ?? [];
 
-        var blocks = new List<ParsedBookBlock>();
+        var blocks = new List<ParsedReadingBlock>();
         AddCoverImageBlocks(document, blocks, addedImageIds);
 
         foreach (var body in bodies)
@@ -47,15 +48,16 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
         if (blocks.Count == 0)
         {
-            blocks.Add(new ParsedBookBlock(
+            blocks.Add(new ParsedReadingBlock(
                 ReadingContentBlockType.Paragraph,
                 "No readable text was found in this file."));
         }
 
-        return new ParsedBook(
+        return new ParsedReadingDocument(
             string.IsNullOrWhiteSpace(title) ? null : title,
             blocks,
-            images);
+            assets,
+            coverAssetId);
     }
 
     private static string? GetBookTitle(XDocument document)
@@ -67,9 +69,9 @@ public sealed class Fb2BookContentParser : IBookContentParser
             .Trim();
     }
 
-    private static Dictionary<string, ParsedBookImage> ParseImages(XDocument document)
+    private static Dictionary<string, ParsedReadingAsset> ParseAssets(XDocument document)
     {
-        var images = new Dictionary<string, ParsedBookImage>(StringComparer.OrdinalIgnoreCase);
+        var images = new Dictionary<string, ParsedReadingAsset>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var binary in document.Descendants().Where(e => e.Name.LocalName == "binary"))
         {
@@ -84,10 +86,24 @@ public sealed class Fb2BookContentParser : IBookContentParser
             }
 
             contentType = NormalizeContentType(contentType, id);
-            images[id] = new ParsedBookImage(id, contentType, base64);
+            images[id] = new ParsedReadingAsset(id, contentType, base64);
         }
 
         return images;
+    }
+
+    private static string? GetCoverAssetId(XDocument document)
+    {
+        var image = document
+            .Descendants()
+            .Where(element => element.Name.LocalName == "coverpage")
+            .Descendants()
+            .FirstOrDefault(element => element.Name.LocalName == "image");
+        var href = image is null ? null : GetImageHref(image);
+
+        return string.IsNullOrWhiteSpace(href)
+            ? null
+            : href.Trim().TrimStart('#');
     }
 
     private static string NormalizeContentType(string? contentType, string imageId)
@@ -113,13 +129,13 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void AddCoverImageBlocks(
         XDocument document,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var image in document
             .Descendants()
             .Where(element => element.Name.LocalName == "coverpage")
-            .Elements()
+            .Descendants()
             .Where(element => element.Name.LocalName == "image"))
         {
             AddImageBlock(blocks, image, addedImageIds);
@@ -128,7 +144,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseContainer(
         XElement container,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var element in container.Elements())
@@ -139,7 +155,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseElement(
         XElement element,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         switch (element.Name.LocalName)
@@ -206,7 +222,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseTitle(
         XElement title,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var child in title.Elements())
@@ -226,7 +242,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseEpigraph(
         XElement epigraph,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var child in epigraph.Elements())
@@ -250,7 +266,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParsePoem(
         XElement poem,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var child in poem.Elements())
@@ -263,7 +279,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseStanza(
         XElement stanza,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var child in stanza.Elements())
@@ -283,7 +299,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseQuote(
         XElement quote,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var child in quote.Elements())
@@ -307,7 +323,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseAnnotation(
         XElement annotation,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds)
     {
         foreach (var child in annotation.Elements())
@@ -327,7 +343,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
 
     private static void ParseParagraph(
         XElement paragraph,
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         HashSet<string> addedImageIds,
         ReadingContentBlockType textBlockType = ReadingContentBlockType.Paragraph)
     {
@@ -362,7 +378,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
     }
 
     private static void AddImageBlock(
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         XElement image,
         HashSet<string> addedImageIds)
     {
@@ -375,7 +391,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
         if (string.IsNullOrWhiteSpace(imageId) || !addedImageIds.Add(imageId))
             return;
 
-        blocks.Add(new ParsedBookBlock(
+        blocks.Add(new ParsedReadingBlock(
             ReadingContentBlockType.Image,
             null,
             ImageId: imageId));
@@ -391,7 +407,7 @@ public sealed class Fb2BookContentParser : IBookContentParser
     }
 
     private static void AddTextBlock(
-        List<ParsedBookBlock> blocks,
+        List<ParsedReadingBlock> blocks,
         ReadingContentBlockType type,
         string value)
     {
@@ -400,10 +416,10 @@ public sealed class Fb2BookContentParser : IBookContentParser
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        blocks.Add(new ParsedBookBlock(type, text));
+        blocks.Add(new ParsedReadingBlock(type, text));
     }
 
-    private static void AddEmptyLine(List<ParsedBookBlock> blocks)
+    private static void AddEmptyLine(List<ParsedReadingBlock> blocks)
     {
         if (blocks.Count == 0)
             return;
@@ -411,10 +427,10 @@ public sealed class Fb2BookContentParser : IBookContentParser
         if (blocks[^1].Type == ReadingContentBlockType.EmptyLine)
             return;
 
-        blocks.Add(new ParsedBookBlock(ReadingContentBlockType.EmptyLine, null));
+        blocks.Add(new ParsedReadingBlock(ReadingContentBlockType.EmptyLine, null));
     }
 
-    private static void TrimEmptyLines(List<ParsedBookBlock> blocks)
+    private static void TrimEmptyLines(List<ParsedReadingBlock> blocks)
     {
         while (blocks.Count > 0 && blocks[0].Type == ReadingContentBlockType.EmptyLine)
         {

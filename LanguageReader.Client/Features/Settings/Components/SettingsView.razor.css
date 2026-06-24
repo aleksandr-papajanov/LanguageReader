@@ -3,11 +3,6 @@
     gap: var(--space-5);
 }
 
-.settings-header-row {
-    display: flex;
-    justify-content: center;
-}
-
 .settings-panel {
     display: grid;
     gap: var(--space-5);

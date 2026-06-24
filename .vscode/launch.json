@@ -17,8 +17,8 @@
       },
       "serverReadyAction": {
         "action": "openExternally",
-        "pattern": "Now listening on:\\s+(http://\\S+)",
-        "uriFormat": "%s/swagger"
+        "pattern": "Now listening on:\\s+(http://localhost:5000)",
+        "uriFormat": "http://localhost:5000/swagger"
       }
     },
     {
@@ -41,7 +41,7 @@
       },
       "serverReadyAction": {
         "action": "openExternally",
-        "pattern": "Now listening on:\\s+(http://\\S+)",
+        "pattern": "Now listening on:\\s+(http://localhost:5082)",
         "uriFormat": "%s"
       }
     }

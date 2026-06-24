@@ -1,0 +1,80 @@
+@if (IsOpen)
+{
+    <div class="app-modal" role="presentation" @onclick="HandleBackdropClickAsync">
+        <section class="app-modal__dialog"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="@TitleId"
+                 @onclick:stopPropagation="true">
+            <header class="app-modal__header">
+                <div>
+                    @if (!string.IsNullOrWhiteSpace(Eyebrow))
+                    {
+                        <div class="app-modal__eyebrow">@Eyebrow</div>
+                    }
+                    <h2 id="@TitleId" class="app-modal__title">@Title</h2>
+                </div>
+
+                <AppButton Label="Close"
+                           Icon="close"
+                           IconOnly="true"
+                           Variant="ghost"
+                           Size="sm"
+                           OnClick="CloseAsync" />
+            </header>
+
+            <div class="app-modal__body">
+                @ChildContent
+            </div>
+
+            @if (Footer is not null)
+            {
+                <footer class="app-modal__footer">
+                    @Footer
+                </footer>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private readonly string TitleId = $"modal-title-{Guid.NewGuid():N}";
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Eyebrow { get; set; }
+
+    [Parameter]
+    public bool CloseOnBackdrop { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter]
+    public EventCallback Closed { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+    private async Task HandleBackdropClickAsync()
+    {
+        if (CloseOnBackdrop)
+        {
+            await CloseAsync();
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        await IsOpenChanged.InvokeAsync(false);
+        await Closed.InvokeAsync();
+    }
+}

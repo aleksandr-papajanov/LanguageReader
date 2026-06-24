@@ -8,6 +8,12 @@ public sealed record ImportReadingItemClientRequest(
     string OriginalLanguage,
     IBrowserFile File);
 
+public sealed record ImportReadingItemUrlClientRequest(
+    string Username,
+    string Url,
+    string Title,
+    string OriginalLanguage);
+
 public sealed class ReadingItemImportsApiClient(ApiClient api)
 {
     public async Task<ReadingItemDetailsDto> ImportReadingItemAsync(
@@ -36,6 +42,30 @@ public sealed class ReadingItemImportsApiClient(ApiClient api)
         return await api.SendMultipartAsync<ReadingItemDetailsDto>(
             "/api/reading-items/imports/fb2",
             form,
+            cancellationToken);
+    }
+
+    public Task<ReadingItemImportPreviewDto> PreviewUrlImportAsync(
+        PreviewReadingItemUrlImportRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return api.PostAsync<ReadingItemImportPreviewDto>(
+            "/api/reading-items/imports/url/preview",
+            request,
+            cancellationToken);
+    }
+
+    public Task<ReadingItemDetailsDto> ImportUrlAsync(
+        ImportReadingItemUrlClientRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return api.PostAsync<ReadingItemDetailsDto>(
+            "/api/reading-items/imports/url",
+            new ImportReadingItemFromUrlRequest(
+                request.Username,
+                request.Url,
+                request.Title,
+                request.OriginalLanguage),
             cancellationToken);
     }
 }

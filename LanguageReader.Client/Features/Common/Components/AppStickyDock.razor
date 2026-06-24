@@ -1,0 +1,44 @@
+<div class="@CssClass" style="@DockStyle">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public string Position { get; set; } = "top";
+
+    [Parameter]
+    public string? TopOffset { get; set; }
+
+    [Parameter]
+    public string? BottomOffset { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string? DockStyle
+    {
+        get
+        {
+            var styles = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(TopOffset))
+            {
+                styles.Add($"--app-sticky-dock-top: {TopOffset}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(BottomOffset))
+            {
+                styles.Add($"--app-sticky-dock-bottom: {BottomOffset}");
+            }
+
+            return styles.Count == 0 ? null : string.Join("; ", styles);
+        }
+    }
+
+    private string CssClass =>
+        $"app-sticky-dock app-sticky-dock--{Position.ToLowerInvariant()}" +
+        $"{(string.IsNullOrWhiteSpace(AdditionalClass) ? string.Empty : $" {AdditionalClass}")}";
+}

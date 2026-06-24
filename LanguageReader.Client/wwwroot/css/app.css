@@ -148,6 +148,12 @@ body {
     overflow-x: clip;
 }
 
+body:has(.app-modal) {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+
 html {
     color-scheme: light;
     background: var(--color-bg);

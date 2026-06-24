@@ -22,13 +22,11 @@
         <ReadingItemSourceMark SourceKey="@activeSourceKey" Size="lg" />
     </div>
 
-    <div class="news-filter-row">
         <AppTabs Items="sourceTabs"
                  ActiveValue="@activeSourceKey"
                  ActiveValueChanged="SelectSourceAsync"
                  AriaLabel="News sources" />
-    </div>
-
+             
     @if (isLoading)
     {
         <AppLoader Label="Loading news" />
@@ -58,14 +56,31 @@
     </AppSection>
 </section>
 
+<ReadingItemImportPreviewModal IsOpen="@isPreviewOpen"
+                               Preview="@articlePreview"
+                               ErrorMessage="@articlePreviewError"
+                               IsBusy="@isImportingPreview"
+                               IsLoading="@isPreviewingArticle"
+                               Title="Review article"
+                               Eyebrow="Readable article"
+                               ConfirmLabel="Save and open"
+                               Confirmed="ConfirmArticleImportAsync"
+                               Closed="CloseArticlePreview" />
+
 @code {
     private List<ReadingItemSummaryDto> items = [];
     private readonly IReadOnlyList<AppTabItem> sourceTabs = ReadingItemSourceCatalog.ToTabs();
     private string activeSourceKey = NewsSourceKeys.Svt;
     private Guid? busyItemId;
+    private ReadingItemSummaryDto? previewItem;
+    private ReadingItemImportPreviewDto? articlePreview;
+    private string? articlePreviewError;
     private string? errorMessage;
     private bool isLoading;
     private bool isSwitchingSource;
+    private bool isPreviewOpen;
+    private bool isPreviewingArticle;
+    private bool isImportingPreview;
 
     protected override async Task OnInitializedAsync()
     {
@@ -111,7 +126,7 @@
     {
         if (item.CanImport)
         {
-            await ImportArticleAsync(item);
+            await PreviewArticleAsync(item);
             return;
         }
 
@@ -127,7 +142,7 @@
         Navigation.NavigateTo(route);
     }
 
-    private async Task ImportArticleAsync(ReadingItemSummaryDto item)
+    private async Task PreviewArticleAsync(ReadingItemSummaryDto item)
     {
         if (string.IsNullOrWhiteSpace(Session.Username) || string.IsNullOrWhiteSpace(item.OriginalUrl))
         {
@@ -136,13 +151,54 @@
 
         busyItemId = item.Id;
         errorMessage = null;
+        articlePreview = null;
+        articlePreviewError = null;
+        previewItem = item;
+        isPreviewOpen = true;
+        isPreviewingArticle = true;
+
+        try
+        {
+            articlePreview = await NewsApi.PreviewArticleAsync(
+                new PreviewNewsArticleRequest(item.SourceKey ?? NewsSourceKeys.Svt, item.OriginalUrl),
+                CancellationToken.None);
+            articlePreviewError = null;
+        }
+        catch (Exception exception)
+        {
+            articlePreview = null;
+            articlePreviewError = exception.Message;
+        }
+        finally
+        {
+            busyItemId = null;
+            isPreviewingArticle = false;
+        }
+    }
+
+    private async Task ConfirmArticleImportAsync()
+    {
+        if (previewItem is null
+            || string.IsNullOrWhiteSpace(Session.Username)
+            || string.IsNullOrWhiteSpace(previewItem.OriginalUrl))
+        {
+            return;
+        }
+
+        busyItemId = previewItem.Id;
+        isImportingPreview = true;
+        errorMessage = null;
 
         try
         {
             var result = await NewsApi.ImportArticleAsync(
-                new ImportNewsArticleRequest(Session.Username, item.SourceKey ?? NewsSourceKeys.Svt, item.OriginalUrl),
+                new ImportNewsArticleRequest(
+                    Session.Username,
+                    previewItem.SourceKey ?? NewsSourceKeys.Svt,
+                    previewItem.OriginalUrl),
                 CancellationToken.None);
 
+            CloseArticlePreview();
             await LoadAsync();
             Navigation.NavigateTo($"/reader/{result.Id}");
         }
@@ -153,7 +209,17 @@
         finally
         {
             busyItemId = null;
+            isImportingPreview = false;
         }
+    }
+
+    private void CloseArticlePreview()
+    {
+        isPreviewOpen = false;
+        articlePreview = null;
+        articlePreviewError = null;
+        previewItem = null;
+        isPreviewingArticle = false;
     }
 
     private async Task ToggleVisibilityAsync(ReadingItemSummaryDto item)

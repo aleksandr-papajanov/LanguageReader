@@ -10,7 +10,8 @@ namespace LanguageReader.Api.Features.ReadingItems;
 internal sealed class GetReadingItemsHandler(
     ApplicationDbContext dbContext,
     INewsFeedService newsFeedService,
-    IArticleImportService articleImportService)
+    IArticleImportService articleImportService,
+    ReadingItemApiUrlBuilder apiUrls)
 {
     public async Task<IReadOnlyList<ReadingItemSummaryDto>> HandleAsync(GetReadingItemsRequest request, CancellationToken ct)
     {
@@ -43,6 +44,7 @@ internal sealed class GetReadingItemsHandler(
         var query = dbContext.ReadingItems
             .AsNoTracking()
             .Include(item => item.ArticleMetadata)
+            .Include(item => item.Assets)
             .AsQueryable();
 
         query = request.Ownership switch
@@ -90,7 +92,8 @@ internal sealed class GetReadingItemsHandler(
         return readingItems
             .Select(item => item.ToReadingItemSummaryDto(
                 normalizedUsername,
-                progressByItemId.GetValueOrDefault(item.Id)))
+                progressByItemId.GetValueOrDefault(item.Id),
+                apiUrls))
             .ToList();
     }
 
@@ -157,6 +160,7 @@ internal sealed class GetReadingItemsHandler(
             : await dbContext.ReadingItems
                 .AsNoTracking()
                 .Include(item => item.ArticleMetadata)
+                .Include(item => item.Assets)
                 .Where(item => savedIds.Contains(item.Id))
                 .ToListAsync(ct);
 
@@ -191,7 +195,7 @@ internal sealed class GetReadingItemsHandler(
                     ? null
                     : progressByItemId.GetValueOrDefault(savedItem.Id);
 
-                return candidate.ToReadingItemSummaryDto(normalizedUsername, savedItem, progress);
+                return candidate.ToReadingItemSummaryDto(normalizedUsername, savedItem, progress, apiUrls);
             })
             .ToList();
     }

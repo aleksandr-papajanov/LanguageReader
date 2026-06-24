@@ -1,30 +1,34 @@
 <div class="reader-bottom-dock">
-    <div class="reader-dock-bar">
-        <AppButton Variant="ghost"
-                   Size="sm"
-                   Icon="chevron_left"
-                   IconOnly="true"
-                   Title="Previous page"
-                   Disabled="@IsPreviousDisabled"
-                   OnClick="@(_ => PreviousClicked.InvokeAsync())" />
+    <AppButton Label="Previous page"
+               Title="Previous page"
+               Icon="chevron_left"
+               IconOnly="true"
+               Variant="ghost"
+               Size="sm"
+               Disabled="@IsPreviousDisabled"
+               IsLoading="@isPreviousLoading"
+               OnClick="HandlePreviousClickedAsync" />
 
-        <div class="reader-dock-label">Page @CurrentPage of @TotalPages</div>
-
-        <AppButton Variant="ghost"
-                   Size="sm"
-                   Icon="chevron_right"
-                   IconOnly="true"
-                   Title="Next page"
-                   Disabled="@IsNextDisabled"
-                   OnClick="@(_ => NextClicked.InvokeAsync())" />
-
-        <AppProgressBar Value="@ProgressPercent"
-                        Size="sm"
-                        AdditionalClass="reader-dock-progress" />
+    <div class="reader-bottom-dock__status">
+        <strong>Page @CurrentPage of @TotalPages</strong>
+        <AppProgressBar Value="@ProgressPercent" />
     </div>
+
+    <AppButton Label="Next page"
+               Title="Next page"
+               Icon="chevron_right"
+               IconOnly="true"
+               Variant="ghost"
+               Size="sm"
+               Disabled="@IsNextDisabled"
+               IsLoading="@isNextLoading"
+               OnClick="HandleNextClickedAsync" />
 </div>
 
 @code {
+    private bool isPreviousLoading;
+    private bool isNextLoading;
+
     [Parameter]
     public int CurrentPage { get; set; }
 
@@ -45,4 +49,40 @@
 
     [Parameter]
     public EventCallback NextClicked { get; set; }
+
+    private async Task HandlePreviousClickedAsync(MouseEventArgs _)
+    {
+        if (IsPreviousDisabled || isPreviousLoading)
+        {
+            return;
+        }
+
+        isPreviousLoading = true;
+        try
+        {
+            await PreviousClicked.InvokeAsync();
+        }
+        finally
+        {
+            isPreviousLoading = false;
+        }
+    }
+
+    private async Task HandleNextClickedAsync(MouseEventArgs _)
+    {
+        if (IsNextDisabled || isNextLoading)
+        {
+            return;
+        }
+
+        isNextLoading = true;
+        try
+        {
+            await NextClicked.InvokeAsync();
+        }
+        finally
+        {
+            isNextLoading = false;
+        }
+    }
 }

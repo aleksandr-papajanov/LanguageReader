@@ -3,23 +3,6 @@
     gap: var(--space-4);
 }
 
-.library-header-row {
-    position: sticky;
-    top: 4.35rem;
-    z-index: 6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
-    padding: 0.1rem 0 0.35rem;
-    /* background: linear-gradient(
-        to bottom,
-        color-mix(in srgb, var(--color-bg) 96%, transparent),
-        color-mix(in srgb, var(--color-bg) 68%, transparent)
-    ); */
-    backdrop-filter: blur(3px);
-}
-
 .library-filter {
     width: min(100%, 14rem);
 }

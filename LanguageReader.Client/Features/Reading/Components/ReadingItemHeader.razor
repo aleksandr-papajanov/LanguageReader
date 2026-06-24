@@ -57,7 +57,7 @@
             @if (!string.IsNullOrWhiteSpace(Details.ImageUrl))
             {
                 <div class="reader-article-header__aside">
-                    <AppImage Src="@Details.ImageUrl"
+                    <AppImage Src="@ResolveImageUrl(Details.ImageUrl)"
                               Alt="@Title"
                               Decorative="true"
                               Effect="AppImageEffect.Halftone"
@@ -76,15 +76,17 @@
     }
 </div>
 
-<div class="reader-progress-dock">
-    <ReaderBottomDock CurrentPage="@CurrentPage"
-                      TotalPages="@TotalPages"
-                      ProgressPercent="@ProgressPercent"
-                      IsPreviousDisabled="@IsPreviousDisabled"
-                      IsNextDisabled="@IsNextDisabled"
-                      PreviousClicked="PreviousClicked"
-                      NextClicked="NextClicked" />
-</div>
+<AppStickyDock AdditionalClass="reader-progress-dock">
+    <div data-reader-top-chrome="true">
+        <ReaderBottomDock CurrentPage="@CurrentPage"
+                          TotalPages="@TotalPages"
+                          ProgressPercent="@ProgressPercent"
+                          IsPreviousDisabled="@IsPreviousDisabled"
+                          IsNextDisabled="@IsNextDisabled"
+                          PreviousClicked="PreviousClicked"
+                          NextClicked="NextClicked" />
+    </div>
+</AppStickyDock>
 
 @code {
     [Parameter]
@@ -122,5 +124,10 @@
     private void ToggleCollapsed()
     {
         IsCollapsed = !IsCollapsed;
+    }
+
+    private string ResolveImageUrl(string imageUrl)
+    {
+        return imageUrl;
     }
 }

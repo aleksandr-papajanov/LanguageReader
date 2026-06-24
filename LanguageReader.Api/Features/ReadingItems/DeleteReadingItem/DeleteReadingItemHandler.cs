@@ -23,11 +23,10 @@ internal sealed class DeleteReadingItemHandler(
             throw new ForbiddenException("You do not have access to this reading item.");
         }
 
-        var book = await dbContext.Books.FirstOrDefaultAsync(candidate => candidate.Id == request.ReadingItemId, ct);
-        if (book is not null)
-        {
-            dbContext.Books.Remove(book);
-        }
+        var assetStoragePaths = await dbContext.ReadingItemAssets
+            .Where(asset => asset.ReadingItemId == request.ReadingItemId)
+            .Select(asset => asset.StoragePath)
+            .ToListAsync(ct);
 
         var rssCandidates = await dbContext.RssArticleCandidates
             .Where(candidate => candidate.SavedReadingItemId == request.ReadingItemId)
@@ -42,6 +41,15 @@ internal sealed class DeleteReadingItemHandler(
 
         dbContext.ReadingItems.Remove(item);
         await dbContext.SaveChangesAsync(ct);
-        await storage.DeleteAsync(item.StoragePath, ct);
+
+        foreach (var storagePath in assetStoragePaths)
+        {
+            await storage.DeleteAsync(storagePath, ct);
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.StoragePath))
+        {
+            await storage.DeleteAsync(item.StoragePath, ct);
+        }
     }
 }

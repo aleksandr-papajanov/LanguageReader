@@ -9,9 +9,9 @@
             <header class="reading-item-row__header">
                 <div class="reading-item-row__media">
                     <div class="reading-item-row__thumb">
-                        @if (Item.Type == ReadingItemType.Article && !string.IsNullOrWhiteSpace(Item.ImageUrl))
+                        @if (!string.IsNullOrWhiteSpace(Item.ImageUrl))
                         {
-                            <AppImage Src="@Item.ImageUrl"
+                            <AppImage Src="@ResolveImageUrl(Item.ImageUrl)"
                                       Alt="@Item.Title"
                                       Decorative="true"
                                       Effect="AppImageEffect.Halftone"
@@ -180,6 +180,11 @@
     }
 
     private string GetTypeLabel() => Item.Type == ReadingItemType.Article ? "Article" : "Book";
+
+    private string ResolveImageUrl(string imageUrl)
+    {
+        return imageUrl;
+    }
 
     private string? GetStatusLabel()
     {

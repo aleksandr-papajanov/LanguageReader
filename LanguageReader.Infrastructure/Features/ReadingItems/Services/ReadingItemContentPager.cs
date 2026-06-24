@@ -2,7 +2,47 @@ namespace LanguageReader.Infrastructure.Features.ReadingItems.Services;
 
 internal static class ReadingItemContentPager
 {
-    public const int DefaultTargetPageWeight = 3600;
+    public const int DefaultTargetPageWeight = 6200;
+
+    public static IReadOnlyList<ReadingItemContentPagePlan> BuildPagePlan(
+        IReadOnlyList<ReadingContentBlockDto> blocks,
+        int targetPageWeight = DefaultTargetPageWeight)
+    {
+        if (blocks.Count == 0)
+        {
+            return [new ReadingItemContentPagePlan(0, 0, 0, 0, 0, 0)];
+        }
+
+        var pages = BuildPages(blocks, Math.Max(1200, targetPageWeight));
+
+        return pages
+            .Select((page, pageIndex) =>
+            {
+                var pageBlocks = blocks
+                    .Skip(page.StartBlockIndex)
+                    .Take(page.EndBlockIndex - page.StartBlockIndex + 1)
+                    .ToArray();
+                var addressableBlockIndexes = pageBlocks
+                    .Select(block => block.BlockIndex)
+                    .Where(index => index.HasValue)
+                    .Select(index => index!.Value)
+                    .ToArray();
+
+                return new ReadingItemContentPagePlan(
+                    pageIndex,
+                    page.StartBlockIndex,
+                    page.EndBlockIndex,
+                    addressableBlockIndexes.Length == 0 ? 0 : addressableBlockIndexes.Min(),
+                    addressableBlockIndexes.Length == 0 ? 0 : addressableBlockIndexes.Max(),
+                    pageBlocks.Sum(GetBlockWeight));
+            })
+            .ToArray();
+    }
+
+    public static int CalculateBlockWeight(ReadingContentBlockDto block)
+    {
+        return GetBlockWeight(block);
+    }
 
     public static ReadingItemContentPage Slice(
         IReadOnlyList<ReadingContentBlockDto> blocks,
@@ -53,7 +93,7 @@ internal static class ReadingItemContentPager
             var wouldOverfill = pageWeight > 0 && pageWeight + blockWeight > targetPageWeight;
             var isLargeBlock = blockWeight >= targetPageWeight;
 
-            if (wouldOverfill && !isLargeBlock)
+            if (wouldOverfill)
             {
                 pages.Add(new ReadingItemContentPageBoundary(pageStartIndex, index - 1));
                 pageStartIndex = index;
@@ -139,3 +179,11 @@ internal sealed record ReadingItemContentPage(
     int EndBlockIndex,
     int TotalBlocks,
     IReadOnlyList<ReadingContentBlockDto> Blocks);
+
+public sealed record ReadingItemContentPagePlan(
+    int PageIndex,
+    int StartSequenceIndex,
+    int EndSequenceIndex,
+    int StartBlockIndex,
+    int EndBlockIndex,
+    int Weight);

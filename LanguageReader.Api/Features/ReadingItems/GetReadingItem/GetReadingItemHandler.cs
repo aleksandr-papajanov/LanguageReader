@@ -5,13 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Api.Features.ReadingItems;
 
-internal sealed class GetReadingItemHandler(ApplicationDbContext dbContext)
+internal sealed class GetReadingItemHandler(
+    ApplicationDbContext dbContext,
+    ReadingItemApiUrlBuilder apiUrls)
 {
     public async Task<ReadingItemDetailsDto> HandleAsync(GetReadingItemRequest request, CancellationToken ct)
     {
         var item = await dbContext.ReadingItems
             .AsNoTracking()
             .Include(candidate => candidate.ArticleMetadata)
+            .Include(candidate => candidate.Assets)
             .FirstOrDefaultAsync(candidate => candidate.Id == request.ReadingItemId, ct);
 
         if (item is null)
@@ -40,7 +43,7 @@ internal sealed class GetReadingItemHandler(ApplicationDbContext dbContext)
             item.ArticleMetadata?.Author,
             item.ArticleMetadata?.PublishedAtUtc,
             item.ArticleMetadata?.OriginalUrl,
-            item.ArticleMetadata?.ImageUrl,
+            apiUrls.GetCoverImageUrl(item, request.Username),
             item.ArticleMetadata?.Excerpt,
             item.ArticleMetadata?.RssFeedUrl,
             item.ArticleMetadata?.ExternalId);

@@ -15,22 +15,18 @@ else if (state.IsLoading)
 else
 {
     <section class="settings-shell">
-        <div class="settings-header-row">
-            <AppTabs Items="Tabs"
-                     ActiveValue="@activeTab"
-                     ActiveValueChanged="SelectTab"
-                     AriaLabel="Settings sections" />
-        </div>
-
+        <AppTabs Items="Tabs"
+                 ActiveValue="@activeTab"
+                 ActiveValueChanged="SelectTab"
+                 AriaLabel="Settings sections" />
+                 
         @if (activeTab == SettingsTab)
         {
             <AppPanel AdditionalClass="form-panel settings-panel">
-                <AppTextInput Id="language"
-                              Label="Native Language"
-                              Value="@(state.NativeLanguage ?? string.Empty)"
-                              ValueChanged="@state.OnNativeLanguageChanged"
-                              LeadingIcon="translate"
-                              Placeholder="e.g. Russian, English, Swedish" />
+                <LanguageSelect Id="language"
+                                Label="Native Language"
+                                Value="@state.NativeLanguage"
+                                ValueChanged="@state.OnNativeLanguageChanged" />
 
                 <AppSelect TValue="AiServiceMode"
                            Id="ai-mode"

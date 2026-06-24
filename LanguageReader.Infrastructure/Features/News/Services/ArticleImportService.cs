@@ -46,62 +46,33 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
             return await ExtractSverigesRadioFromFeedAsync(source, url, cancellationToken);
         }
 
-        var sourceDocument = ParseHtmlDocument(sourceHtml);
-
-        var article = await Task.Run(() => Reader.ParseArticle(url, sourceHtml, ReaderUserAgent), cancellationToken);
-        if (!article.Completed && article.Errors.Count > 0)
-        {
-            throw new InvalidOperationException("Unable to download or parse article content.", article.Errors[0]);
-        }
-
-        if (!article.IsReadable)
-        {
-            throw new InvalidOperationException("Unable to extract article text.");
-        }
-
-        var title = NormalizeText(article.Title)
-            ?? FirstContent(sourceDocument,
-                "//meta[@property='og:title']/@content",
-                "//meta[@name='twitter:title']/@content",
-                "//h1",
-                "//title")
-            ?? throw new InvalidOperationException("Unable to extract article title.");
-
-        var paragraphs = ExtractParagraphs(article.Content, article.TextContent);
-        if (paragraphs.Count == 0)
-        {
-            throw new InvalidOperationException("Unable to extract article text.");
-        }
-
-        var excerpt = NormalizeText(article.Excerpt)
-            ?? FirstContent(sourceDocument,
-                "//meta[@property='og:description']/@content",
-                "//meta[@name='description']/@content");
-
-        return new ExtractedArticleContent(
+        return await ExtractFromHtmlAsync(
             source.SourceKey,
             source.SourceName,
             url,
-            title,
-            LanguageNameNormalizer.Normalize(source.DefaultLanguage),
-            paragraphs,
-            NormalizeText(article.Author)
-                ?? FirstContent(sourceDocument,
-                    "//meta[@name='author']/@content",
-                    "//meta[@property='article:author']/@content"),
-            NormalizeText(article.FeaturedImage)
-                ?? FirstContent(sourceDocument,
-                    "//meta[@property='og:image']/@content",
-                    "//meta[@name='twitter:image']/@content"),
-            excerpt,
-            ParseDate(FirstContent(sourceDocument,
-                "//meta[@property='article:published_time']/@content",
-                "//time/@datetime"))
-                ?? NormalizePublicationDate(article.PublicationDate),
-            FirstContent(sourceDocument,
-                "//meta[@property='article:id']/@content",
-                "//meta[@name='article:id']/@content"),
-            source.RssFeedUrl);
+            sourceHtml,
+            source.DefaultLanguage,
+            source.RssFeedUrl,
+            cancellationToken);
+    }
+
+    public async Task<ExtractedArticleContent> ExtractWebPageAsync(
+        string url,
+        string originalLanguage,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedUrl = url.Trim();
+        var html = await httpClient.GetStringAsync(normalizedUrl, cancellationToken);
+        var sourceName = ResolveWebSourceName(normalizedUrl);
+
+        return await ExtractFromHtmlAsync(
+            sourceKey: "web",
+            sourceName,
+            normalizedUrl,
+            html,
+            originalLanguage,
+            rssFeedUrl: null,
+            cancellationToken);
     }
 
     public async Task<NewsArticlePreviewMetadata?> TryExtractPreviewAsync(
@@ -152,6 +123,80 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
         }
 
         throw new InvalidOperationException($"Unsupported news source '{sourceKey}'.");
+    }
+
+    private static async Task<ExtractedArticleContent> ExtractFromHtmlAsync(
+        string sourceKey,
+        string sourceName,
+        string url,
+        string sourceHtml,
+        string originalLanguage,
+        string? rssFeedUrl,
+        CancellationToken cancellationToken)
+    {
+        var sourceDocument = ParseHtmlDocument(sourceHtml);
+
+        var article = await Task.Run(() => Reader.ParseArticle(url, sourceHtml, ReaderUserAgent), cancellationToken);
+        if (!article.Completed && article.Errors.Count > 0)
+        {
+            throw new InvalidOperationException("Unable to download or parse article content.", article.Errors[0]);
+        }
+
+        if (!article.IsReadable)
+        {
+            throw new InvalidOperationException("Unable to extract article text.");
+        }
+
+        var title = NormalizeText(article.Title)
+            ?? FirstContent(sourceDocument,
+                "//meta[@property='og:title']/@content",
+                "//meta[@name='twitter:title']/@content",
+                "//h1",
+                "//title")
+            ?? throw new InvalidOperationException("Unable to extract article title.");
+
+        var paragraphs = ExtractParagraphs(article.Content, article.TextContent);
+        if (paragraphs.Count == 0)
+        {
+            throw new InvalidOperationException("Unable to extract article text.");
+        }
+
+        var excerpt = NormalizeText(article.Excerpt)
+            ?? FirstContent(sourceDocument,
+                "//meta[@property='og:description']/@content",
+                "//meta[@name='description']/@content");
+
+        return new ExtractedArticleContent(
+            sourceKey,
+            sourceName,
+            url,
+            title,
+            LanguageNameNormalizer.Normalize(originalLanguage),
+            paragraphs,
+            NormalizeText(article.Author)
+                ?? FirstContent(sourceDocument,
+                    "//meta[@name='author']/@content",
+                    "//meta[@property='article:author']/@content"),
+            NormalizeUrl(url, NormalizeText(article.FeaturedImage)
+                ?? FirstContent(sourceDocument,
+                    "//meta[@property='og:image']/@content",
+                    "//meta[@name='twitter:image']/@content")),
+            excerpt,
+            ParseDate(FirstContent(sourceDocument,
+                "//meta[@property='article:published_time']/@content",
+                "//time/@datetime"))
+                ?? NormalizePublicationDate(article.PublicationDate),
+            FirstContent(sourceDocument,
+                "//meta[@property='article:id']/@content",
+                "//meta[@name='article:id']/@content"),
+            rssFeedUrl);
+    }
+
+    private static string ResolveWebSourceName(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            ? uri.Host.Replace("www.", string.Empty, StringComparison.OrdinalIgnoreCase)
+            : "Web";
     }
 
     private async Task<HtmlDocument?> TryLoadSourceDocumentAsync(string url, CancellationToken cancellationToken)

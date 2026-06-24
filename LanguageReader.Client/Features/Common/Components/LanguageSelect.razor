@@ -1,0 +1,41 @@
+<AppSelect TValue="string"
+           Id="@Id"
+           Label="@Label"
+           Hint="@Hint"
+           Value="@Value"
+           ValueChanged="ValueChanged"
+           Options="@Options"
+           LeadingIcon="language"
+           Size="@Size"
+           Variant="@Variant"
+           FieldClass="@FieldClass" />
+
+@code {
+    private static readonly IReadOnlyList<AppSelectOption<string>> Options = SupportedLanguages.All
+        .Select(language => new AppSelectOption<string>(language.Name, language.Name))
+        .ToArray();
+
+    [Parameter]
+    public string Id { get; set; } = $"language-select-{Guid.NewGuid():N}";
+
+    [Parameter]
+    public string Label { get; set; } = "Language";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string Value { get; set; } = SupportedLanguages.English;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    [Parameter]
+    public string Variant { get; set; } = "default";
+
+    [Parameter]
+    public string? FieldClass { get; set; }
+}

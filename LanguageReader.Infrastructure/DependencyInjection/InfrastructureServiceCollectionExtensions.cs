@@ -12,9 +12,9 @@ using LanguageReader.Infrastructure.Agents.Tools;
 using LanguageReader.Infrastructure.Agents.Providers;
 using LanguageReader.Infrastructure.Agents.Prompts;
 using LanguageReader.Infrastructure.Agents.Providers.OpenAI;
-using LanguageReader.Infrastructure.Features.Books.Parsing;
 using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.News.Services;
+using LanguageReader.Infrastructure.Features.ReadingItems.Parsing;
 using LanguageReader.Infrastructure.Features.ReadingItems.Services;
 using LanguageReader.Infrastructure.Features.Translation.Services;
 using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
@@ -106,7 +106,8 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<OpenAiOptions>(configuration.GetSection(OpenAiOptions.SectionName));
-        services.AddSingleton<IBookContentParser, Fb2BookContentParser>();
+        services.AddSingleton<IReadingItemContentParser, Fb2ReadingItemContentParser>();
+        services.AddScoped<ReadingItemDocumentStorageService>();
         services.AddScoped<IReadingItemContentService, ReadingItemContentService>();
         services.AddScoped<IUserAiServiceModeResolver, UserAiServiceModeResolver>();
         services.AddScoped<IAiModelResolver, AiModelResolver>();

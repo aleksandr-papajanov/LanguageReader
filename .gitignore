@@ -32,6 +32,7 @@ docker-compose.override.yml
 .codex-temp/
 .agents/
 .buildcheck/
+.artifacts
 appsettings.Development.json
 docs/
 scripts/

@@ -81,3 +81,34 @@
         white-space: normal;
     }
 }
+@media (max-width: 42rem) {
+    .stats-filters,
+    .stats-filter-row,
+    .stats-controls,
+    .stats-toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+        width: 100%;
+        min-width: 0;
+    }
+
+    .stats-filters *,
+    .stats-filter-row *,
+    .stats-controls *,
+    .stats-toolbar * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .stats-filters input,
+    .stats-filter-row input,
+    .stats-controls input,
+    .stats-toolbar input,
+    .stats-filters select,
+    .stats-filter-row select,
+    .stats-controls select,
+    .stats-toolbar select {
+        width: 100%;
+    }
+}

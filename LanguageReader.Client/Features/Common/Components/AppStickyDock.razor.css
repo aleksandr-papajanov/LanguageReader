@@ -1,0 +1,16 @@
+.app-sticky-dock {
+    position: sticky;
+    z-index: var(--app-sticky-dock-z-index, 12);
+    margin-bottom: var(--app-sticky-dock-margin-bottom, var(--space-3));
+}
+
+.app-sticky-dock--top {
+    top: var(
+        --app-sticky-dock-top,
+        calc(env(safe-area-inset-top) + var(--app-top-chrome-height, 4.5rem))
+    );
+}
+
+.app-sticky-dock--bottom {
+    bottom: var(--app-sticky-dock-bottom, calc(env(safe-area-inset-bottom) ));
+}

@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using LanguageReader.Infrastructure.Features.Ai.Entities;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
-using LanguageReader.Infrastructure.Features.Books.Entities;
 using LanguageReader.Infrastructure.Features.Reading.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities;
 using LanguageReader.Infrastructure.Features.Settings.Entities;
@@ -17,11 +16,6 @@ namespace LanguageReader.Infrastructure.Data;
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     /// <summary>
-    /// Stored book metadata.
-    /// </summary>
-    public DbSet<BookEntity> Books => Set<BookEntity>();
-
-    /// <summary>
     /// Stored generic reading items.
     /// </summary>
     public DbSet<ReadingItemEntity> ReadingItems => Set<ReadingItemEntity>();
@@ -30,6 +24,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     /// Stored article metadata for reading items.
     /// </summary>
     public DbSet<ArticleMetadataEntity> ArticleMetadata => Set<ArticleMetadataEntity>();
+
+    public DbSet<ReadingItemDocumentEntity> ReadingItemDocuments => Set<ReadingItemDocumentEntity>();
+
+    public DbSet<ReadingItemBlockEntity> ReadingItemBlocks => Set<ReadingItemBlockEntity>();
+
+    public DbSet<ReadingItemAssetEntity> ReadingItemAssets => Set<ReadingItemAssetEntity>();
 
     /// <summary>
     /// Stored reading progress.

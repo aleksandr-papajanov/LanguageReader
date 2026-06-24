@@ -8,7 +8,7 @@ public sealed class SettingsEditorState
         new(AiServiceMode.Agent, "Agent")
     ];
 
-    public string? NativeLanguage { get; private set; }
+    public string NativeLanguage { get; private set; } = SupportedLanguages.Russian;
 
     public AiServiceMode AiServiceMode { get; private set; } = AiServiceMode.Fake;
 
@@ -30,7 +30,7 @@ public sealed class SettingsEditorState
                 new GetUserSettingsRequest(username),
                 cancellationToken);
 
-            NativeLanguage = settings.NativeLanguage;
+            NativeLanguage = SupportedLanguages.Normalize(settings.NativeLanguage);
             AiServiceMode = settings.AiServiceMode;
         }
         finally
@@ -41,7 +41,7 @@ public sealed class SettingsEditorState
 
     public void OnNativeLanguageChanged(string value)
     {
-        NativeLanguage = value;
+        NativeLanguage = SupportedLanguages.Normalize(value);
     }
 
     public void OnAiServiceModeChanged(AiServiceMode value)

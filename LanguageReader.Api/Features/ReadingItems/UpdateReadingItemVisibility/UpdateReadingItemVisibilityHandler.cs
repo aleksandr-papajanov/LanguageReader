@@ -23,12 +23,6 @@ internal sealed class UpdateReadingItemVisibilityHandler(ApplicationDbContext db
         item.IsPublic = request.IsPublic;
         item.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
-        var book = await dbContext.Books.FirstOrDefaultAsync(candidate => candidate.Id == request.ReadingItemId, ct);
-        if (book is not null)
-        {
-            book.IsPublic = request.IsPublic;
-        }
-
         await dbContext.SaveChangesAsync(ct);
     }
 }

@@ -72,34 +72,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    try
-    {
-        dbContext.Database.Migrate();
-    }
-    catch (Exception exception)
-    {
-        throw new InvalidOperationException(
-            $"Failed to apply database migrations on startup. {exception.GetBaseException().Message}",
-            exception);
-    }
-
-    var vocabularyWordDetailsExists = dbContext.Database
-        .SqlQueryRaw<int>("select 1 from information_schema.tables where table_schema = 'public' and table_name = 'vocabulary_word_details'")
-        .Any();
-
-    if (!vocabularyWordDetailsExists)
-    {
-        throw new InvalidOperationException(
-            "Database migrations ran, but the table 'vocabulary_word_details' is still missing. " +
-            "For local development, run './scripts/reset-local-database.ps1 -Force' " +
-            "or verify the '__EFMigrationsHistory' table before starting the API.");
-    }
-}
-
-if (app.Environment.IsDevelopment())
-{
     app.UseSwagger();
     app.UseSwaggerUI();
 }

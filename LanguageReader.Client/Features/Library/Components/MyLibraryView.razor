@@ -11,14 +11,26 @@
 }
 else
 {
-    <ReadingItemUploadForm Title="@state.Title"
+    <ReadingItemUploadForm Tabs="@ReadingItemUploadState.ImportTabs"
+                           ActiveImportTab="@state.ActiveImportTab"
+                           Title="@state.Title"
                            OriginalLanguage="@state.OriginalLanguage"
+                           Url="@state.Url"
+                           Preview="@state.Preview"
+                           PreviewError="@state.PreviewError"
+                           IsPreviewOpen="@state.IsPreviewOpen"
+                           IsPreviewing="@state.IsPreviewing"
                            HasSelectedFile="@state.HasSelectedFile"
                            IsBusy="@state.IsBusy"
+                           ImportTabChanged="@state.SelectImportTab"
                            TitleChanged="@state.OnTitleChanged"
                            OriginalLanguageChanged="@state.OnOriginalLanguageChanged"
+                           UrlChanged="@state.OnUrlChanged"
                            FileSelected="@state.OnFileSelected"
-                           UploadClicked="UploadAsync" />
+                           UploadClicked="UploadAsync"
+                           PreviewUrlClicked="PreviewUrlAsync"
+                           ConfirmPreviewClicked="ConfirmUrlImportAsync"
+                           PreviewClosed="@state.ClosePreview" />
 
     @if (!string.IsNullOrWhiteSpace(state.Error))
     {
@@ -32,5 +44,15 @@ else
     private async Task UploadAsync()
     {
         await state.UploadAsync(Api, Navigation, Session.Username!);
+    }
+
+    private async Task PreviewUrlAsync()
+    {
+        await state.PreviewUrlAsync(Api);
+    }
+
+    private async Task ConfirmUrlImportAsync()
+    {
+        await state.ConfirmUrlImportAsync(Api, Navigation, Session.Username!);
     }
 }

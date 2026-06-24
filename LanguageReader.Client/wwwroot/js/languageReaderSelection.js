@@ -167,17 +167,17 @@ window.languageReaderSelection = {
         return result;
     },
 
-    scrollParagraphOffsetIntoViewIfNeeded: (root, blockIndex, offset) => {
+    scrollParagraphOffsetIntoViewIfNeeded: (root, blockIndex, offset, force = false) => {
         if (!root) {
-            return;
+            return false;
         }
 
         const rect = getRangeRectForOffset(root, blockIndex, offset);
         if (!rect) {
-            return;
+            return false;
         }
 
-        scrollRectIntoViewIfNeeded(rect);
+        return scrollRectIntoViewIfNeeded(rect, force);
     },
 
     getReaderProgressBlockIndex: (root) => {
@@ -195,7 +195,14 @@ window.languageReaderSelection = {
         const viewportBottom = window.innerHeight - metrics.bottom - 12;
         const pageEnd = root.querySelector("[data-reader-page-end]");
         if (pageEnd && isElementEndVisible(pageEnd, viewportTop, viewportBottom + 24)) {
-            return Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
+            const lastBlockIndex = Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
+            logReaderProgress("progress-block-page-end", {
+                blockIndex: lastBlockIndex,
+                viewportTop,
+                viewportBottom,
+                paragraphCount: paragraphs.length
+            });
+            return lastBlockIndex;
         }
 
         let lastPartiallyVisible = null;
@@ -212,7 +219,16 @@ window.languageReaderSelection = {
             }
         }
 
-        return lastParagraphWithVisibleEnd ?? lastPartiallyVisible ?? Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
+        const result = lastParagraphWithVisibleEnd ?? lastPartiallyVisible ?? Number(paragraphs[paragraphs.length - 1].dataset.blockIndex);
+        logReaderProgress("progress-block", {
+            blockIndex: result,
+            lastParagraphWithVisibleEnd,
+            lastPartiallyVisible,
+            viewportTop,
+            viewportBottom,
+            paragraphCount: paragraphs.length
+        });
+        return result;
     },
 
     getReaderBookmarkBlockIndex: (root) => {
@@ -233,11 +249,27 @@ window.languageReaderSelection = {
             const rect = paragraph.getBoundingClientRect();
             const isVisible = rect.bottom > viewportTop && rect.top < viewportBottom;
             if (isVisible) {
-                return Number(paragraph.dataset.blockIndex);
+                const blockIndex = Number(paragraph.dataset.blockIndex);
+                logReaderProgress("bookmark-block", {
+                    blockIndex,
+                    viewportTop,
+                    viewportBottom,
+                    rectTop: rect.top,
+                    rectBottom: rect.bottom,
+                    paragraphCount: paragraphs.length
+                });
+                return blockIndex;
             }
         }
 
-        return Number(paragraphs[0].dataset.blockIndex);
+        const fallbackBlockIndex = Number(paragraphs[0].dataset.blockIndex);
+        logReaderProgress("bookmark-block-fallback", {
+            blockIndex: fallbackBlockIndex,
+            viewportTop,
+            viewportBottom,
+            paragraphCount: paragraphs.length
+        });
+        return fallbackBlockIndex;
     },
 
     getFirstVisibleBlockIndex: (root) => {
@@ -1293,9 +1325,21 @@ function getParagraphOriginalLength(paragraph) {
 }
 
 function getReaderViewportInsets() {
+    const readerChrome = Array.from(document.querySelectorAll("[data-reader-top-chrome]"))
+        .map(element => element.getBoundingClientRect())
+        .filter(rect => rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight)
+        .reduce((bottom, rect) => Math.max(bottom, rect.bottom), 0);
+    const bottomChrome = document.querySelector(".app-layout__bottom");
+    const bottomChromeRect = bottomChrome?.getBoundingClientRect();
+    const bottom = bottomChromeRect && bottomChromeRect.width > 0 && bottomChromeRect.height > 0
+        ? Math.max(0, window.innerHeight - bottomChromeRect.top)
+        : getCssLength("--reader-bottom-offset");
+
     return {
-        top: getCssLength("--reader-header-offset") + getCssLength("--reader-header-visual-height", 96),
-        bottom: getCssLength("--reader-bottom-offset")
+        top: readerChrome > 0
+            ? readerChrome
+            : getCssLength("--reader-header-offset") + getCssLength("--reader-header-visual-height", 96),
+        bottom
     };
 }
 
@@ -1321,15 +1365,15 @@ function clamp(value, min, max) {
 
 window.languageReaderSelection.scrollRangeStartIntoViewIfNeeded = (root, blockIndex, startOffset) => {
     if (!root) {
-        return;
+        return false;
     }
 
     const rect = getRangeRectForOffset(root, blockIndex, startOffset);
     if (!rect) {
-        return;
+        return false;
     }
 
-    scrollRectIntoViewIfNeeded(rect);
+    return scrollRectIntoViewIfNeeded(rect);
 };
 
 function getRangeRectForOffset(root, blockIndex, startOffset) {
@@ -1361,7 +1405,7 @@ function getRangeRectForOffset(root, blockIndex, startOffset) {
     return rect;
 }
 
-function scrollRectIntoViewIfNeeded(rect) {
+function scrollRectIntoViewIfNeeded(rect, force = false) {
     const metrics = getReaderViewportInsets();
 
     const viewportTop = metrics.top + 16;
@@ -1369,16 +1413,44 @@ function scrollRectIntoViewIfNeeded(rect) {
 
     const isVisible = rect.top >= viewportTop && rect.bottom <= viewportBottom;
 
-    if (isVisible) {
-        return;
+    if (!force && isVisible) {
+        logReaderProgress("scroll-skipped-visible", {
+            force,
+            rectTop: rect.top,
+            rectBottom: rect.bottom,
+            viewportTop,
+            viewportBottom
+        });
+        return false;
     }
 
     const top = window.scrollY + rect.top - metrics.top - 24;
+    const targetTop = Math.max(0, top);
+
+    logReaderProgress("scroll-to-rect", {
+        force,
+        rectTop: rect.top,
+        rectBottom: rect.bottom,
+        viewportTop,
+        viewportBottom,
+        scrollY: window.scrollY,
+        targetTop
+    });
 
     window.scrollTo({
-        top: Math.max(0, top),
-        behavior: "smooth"
+        top: targetTop,
+        behavior: force ? "auto" : "smooth"
     });
+
+    return true;
+}
+
+function logReaderProgress(eventName, data) {
+    if (!window.languageReaderDebugProgress) {
+        return;
+    }
+
+    console.debug(`[LanguageReader Reader JS] ${eventName}`, data);
 }
 
 (function installGlobalSelectionGuard() {

@@ -18,7 +18,7 @@ public sealed class ReadingItemEntity
 
     public ReadingItemType Type { get; set; } = ReadingItemType.Book;
 
-    public ReadingContentFormat ContentFormat { get; set; } = ReadingContentFormat.Fb2;
+    public ReadingContentFormat ContentFormat { get; set; } = ReadingContentFormat.Canonical;
 
     public bool IsPublic { get; set; }
 
@@ -27,6 +27,12 @@ public sealed class ReadingItemEntity
     public DateTimeOffset UpdatedAtUtc { get; set; }
 
     public ArticleMetadataEntity? ArticleMetadata { get; set; }
+
+    public ReadingItemDocumentEntity? Document { get; set; }
+
+    public ICollection<ReadingItemBlockEntity> Blocks { get; set; } = [];
+
+    public ICollection<ReadingItemAssetEntity> Assets { get; set; } = [];
 
     public ICollection<ReadingProgressEntity> ReadingProgresses { get; set; } = [];
 
