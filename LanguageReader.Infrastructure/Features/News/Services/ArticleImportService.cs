@@ -29,6 +29,11 @@ public sealed class ArticleImportService(HttpClient httpClient) : IArticleImport
                 NewsSourceKeys.SverigesRadio,
                 "Sveriges Radio",
                 "https://api.sr.se/api/rss/program/83",
+                "Swedish"),
+            [NewsSourceKeys.Ottasidor] = new(
+                NewsSourceKeys.Ottasidor,
+                "8 sidor",
+                "https://8sidor.se/feed/?utm_source=chatgpt.com",
                 "Swedish")
         };
 

@@ -10,6 +10,7 @@ public sealed class NewsFeedService(HttpClient httpClient) : INewsFeedService
     private static readonly Uri SvtBaseUri = new("https://www.svt.se");
     private static readonly Uri AftonbladetBaseUri = new("https://www.aftonbladet.se");
     private static readonly Uri SverigesRadioBaseUri = new("https://www.sverigesradio.se");
+    private static readonly Uri OttasidorBaseUri = new("https://8sidor.se");
 
     private static readonly IReadOnlyDictionary<string, NewsFeedSourceDefinition> Sources =
         new Dictionary<string, NewsFeedSourceDefinition>(StringComparer.OrdinalIgnoreCase)
@@ -28,6 +29,11 @@ public sealed class NewsFeedService(HttpClient httpClient) : INewsFeedService
                 NewsSourceKeys.SverigesRadio,
                 "Sveriges Radio",
                 "https://api.sr.se/api/rss/program/83",
+                "Swedish"),
+            [NewsSourceKeys.Ottasidor] = new(
+                NewsSourceKeys.Ottasidor,
+                "8 sidor",
+                "https://8sidor.se/feed/",
                 "Swedish")
         };
 
@@ -42,6 +48,7 @@ public sealed class NewsFeedService(HttpClient httpClient) : INewsFeedService
             NewsSourceKeys.Svt => ParseRssFeed(document, source, preferEnclosure: false),
             NewsSourceKeys.Aftonbladet => ParseRssFeed(document, source, preferEnclosure: true),
             NewsSourceKeys.SverigesRadio => ParseSverigesRadioFeed(document, source),
+            NewsSourceKeys.Ottasidor => ParseRssFeed(document, source, preferEnclosure: true),
             _ => throw new InvalidOperationException($"Unsupported news source '{sourceKey}'.")
         };
     }
@@ -221,6 +228,7 @@ public sealed class NewsFeedService(HttpClient httpClient) : INewsFeedService
             NewsSourceKeys.Svt => SvtBaseUri,
             NewsSourceKeys.Aftonbladet => AftonbladetBaseUri,
             NewsSourceKeys.SverigesRadio => SverigesRadioBaseUri,
+            NewsSourceKeys.Ottasidor => OttasidorBaseUri,
             _ => null
         };
 

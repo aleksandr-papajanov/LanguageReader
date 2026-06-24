@@ -8,7 +8,8 @@ public static class ReadingItemSourceCatalog
     [
         new(NewsSourceKeys.Svt, "SVT", "/assets/svt.svg"),
         new(NewsSourceKeys.Aftonbladet, "Aftonbladet", "/assets/aftonbladet.svg"),
-        new(NewsSourceKeys.SverigesRadio, "Sveriges Radio", "/assets/sveries-radio.svg")
+        new(NewsSourceKeys.SverigesRadio, "Sveriges Radio", "/assets/sveries-radio.svg"),
+        new(NewsSourceKeys.Ottasidor, "8 sidor", "/assets/8-sidor.svg")
     ];
 
     public static IReadOnlyList<ReadingItemSourceInfo> NewsSources => Sources;

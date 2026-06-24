@@ -56,6 +56,7 @@ internal static class ReadingItemFeatureHelpers
             var value when string.Equals(value, NewsSourceKeys.Svt, StringComparison.OrdinalIgnoreCase) => "Swedish",
             var value when string.Equals(value, NewsSourceKeys.Aftonbladet, StringComparison.OrdinalIgnoreCase) => "Swedish",
             var value when string.Equals(value, NewsSourceKeys.SverigesRadio, StringComparison.OrdinalIgnoreCase) => "Swedish",
+            var value when string.Equals(value, NewsSourceKeys.Ottasidor, StringComparison.OrdinalIgnoreCase) => "Swedish",
             _ => "Unknown"
         };
     }
@@ -76,6 +77,11 @@ internal static class ReadingItemFeatureHelpers
             || MatchesSource(sourceName, rssFeedUrl, originalUrl, "api.sr.se", NewsSourceKeys.SverigesRadio, "Sveriges Radio"))
         {
             return NewsSourceKeys.SverigesRadio;
+        }
+
+        if (MatchesSource(sourceName, rssFeedUrl, originalUrl, "8sidor.se", NewsSourceKeys.Ottasidor, "8 sidor"))
+        {
+            return NewsSourceKeys.Aftonbladet;
         }
 
         return null;
