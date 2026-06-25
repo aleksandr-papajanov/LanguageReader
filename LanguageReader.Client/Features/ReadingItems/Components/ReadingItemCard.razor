@@ -1,6 +1,7 @@
 @using LanguageReader.Client.Features.Common.Services.Viewport
 @inject NavigationManager Navigation
 @inject IViewportService Viewport
+@inject ReaderWorkspaceService ReaderWorkspace
 @implements IDisposable
 
 <AppListItem AdditionalClass="reading-item-row">
@@ -172,11 +173,10 @@
             return;
         }
 
-        var route = Item.Position is null
-            ? $"/reader/{Item.Id}"
-            : $"/reader/{Item.Id}?block={Item.Position.BlockIndex}&offset={Item.Position.CharacterOffset}";
-
-        Navigation.NavigateTo(route);
+        ReaderWorkspace.Open(
+            Item.Id,
+            Item.Position?.BlockIndex,
+            Item.Position?.CharacterOffset);
     }
 
     private string GetTypeLabel() => Item.Type == ReadingItemType.Article ? "Article" : "Book";

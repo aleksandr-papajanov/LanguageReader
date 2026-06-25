@@ -31,7 +31,7 @@ else
         <ChildContent>
             <VocabularyEntryList Entries="state.VisibleEntries"
                                  BusyEntryId="busyEntryId"
-                                 DeleteSelected="HideEntryAsync" />
+                                 DeleteSelected="DeleteEntryAsync" />
             <AppInfiniteScrollSentinel IsEnabled="@(state.HasMoreEntries && !state.IsLoadingMore)"
                                        Reached="LoadMoreAsync" />
         </ChildContent>
@@ -64,13 +64,13 @@ else
         return Task.CompletedTask;
     }
 
-    private async Task HideEntryAsync(VocabularyEntryDto entry)
+    private async Task DeleteEntryAsync(VocabularyEntryDto entry)
     {
         busyEntryId = entry.Id;
 
         try
         {
-            await state.HideEntryAsync(Api, entry, Session.Username!);
+            await state.DeleteEntryAsync(Api, entry, Session.Username!);
         }
         finally
         {

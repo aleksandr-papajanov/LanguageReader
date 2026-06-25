@@ -1,13 +1,17 @@
-using LanguageReader.Infrastructure.Agents.Providers.Models;
+using LanguageReader.Infrastructure.Ai.Providers.Models;
 
 namespace LanguageReader.Infrastructure.Features.Ai.Models;
 
 internal static class AiOperationUsageFactory
 {
     public static AiOperationUsageDto Create(
-        AiOperationKind kind,
+        string operationName,
         string provider,
         string model,
+        string executionMode,
+        int turnCount,
+        int toolCallCount,
+        string? toolNames,
         string input,
         string output,
         decimal inputCostPerMillionTokensUsd,
@@ -15,9 +19,13 @@ internal static class AiOperationUsageFactory
         AiProviderUsage? providerUsage = null)
     {
         return providerUsage.ToAiOperationUsageDto(
-            kind,
+            operationName,
             provider,
             model,
+            executionMode,
+            turnCount,
+            toolCallCount,
+            toolNames,
             input,
             output,
             inputCostPerMillionTokensUsd,

@@ -1,5 +1,6 @@
+using LanguageReader.Infrastructure.Ai.Workflows;
 using LanguageReader.Infrastructure.Data;
-using LanguageReader.Infrastructure.Features.Translation.Services;
+using LanguageReader.Infrastructure.Features.Translation.Workflows;
 using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Api.Features.Translation;
@@ -7,7 +8,7 @@ namespace LanguageReader.Api.Features.Translation;
 internal sealed class TranslateSelectionHandler(
     ApplicationDbContext dbContext,
     UserSettingsAccessor userSettingsAccessor,
-    ITranslationService translationService)
+    WorkflowRunner workflowRunner)
 {
     public async Task<TranslationResultDto> HandleAsync(TranslateRequest request, CancellationToken ct)
     {
@@ -27,7 +28,9 @@ internal sealed class TranslateSelectionHandler(
             SourceLanguage = sourceLanguage
         };
 
-        return await translationService.TranslateAsync(normalizedRequest, ct);
+        return await workflowRunner.RunAsync<TranslateSelectionWorkflow, TranslateRequest, TranslationResultDto>(
+            normalizedRequest,
+            ct);
     }
 
     private async Task<string?> ResolveSourceLanguageAsync(Guid? readingItemId, CancellationToken ct)

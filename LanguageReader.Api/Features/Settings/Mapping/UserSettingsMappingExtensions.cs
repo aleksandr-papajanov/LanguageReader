@@ -6,6 +6,6 @@ internal static class UserSettingsMappingExtensions
 {
     public static UserSettingsDto ToUserSettingsDto(this UserSettingsEntity settings)
     {
-        return new UserSettingsDto(settings.Username, settings.NativeLanguage, settings.AiServiceMode);
+        return new UserSettingsDto(settings.Username, settings.NativeLanguage);
     }
 }

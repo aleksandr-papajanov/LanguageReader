@@ -72,8 +72,9 @@ else
                             {
                                 <article class="stats-operation">
                                     <div class="stats-operation__main">
-                                        <AppBadge PreserveCase="true">@FormatKind(operation.Kind)</AppBadge>
+                                        <AppBadge PreserveCase="true">@operation.OperationName</AppBadge>
                                         <strong class="stats-operation__model">@operation.Provider / @operation.Model</strong>
+                                        <span class="stats-operation__execution">@FormatExecution(operation)</span>
                                         <span class="stats-operation__date">@operation.CreatedAtUtc.LocalDateTime.ToString("MMM d, yyyy 'at' h:mm tt")</span>
                                     </div>
 
@@ -201,15 +202,19 @@ else
             : null;
     }
 
-    private static string FormatKind(AiOperationKind kind)
+    private static string FormatExecution(AiOperationDto operation)
     {
-        return kind switch
+        var turns = operation.TurnCount == 1 ? "1 turn" : $"{operation.TurnCount} turns";
+
+        if (operation.ToolCallCount <= 0)
         {
-            AiOperationKind.VocabularyNormalization => "Vocabulary Normalization",
-            AiOperationKind.VocabularyClassification => "Vocabulary Classification",
-            AiOperationKind.VocabularyAutofill => "Vocabulary Autofill",
-            AiOperationKind.VocabularyExampleGeneration => "Vocabulary Example",
-            _ => kind.ToString()
-        };
+            return $"{operation.ExecutionMode} · {turns}";
+        }
+
+        var tools = string.IsNullOrWhiteSpace(operation.ToolNames)
+            ? "tools"
+            : operation.ToolNames;
+
+        return $"{operation.ExecutionMode} · {turns} · {operation.ToolCallCount} tool call(s): {tools}";
     }
 }

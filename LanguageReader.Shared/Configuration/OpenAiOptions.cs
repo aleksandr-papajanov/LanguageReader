@@ -16,6 +16,11 @@ public sealed class OpenAiOptions
     public string? ApiKey { get; init; }
 
     /// <summary>
+    /// Provider name stored in AI usage metadata.
+    /// </summary>
+    public string ProviderName { get; init; } = "OpenAI";
+
+    /// <summary>
     /// Base API URL for future OpenAI requests.
     /// </summary>
     public string BaseUrl { get; init; } = "https://api.openai.com/v1/";

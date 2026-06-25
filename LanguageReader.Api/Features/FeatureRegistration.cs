@@ -8,7 +8,6 @@ using LanguageReader.Api.Features.Stats;
 using LanguageReader.Api.Features.Translation;
 using LanguageReader.Api.Features.Users;
 using LanguageReader.Api.Features.Vocabulary;
-using LanguageReader.Api.Features.Vocabulary.Services;
 
 namespace LanguageReader.Api.Features;
 
@@ -28,6 +27,7 @@ internal static class FeatureRegistration
         services.AddScoped<GetReadingItemHandler>();
         services.AddScoped<GetReadingItemContentHandler>();
         services.AddScoped<GetReadingItemAssetHandler>();
+        services.AddHttpClient<GetRemoteImageProxyHandler>();
         services.AddScoped<UpdateReadingItemVisibilityHandler>();
         services.AddScoped<DeleteReadingItemHandler>();
         services.AddScoped<ResetImportedReadingContentHandler>();
@@ -52,7 +52,6 @@ internal static class FeatureRegistration
 
         services.AddScoped<GetVocabularyHandler>();
         services.AddScoped<GetVocabularyEntryHandler>();
-        services.AddScoped<VocabularyAutofillApplicator>();
         services.AddScoped<SaveVocabularyEntryHandler>();
         services.AddScoped<DeleteVocabularyEntryHandler>();
         services.AddScoped<AutofillVocabularyEntryHandler>();

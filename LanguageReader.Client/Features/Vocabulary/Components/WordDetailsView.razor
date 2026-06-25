@@ -205,6 +205,7 @@ else if (entry is not null)
                                                        Size="sm"
                                                        Icon="delete"
                                                        Disabled="@isBusy"
+                                                       IsLoading="@(deletingExampleId == example.Id)"
                                                        OnClick="@(_ => DeleteExampleAsync(example.Id))" />
                                         }
                                     </Footer>
@@ -231,6 +232,7 @@ else if (entry is not null)
     private VocabularyEntryDto? entry;
     private bool isLoading;
     private bool isBusy;
+    private Guid? deletingExampleId;
     private string? error;
 
     private bool IsWordEntry => entry?.Kind == SavedTextKind.LexicalUnit;
@@ -315,7 +317,11 @@ else if (entry is not null)
             return;
         }
 
-        await RunBusyAsync(async () =>
+        isBusy = true;
+        deletingExampleId = exampleId;
+        error = null;
+
+        try
         {
             await Api.DeleteVocabularyExampleAsync(
                 new DeleteVocabularyExampleRequest(
@@ -327,7 +333,16 @@ else if (entry is not null)
                 new GetVocabularyEntryRequest(
                     entry.Id,
                     Session.Username!));
-        });
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            deletingExampleId = null;
+            isBusy = false;
+        }
     }
 
     private async Task RemoveFromVocabularyAsync()
@@ -339,11 +354,10 @@ else if (entry is not null)
 
         await RunBusyAsync(async () =>
         {
-            await Api.UpdateVocabularyVisibilityAsync(
-                new UpdateVocabularyVisibilityRequest(
+            await Api.DeleteVocabularyEntryAsync(
+                new DeleteVocabularyEntryRequest(
                     entry.Id,
-                    Session.Username!,
-                    false));
+                    Session.Username!));
 
             if (!string.IsNullOrWhiteSpace(ReturnUrl))
             {

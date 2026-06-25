@@ -90,6 +90,9 @@ else if (content is not null)
     [Parameter]
     public int? QueryOffset { get; set; }
 
+    [Parameter]
+    public bool IsActive { get; set; } = true;
+
     private readonly PeriodicTimer saveTimer = new(TimeSpan.FromSeconds(10));
     private readonly List<ReaderBlock> blocks = [];
     private readonly List<TranslatedRangeDto> translatedRanges = [];
@@ -123,7 +126,11 @@ else if (content is not null)
     private int? selectionAnchorOffset;
     private int? lastRenderedLastPageSyncIndex;
     private bool isRestoringScroll;
+    private bool waitForViewportChangeAfterRestore;
     private CancellationTokenSource? progressSaveDebounce;
+    private Guid? loadedReadingItemId;
+    private int? loadedQueryBlock;
+    private int? loadedQueryOffset;
 
     private SelectionKind activeMode = SelectionKind.Word;
     private CancellationTokenSource? timerCancellation;
@@ -146,6 +153,14 @@ else if (content is not null)
             return;
         }
 
+        if (content is not null
+            && loadedReadingItemId == ReadingItemId
+            && loadedQueryBlock == QueryBlock
+            && loadedQueryOffset == QueryOffset)
+        {
+            return;
+        }
+
         await LoadReaderAsync();
     }
 
@@ -153,7 +168,8 @@ else if (content is not null)
     {
         if (Session.IsSignedIn && content is not null)
         {
-            _ = InvokeAsync(SaveProgressBestEffortAsync);
+            CancelProgressPersistence();
+            _ = InvokeAsync(SaveCurrentPositionBestEffortAsync);
         }
     }
 
@@ -177,7 +193,10 @@ else if (content is not null)
 
         try
         {
-            await Session.SetLastReaderRouteAsync($"/{Navigation.ToBaseRelativePath(Navigation.Uri)}");
+            await Session.SetLastReaderRouteAsync($"/reader/{ReadingItemId}");
+            loadedReadingItemId = ReadingItemId;
+            loadedQueryBlock = QueryBlock;
+            loadedQueryOffset = QueryOffset;
 
             await LoadReadingItemDetailsAsync();
             await LoadUserDataAsync();
@@ -351,6 +370,7 @@ else if (content is not null)
         var next = progress.MoveToVisibleBlocks(
             visibleBlocks.ProgressBlockIndex,
             visibleBlocks.BookmarkBlockIndex);
+        waitForViewportChangeAfterRestore = false;
 
         if (next.Equals(progress))
         {
@@ -871,13 +891,29 @@ else if (content is not null)
 
     private async Task SaveCurrentPositionAsync()
     {
-        await SaveProgressAsync(CurrentPosition());
+            await SaveProgressFromViewportAsync();
     }
 
     private async Task SaveProgressFromViewportAsync()
     {
         if (!Session.IsSignedIn)
         {
+            return;
+        }
+
+        if (isRestoringScroll || waitForViewportChangeAfterRestore)
+        {
+            await LogProgressAsync(
+                "save-progress-skipped-after-restore",
+                new
+                {
+                    isRestoringScroll,
+                    waitForViewportChangeAfterRestore,
+                    progress.PageIndex,
+                    progress.BlockIndex,
+                    progress.CharacterOffset,
+                    progress.ProgressBlockIndex
+                });
             return;
         }
 
@@ -989,8 +1025,26 @@ else if (content is not null)
                 {
                     exception.Message,
                     exception.StackTrace
-                });
+            });
         }
+    }
+
+    private async Task SaveCurrentPositionBestEffortAsync()
+    {
+        try
+        {
+            await SaveCurrentPositionAsync();
+        }
+        catch
+        {
+            // Background progress persistence should not interrupt navigation or reading.
+        }
+    }
+
+    private void CancelProgressPersistence()
+    {
+        progressSaveDebounce?.Cancel();
+        timerCancellation?.Cancel();
     }
 
     private async Task SaveProgressLoopAsync(CancellationToken cancellationToken)
@@ -1048,6 +1102,7 @@ else if (content is not null)
         }
 
         isRestoringScroll = false;
+        waitForViewportChangeAfterRestore = true;
         await LogProgressAsync(
             "scroll-restored",
             new
@@ -1059,7 +1114,6 @@ else if (content is not null)
                 scrollOffset,
                 scrollForce
             });
-        await SaveProgressFromViewportAsync();
     }
 
     private Task LogContentPageAsync(string eventName)
@@ -1079,17 +1133,7 @@ else if (content is not null)
 
     private async Task LogProgressAsync(string eventName, object data)
     {
-        try
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "console.debug",
-                $"[LanguageReader Reader] {eventName}",
-                data);
-        }
-        catch
-        {
-            // Diagnostics must never affect the reader.
-        }
+        await Task.CompletedTask;
     }
 
     private void BeginTranslationAction(TranslatedRangeDto range, string action)
@@ -1135,14 +1179,13 @@ else if (content is not null)
     public async ValueTask DisposeAsync()
     {
         Navigation.LocationChanged -= HandleLocationChanged;
-        progressSaveDebounce?.Cancel();
-        timerCancellation?.Cancel();
+        CancelProgressPersistence();
 
         try
         {
             if (Session.IsSignedIn && content is not null)
             {
-                await SaveProgressFromViewportAsync();
+                await SaveCurrentPositionBestEffortAsync();
             }
         }
         catch

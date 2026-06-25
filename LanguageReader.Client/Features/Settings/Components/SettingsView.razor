@@ -28,13 +28,6 @@ else
                                 Value="@state.NativeLanguage"
                                 ValueChanged="@state.OnNativeLanguageChanged" />
 
-                <AppSelect TValue="AiServiceMode"
-                           Id="ai-mode"
-                           Label="AI Mode"
-                           Value="@state.AiServiceMode"
-                           ValueChanged="@state.OnAiServiceModeChanged"
-                           Options="@SettingsEditorState.AiModeOptions" />
-
                 @if (!string.IsNullOrWhiteSpace(state.Message))
                 {
                     <p class="app-inline-success">@state.Message</p>

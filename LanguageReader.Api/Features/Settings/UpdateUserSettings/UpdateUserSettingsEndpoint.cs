@@ -12,8 +12,7 @@ internal static class UpdateUserSettingsEndpoint
         {
             var request = new UpdateUserSettingsRequest(
                 route.Username,
-                body.NativeLanguage,
-                body.AiServiceMode);
+                body.NativeLanguage);
 
             return Results.Ok(await handler.HandleAsync(request, ct));
         })

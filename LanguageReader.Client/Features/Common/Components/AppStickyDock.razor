@@ -1,8 +1,11 @@
-<div class="@CssClass" style="@DockStyle">
+<div class="@CssClass" style="@DockStyle" @attributes="AdditionalAttributes">
     @ChildContent
 </div>
 
 @code {
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
     [Parameter]
     public string? AdditionalClass { get; set; }
 

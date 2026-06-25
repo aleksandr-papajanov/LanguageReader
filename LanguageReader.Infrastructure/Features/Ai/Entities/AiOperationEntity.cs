@@ -12,11 +12,19 @@ public sealed class AiOperationEntity
 
     public string Username { get; set; } = string.Empty;
 
-    public AiOperationKind Kind { get; set; }
+    public string OperationName { get; set; } = string.Empty;
 
     public string Provider { get; set; } = string.Empty;
 
     public string Model { get; set; } = string.Empty;
+
+    public string ExecutionMode { get; set; } = string.Empty;
+
+    public int TurnCount { get; set; }
+
+    public int ToolCallCount { get; set; }
+
+    public string? ToolNames { get; set; }
 
     public int InputTokens { get; set; }
 

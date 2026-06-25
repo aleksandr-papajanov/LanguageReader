@@ -1,8 +1,7 @@
 @page "/reader/{ReadingItemId:guid}"
+@inject ReaderWorkspaceService Workspace
 
 <PageTitle>Reader</PageTitle>
-
-<ReaderView ReadingItemId="ReadingItemId" QueryBlock="QueryBlock" QueryOffset="QueryOffset" />
 
 @code {
     [Parameter]
@@ -13,4 +12,9 @@
 
     [SupplyParameterFromQuery(Name = "offset")]
     public int? QueryOffset { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        Workspace.Open(ReadingItemId, QueryBlock, QueryOffset);
+    }
 }

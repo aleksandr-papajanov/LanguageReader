@@ -36,7 +36,7 @@ public sealed class UserSession(IJSRuntime jsRuntime)
     public async Task InitializeAsync()
     {
         Username = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", StorageKey);
-        LastReaderRoute = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", LastReaderRouteKey) ?? "/";
+        LastReaderRoute = NormalizeReaderRoute(await jsRuntime.InvokeAsync<string?>("localStorage.getItem", LastReaderRouteKey));
         Changed?.Invoke();
     }
 
@@ -72,9 +72,25 @@ public sealed class UserSession(IJSRuntime jsRuntime)
             return;
         }
 
-        LastReaderRoute = route.StartsWith('/') ? route : $"/{route}";
+        LastReaderRoute = NormalizeReaderRoute(route);
         await jsRuntime.InvokeVoidAsync("localStorage.setItem", LastReaderRouteKey, LastReaderRoute);
         Changed?.Invoke();
+    }
+
+    private static string NormalizeReaderRoute(string? route)
+    {
+        if (string.IsNullOrWhiteSpace(route))
+        {
+            return "/";
+        }
+
+        var normalized = route.Trim();
+        normalized = normalized.StartsWith('/') ? normalized : $"/{normalized}";
+
+        var queryIndex = normalized.IndexOfAny(['?', '#']);
+        return queryIndex < 0
+            ? normalized
+            : normalized[..queryIndex];
     }
 }
 

@@ -8,9 +8,13 @@ internal static class AiOperationMappingExtensions
     {
         return new AiOperationDto(
             operation.Id,
-            operation.Kind,
+            operation.OperationName,
             operation.Provider,
             operation.Model,
+            operation.ExecutionMode,
+            operation.TurnCount,
+            operation.ToolCallCount,
+            operation.ToolNames,
             operation.InputTokens,
             operation.OutputTokens,
             operation.TotalTokens,

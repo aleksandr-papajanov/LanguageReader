@@ -13,9 +13,13 @@ internal sealed class AiOperationConfiguration : IEntityTypeConfiguration<AiOper
 
         entity.Property(operation => operation.Id).HasColumnName("id");
         entity.Property(operation => operation.Username).HasColumnName("username").HasMaxLength(128).IsRequired();
-        entity.Property(operation => operation.Kind).HasColumnName("kind").HasConversion<string>().HasMaxLength(64).IsRequired();
+        entity.Property(operation => operation.OperationName).HasColumnName("operation_name").HasMaxLength(128).IsRequired();
         entity.Property(operation => operation.Provider).HasColumnName("provider").HasMaxLength(128).IsRequired();
         entity.Property(operation => operation.Model).HasColumnName("model").HasMaxLength(256).IsRequired();
+        entity.Property(operation => operation.ExecutionMode).HasColumnName("execution_mode").HasMaxLength(64).IsRequired();
+        entity.Property(operation => operation.TurnCount).HasColumnName("turn_count");
+        entity.Property(operation => operation.ToolCallCount).HasColumnName("tool_call_count");
+        entity.Property(operation => operation.ToolNames).HasColumnName("tool_names").HasMaxLength(512);
         entity.Property(operation => operation.InputTokens).HasColumnName("input_tokens");
         entity.Property(operation => operation.OutputTokens).HasColumnName("output_tokens");
         entity.Property(operation => operation.TotalTokens).HasColumnName("total_tokens");

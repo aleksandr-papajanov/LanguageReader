@@ -3,6 +3,7 @@
 @inject IViewportService Viewport
 @inject ThemeService Theme
 @inject MascotService Mascot
+@inject ReaderWorkspaceService ReaderWorkspace
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
@@ -15,9 +16,11 @@
 
     <main class="app-layout__content">
         <div class="app-layout__content-inner">
-            <article class="app-shell">
+            <article class="@MainWorkspaceClass">
                 @Body
             </article>
+
+            <ReaderWorkspace />
         </div>
     </main>
 
@@ -35,9 +38,14 @@
     private string? mascotActivityObserverId;
     private bool previousRouteWasReader;
 
+    private string MainWorkspaceClass => ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader
+        ? "app-shell app-shell--hidden"
+        : "app-shell";
+
     protected override void OnInitialized()
     {
         Navigation.LocationChanged += HandleLocationChanged;
+        ReaderWorkspace.Changed += HandleReaderWorkspaceChanged;
         ApplyMascotRoute(Navigation.Uri, isInitialRoute: true);
     }
 
@@ -68,6 +76,28 @@
     private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         ApplyMascotRoute(e.Location, isInitialRoute: false);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleReaderWorkspaceChanged()
+    {
+        if (ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader)
+        {
+            if (!previousRouteWasReader)
+            {
+                Mascot.PlayAction(MascotAction.OpenBook, MascotState.Reading);
+            }
+
+            previousRouteWasReader = true;
+            ScheduleReadingSleep();
+        }
+        else
+        {
+            previousRouteWasReader = false;
+            CancelReadingSleep();
+            ApplyMascotRoute(Navigation.Uri, isInitialRoute: false);
+        }
+
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -165,6 +195,7 @@
     public async ValueTask DisposeAsync()
     {
         Navigation.LocationChanged -= HandleLocationChanged;
+        ReaderWorkspace.Changed -= HandleReaderWorkspaceChanged;
         Viewport.Changed -= HandleViewportChanged;
         CancelReadingSleep();
 

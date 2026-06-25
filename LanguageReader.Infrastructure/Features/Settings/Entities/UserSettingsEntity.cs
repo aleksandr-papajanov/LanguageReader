@@ -1,5 +1,3 @@
-using LanguageReader.Shared.Features.Settings;
-
 namespace LanguageReader.Infrastructure.Features.Settings.Entities;
 
 /// <summary>
@@ -17,8 +15,4 @@ public sealed class UserSettingsEntity
     /// </summary>
     public string? NativeLanguage { get; set; }
 
-    /// <summary>
-    /// Selected AI mode for translation and vocabulary features.
-    /// </summary>
-    public AiServiceMode AiServiceMode { get; set; } = AiServiceMode.Fake;
 }

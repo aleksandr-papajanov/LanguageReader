@@ -66,14 +66,14 @@ public sealed class VocabularyBrowserState
         IsLoadingMore = false;
     }
 
-    public async Task HideEntryAsync(
+    public async Task DeleteEntryAsync(
         VocabularyApiClient api,
         VocabularyEntryDto entry,
         string username,
         CancellationToken cancellationToken = default)
     {
-        await api.UpdateVocabularyVisibilityAsync(
-            new UpdateVocabularyVisibilityRequest(entry.Id, username, false),
+        await api.DeleteVocabularyEntryAsync(
+            new DeleteVocabularyEntryRequest(entry.Id, username),
             cancellationToken);
 
         Entries.RemoveAll(item => item.Id == entry.Id);

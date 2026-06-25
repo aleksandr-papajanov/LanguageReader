@@ -11,7 +11,6 @@ internal sealed class UpdateUserSettingsHandler(
         var normalizedUsername = UsernameHelper.Require(request.Username);
         var settings = await userSettingsAccessor.GetOrCreateAsync(normalizedUsername, ct);
         settings.NativeLanguage = SupportedLanguages.Normalize(request.NativeLanguage);
-        settings.AiServiceMode = request.AiServiceMode;
 
         await dbContext.SaveChangesAsync(ct);
 

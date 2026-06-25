@@ -17,7 +17,7 @@ public sealed class SettingsApiClient(ApiClient api)
         CancellationToken cancellationToken = default)
     {
         var route = new UpdateUserSettingsRequestRoute(request.Username);
-        var body = new UpdateUserSettingsRequestBody(request.NativeLanguage, request.AiServiceMode);
+        var body = new UpdateUserSettingsRequestBody(request.NativeLanguage);
 
         return api.PutAsync<UserSettingsDto>(
             "/api/settings/{Username}",

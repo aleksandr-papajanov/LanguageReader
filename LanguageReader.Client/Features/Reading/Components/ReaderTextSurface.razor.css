@@ -1,6 +1,7 @@
 .reader-page {
     --reader-translation-marker-gap: 6px;
     position: relative;
+    overflow-anchor: none;
     min-height: 44rem;
     padding: clamp(1.75rem, 3vw, 3rem);
     border: 1px solid var(--color-border);

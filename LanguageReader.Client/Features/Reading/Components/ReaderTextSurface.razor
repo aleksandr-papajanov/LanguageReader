@@ -1,4 +1,5 @@
 @inject IJSRuntime JsRuntime
+@inject ReaderViewportService ReaderViewport
 @implements IAsyncDisposable
 
 <article class="@ReaderPageClass"
@@ -269,8 +270,7 @@
                 readerPage,
                 dotNetReference);
 
-            scrollObserverId = await JsRuntime.InvokeAsync<string>(
-                "languageReaderSelection.observeReaderScroll",
+            scrollObserverId = await ReaderViewport.ObserveScrollAsync(
                 readerPage,
                 dotNetReference);
 
@@ -295,12 +295,10 @@
         {
             lastScrollRequestKey = ScrollRequestKey;
 
-            var didScroll = await JsRuntime.InvokeAsync<bool>(
-                "languageReaderSelection.scrollParagraphOffsetIntoViewIfNeeded",
+            var didScroll = await ReaderViewport.ScrollBlockIntoViewAsync(
                 readerPage,
                 ScrollBlockIndex.Value,
-                ScrollOffset ?? 0,
-                ScrollForce);
+                ScrollOffset ?? 0);
 
             if (didScroll)
             {
@@ -387,27 +385,7 @@
 
     public async Task<ReaderViewportProgress?> GetViewportProgressAsync(Guid readingItemId)
     {
-        var bookmarkBlockIndex = await JsRuntime.InvokeAsync<int?>(
-            "languageReaderSelection.getReaderBookmarkBlockIndex",
-            readerPage);
-        var progressBlockIndex = await JsRuntime.InvokeAsync<int?>(
-            "languageReaderSelection.getReaderProgressBlockIndex",
-            readerPage);
-
-        await JsRuntime.InvokeVoidAsync(
-            "console.debug",
-            "[LanguageReader Reader] viewport-progress-read",
-            new
-            {
-                bookmarkBlockIndex,
-                progressBlockIndex
-            });
-
-        return bookmarkBlockIndex.HasValue && progressBlockIndex.HasValue
-            ? new ReaderViewportProgress(
-                new ReadingPositionDto(readingItemId, bookmarkBlockIndex.Value, 0),
-                progressBlockIndex.Value)
-            : null;
+        return await ReaderViewport.GetProgressAsync(readerPage, readingItemId);
     }
 
     private async Task HandleReaderClickAsync(MouseEventArgs args)
@@ -876,7 +854,7 @@
     {
         if (!string.IsNullOrWhiteSpace(scrollObserverId))
         {
-            await JsRuntime.InvokeVoidAsync("languageReaderSelection.unobserveReaderScroll", scrollObserverId);
+            await ReaderViewport.UnobserveScrollAsync(scrollObserverId);
         }
 
         if (!string.IsNullOrWhiteSpace(resizeObserverId))
@@ -913,6 +891,7 @@
         double SelectionActionsHeight,
         double TranslationPopupWidth,
         double TranslationPopupHeight);
+
 
     private static class TranslationActionKind
     {

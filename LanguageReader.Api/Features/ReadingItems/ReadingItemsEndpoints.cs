@@ -8,6 +8,7 @@ internal static class ReadingItemsEndpoints
         api.MapGetReadingItemEndpoint();
         api.MapGetReadingItemContentEndpoint();
         api.MapGetReadingItemAssetEndpoint();
+        api.MapGetRemoteImageProxyEndpoint();
         api.MapImportReadingItemEndpoint();
         api.MapPreviewReadingItemUrlImportEndpoint();
         api.MapImportReadingItemFromUrlEndpoint();

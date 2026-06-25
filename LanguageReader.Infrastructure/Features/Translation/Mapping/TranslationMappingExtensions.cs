@@ -1,4 +1,4 @@
-namespace LanguageReader.Infrastructure.Features.Translation.Services;
+namespace LanguageReader.Infrastructure.Features.Translation.Mapping;
 
 internal static class TranslationMappingExtensions
 {

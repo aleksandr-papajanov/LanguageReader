@@ -1,5 +1,7 @@
-@inject UserSession Session
+@inject NavigationManager Navigation
+@inject ReaderWorkspaceService ReaderWorkspace
 @inject IJSRuntime JsRuntime
+@implements IDisposable
 
 <nav class="@NavClass" aria-label="Primary navigation">
     <div class="bottom-nav__scroller"
@@ -15,15 +17,20 @@
                     Layout="Vertical"
                     Justify="center"
                     Align="center"
+                    Active="@IsRouteActive("")"
+                    Clicked="@ShowLibraryAsync"
                     AdditionalClass="bottom-nav__item" />
 
-        <AppNavItem Href="@ReaderRoute"
+        <AppNavItem Href=""
                     Icon="auto_stories"
                     IconSize="23"
                     Label="Reader"
                     Layout="Vertical"
                     Justify="center"
                     Align="center"
+                    Active="@(ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader)"
+                    Disabled="@(!ReaderWorkspace.IsReaderAvailable)"
+                    Clicked="@ShowReaderAsync"
                     AdditionalClass="bottom-nav__item" />
 
         <AppNavItem Href="news"
@@ -33,6 +40,8 @@
                     Layout="Vertical"
                     Justify="center"
                     Align="center"
+                    Active="@IsNewsActive"
+                    Clicked="@ShowNewsAsync"
                     AdditionalClass="bottom-nav__item" />
 
         <AppNavItem Href="vocabulary"
@@ -42,6 +51,8 @@
                     Layout="Vertical"
                     Justify="center"
                     Align="center"
+                    Active="@IsVocabularyActive"
+                    Clicked="@ShowVocabularyAsync"
                     AdditionalClass="bottom-nav__item" />
 
         <AppNavItem Href="training"
@@ -51,6 +62,8 @@
                     Layout="Vertical"
                     Justify="center"
                     Align="center"
+                    Active="@IsTrainingActive"
+                    Clicked="@ShowTrainingAsync"
                     AdditionalClass="bottom-nav__item" />
 
         <AppNavItem Href="settings"
@@ -60,6 +73,8 @@
                     Layout="Vertical"
                     Justify="center"
                     Align="center"
+                    Active="@IsSettingsActive"
+                    Clicked="@ShowSettingsAsync"
                     AdditionalClass="bottom-nav__item" />
     </div>
 </nav>
@@ -70,11 +85,74 @@
 
     private ElementReference scroller;
 
-    private string ReaderRoute => Session.LastReaderRoute;
-
     private string NavClass => Embedded
         ? "bottom-nav bottom-nav--embedded"
         : "bottom-nav";
+
+    private string CurrentPath => Navigation
+        .ToBaseRelativePath(Navigation.Uri)
+        .Split('?', '#')[0]
+        .Trim('/')
+        .ToLowerInvariant();
+
+    private bool IsNewsActive => IsRouteActive("news");
+
+    private bool IsVocabularyActive => IsRouteActive("vocabulary");
+
+    private bool IsTrainingActive => IsRouteActive("training");
+
+    private bool IsSettingsActive => IsRouteActive("settings");
+
+    private bool IsRouteActive(string route)
+    {
+        if (ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader)
+        {
+            return false;
+        }
+
+        var normalizedRoute = route.Trim('/').ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(normalizedRoute)
+            ? string.IsNullOrWhiteSpace(CurrentPath)
+            : CurrentPath.StartsWith(normalizedRoute, StringComparison.Ordinal);
+    }
+
+    protected override void OnInitialized()
+    {
+        ReaderWorkspace.Changed += HandleReaderWorkspaceChanged;
+    }
+
+    private void HandleReaderWorkspaceChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private Task ShowReaderAsync(MouseEventArgs _)
+    {
+        ReaderWorkspace.ShowReader();
+        return Task.CompletedTask;
+    }
+
+    private Task ShowMainAndNavigateAsync(string route)
+    {
+        Navigation.NavigateTo(route);
+        ReaderWorkspace.ShowMain();
+        return Task.CompletedTask;
+    }
+
+    private Task ShowLibraryAsync(MouseEventArgs _)
+        => ShowMainAndNavigateAsync("");
+
+    private Task ShowNewsAsync(MouseEventArgs _)
+        => ShowMainAndNavigateAsync("news");
+
+    private Task ShowVocabularyAsync(MouseEventArgs _)
+        => ShowMainAndNavigateAsync("vocabulary");
+
+    private Task ShowTrainingAsync(MouseEventArgs _)
+        => ShowMainAndNavigateAsync("training");
+
+    private Task ShowSettingsAsync(MouseEventArgs _)
+        => ShowMainAndNavigateAsync("settings");
 
     private async Task ScrollWithWheelAsync(WheelEventArgs args)
     {
@@ -83,5 +161,10 @@
             : args.DeltaY;
 
         await JsRuntime.InvokeVoidAsync("languageReaderSelection.scrollElementHorizontally", scroller, delta);
+    }
+
+    public void Dispose()
+    {
+        ReaderWorkspace.Changed -= HandleReaderWorkspaceChanged;
     }
 }

@@ -1,19 +1,35 @@
 <div class="@WrapperClass">
-    <NavLink href="@Href"
-             Match="@Match"
-             class="app-nav-item"
-             ActiveClass="app-nav-item--active">
+    @if (Clicked.HasDelegate)
+    {
+        <button type="button"
+                class="@ButtonClass"
+                disabled="@Disabled"
+                @onclick="Clicked">
+            @ChildContent
+        </button>
+    }
+    else
+    {
+        <NavLink href="@Href"
+                 Match="@Match"
+                 class="app-nav-item"
+                 ActiveClass="app-nav-item--active">
 
+            @ChildContent
+        </NavLink>
+    }
+</div>
+
+@code {
+    private RenderFragment ChildContent => @<text>
         @if (!string.IsNullOrWhiteSpace(Icon))
         {
             <AppIcon Name="@Icon" Size="@IconSize" />
         }
 
         <span class="app-nav-item__label">@Label</span>
-    </NavLink>
-</div>
+    </text>;
 
-@code {
     [Parameter]
     public string Href { get; set; } = "";
 
@@ -42,6 +58,18 @@
 
     [Parameter]
     public string? AdditionalClass { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool Active { get; set; }
+
+    [Parameter]
+    public EventCallback<MouseEventArgs> Clicked { get; set; }
+
+    private string ButtonClass =>
+        $"app-nav-item{(Active ? " app-nav-item--active" : string.Empty)}{(Disabled ? " app-nav-item--disabled" : string.Empty)}";
 
     private string WrapperClass =>
         $"app-nav-item-host app-nav-item-host--{Layout.ToLowerInvariant()} app-nav-item-host--justify-{Justify.ToLowerInvariant()} app-nav-item-host--align-{Align.ToLowerInvariant()}" +

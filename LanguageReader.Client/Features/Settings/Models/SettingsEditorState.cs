@@ -2,15 +2,7 @@ namespace LanguageReader.Client.Features.Settings.Models;
 
 public sealed class SettingsEditorState
 {
-    public static readonly IReadOnlyList<AppSelectOption<AiServiceMode>> AiModeOptions =
-    [
-        new(AiServiceMode.Fake, "Fake"),
-        new(AiServiceMode.Agent, "Agent")
-    ];
-
     public string NativeLanguage { get; private set; } = SupportedLanguages.Russian;
-
-    public AiServiceMode AiServiceMode { get; private set; } = AiServiceMode.Fake;
 
     public bool IsLoading { get; private set; }
 
@@ -31,7 +23,6 @@ public sealed class SettingsEditorState
                 cancellationToken);
 
             NativeLanguage = SupportedLanguages.Normalize(settings.NativeLanguage);
-            AiServiceMode = settings.AiServiceMode;
         }
         finally
         {
@@ -42,11 +33,6 @@ public sealed class SettingsEditorState
     public void OnNativeLanguageChanged(string value)
     {
         NativeLanguage = SupportedLanguages.Normalize(value);
-    }
-
-    public void OnAiServiceModeChanged(AiServiceMode value)
-    {
-        AiServiceMode = value;
     }
 
     public async Task SaveAsync(
@@ -60,7 +46,7 @@ public sealed class SettingsEditorState
         try
         {
             await api.UpdateSettingsAsync(
-                new UpdateUserSettingsRequest(username, NativeLanguage, AiServiceMode),
+                new UpdateUserSettingsRequest(username, NativeLanguage),
                 cancellationToken);
 
             Message = "Settings saved.";

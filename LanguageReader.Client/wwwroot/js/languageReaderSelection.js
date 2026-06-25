@@ -167,9 +167,13 @@ window.languageReaderSelection = {
         return result;
     },
 
-    scrollParagraphOffsetIntoViewIfNeeded: (root, blockIndex, offset, force = false) => {
+    scrollParagraphOffsetIntoViewIfNeeded: async (root, blockIndex, offset, force = false) => {
         if (!root) {
             return false;
+        }
+
+        if (force) {
+            return await scrollParagraphOffsetIntoView(root, blockIndex, offset);
         }
 
         const rect = getRangeRectForOffset(root, blockIndex, offset);
@@ -274,6 +278,13 @@ window.languageReaderSelection = {
 
     getFirstVisibleBlockIndex: (root) => {
         return window.languageReaderSelection.getReaderBookmarkBlockIndex(root);
+    },
+
+    getReaderViewportProgress: (root) => {
+        return {
+            BookmarkBlockIndex: window.languageReaderSelection.getReaderBookmarkBlockIndex(root),
+            ProgressBlockIndex: window.languageReaderSelection.getReaderProgressBlockIndex(root)
+        };
     },
 
     observeRangeRoot: (root, dotNetReference) => {
@@ -1382,6 +1393,10 @@ function getRangeRectForOffset(root, blockIndex, startOffset) {
         return null;
     }
 
+    if (startOffset <= 0) {
+        return paragraph.getBoundingClientRect();
+    }
+
     const paragraphLength = getParagraphOriginalLength(paragraph);
     const safeStart = clamp(startOffset, 0, paragraphLength);
     const safeEnd = clamp(safeStart + 1, safeStart, paragraphLength);
@@ -1424,7 +1439,7 @@ function scrollRectIntoViewIfNeeded(rect, force = false) {
         return false;
     }
 
-    const top = window.scrollY + rect.top - metrics.top - 24;
+    const top = window.scrollY + rect.top - viewportTop;
     const targetTop = Math.max(0, top);
 
     logReaderProgress("scroll-to-rect", {
@@ -1445,12 +1460,61 @@ function scrollRectIntoViewIfNeeded(rect, force = false) {
     return true;
 }
 
-function logReaderProgress(eventName, data) {
-    if (!window.languageReaderDebugProgress) {
-        return;
+async function scrollParagraphOffsetIntoView(root, blockIndex, offset) {
+    let didScroll = false;
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const rect = getRangeRectForOffset(root, blockIndex, offset);
+        if (!rect) {
+            return didScroll;
+        }
+
+        const metrics = getReaderViewportInsets();
+        const restoreInset = getReaderRestoreInset(root);
+        const viewportTop = metrics.top + restoreInset;
+        const delta = rect.top - viewportTop;
+
+        logReaderProgress("restore-scroll-attempt", {
+            attempt,
+            blockIndex,
+            offset,
+            rectTop: rect.top,
+            rectBottom: rect.bottom,
+            viewportTop,
+            restoreInset,
+            delta,
+            scrollY: window.scrollY
+        });
+
+        if (Math.abs(delta) <= 2) {
+            return didScroll;
+        }
+
+        window.scrollTo({
+            top: Math.max(0, window.scrollY + delta),
+            behavior: "auto"
+        });
+        didScroll = true;
+
+        await waitForAnimationFrame();
+        await waitForAnimationFrame();
     }
 
-    console.debug(`[LanguageReader Reader JS] ${eventName}`, data);
+    return didScroll;
+}
+
+function waitForAnimationFrame() {
+    return new Promise(resolve => window.requestAnimationFrame(resolve));
+}
+
+function getReaderRestoreInset(root) {
+    const computed = window.getComputedStyle(root);
+    const paddingTop = Number.parseFloat(computed.paddingTop);
+    return Number.isFinite(paddingTop) ? paddingTop : 0;
+}
+
+function logReaderProgress(eventName, data) {
+    return;
 }
 
 (function installGlobalSelectionGuard() {

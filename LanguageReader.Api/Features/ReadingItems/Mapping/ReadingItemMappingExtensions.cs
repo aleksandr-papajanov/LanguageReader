@@ -107,7 +107,7 @@ internal static class ReadingItemMappingExtensions
             savedItem?.ArticleMetadata?.PublishedAtUtc ?? candidate.PublishedAtUtc,
             savedItem?.ArticleMetadata?.OriginalUrl ?? candidate.Url,
             savedItem is null
-                ? candidate.ImageUrl
+                ? apiUrls.GetImageUrl(candidate.ImageUrl)
                 : apiUrls.GetCoverImageUrl(savedItem, normalizedUsername),
             savedItem?.ArticleMetadata?.Excerpt ?? candidate.Summary,
             isOwnedByCurrentUser,

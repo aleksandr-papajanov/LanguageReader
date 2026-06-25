@@ -1,73 +1,51 @@
+using LanguageReader.Infrastructure.Ai.Workflows;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Ai;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
-using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
-using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
+using LanguageReader.Infrastructure.Features.Vocabulary.Workflows;
 using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Api.Features.Vocabulary;
 
 internal sealed class AddVocabularyExampleHandler(
     ApplicationDbContext dbContext,
-    IVocabularyEnrichmentService enrichmentService)
+    WorkflowRunner workflowRunner)
 {
     public async Task<VocabularyEntryDto> HandleAsync(
         AddVocabularyExampleRequest request,
         CancellationToken ct)
     {
-        var normalizedUsername = UsernameHelper.Require(request.Username);
-
-        var entry = await dbContext.VocabularyEntries
-            .Include(item => item.Examples)
-            .FirstOrDefaultAsync(
-                item => item.Id == request.VocabularyId && item.Username == normalizedUsername,
-                ct);
-
-        if (entry is null)
-        {
-            throw new NotFoundException($"Vocabulary entry '{request.VocabularyId}' was not found.");
-        }
+        var entry = await LoadOwnedEntryAsync(request.VocabularyId, request.Username, ct);
 
         if (entry.Kind != SavedTextKind.LexicalUnit)
         {
             throw new ValidationException("Generated usage examples are only available for saved words.");
         }
 
-        var generated = await enrichmentService.GenerateExampleAsync(
-            new VocabularyExampleGenerationRequest(
-                entry.Username,
-                entry.Word,
-                entry.Translation,
-                string.IsNullOrWhiteSpace(entry.SourceLanguage) ? entry.TargetLanguage : entry.SourceLanguage,
-                entry.TargetLanguage,
-                entry.Examples.FirstOrDefault(example => example.IsFromReadingItem)?.Text),
+        var updatedEntry = await workflowRunner.RunAsync<AddVocabularyExampleWorkflow, AddVocabularyExampleWorkflowRequest, VocabularyEntryEntity>(
+            new AddVocabularyExampleWorkflowRequest(entry),
             ct);
 
-        dbContext.VocabularyExamples.Add(new VocabularyExampleEntity
-        {
-            Id = Guid.NewGuid(),
-            VocabularyEntryId = entry.Id,
-            Text = generated.Text,
-            Translation = generated.Translation,
-            IsFromReadingItem = false,
-            CreatedAtUtc = DateTimeOffset.UtcNow
-        });
+        return updatedEntry.ToVocabularyEntryDto();
+    }
 
-        dbContext.AiOperations.Add(AiOperationMapper.ToEntity(generated.Usage, normalizedUsername, vocabularyEntryId: entry.Id));
-        await dbContext.SaveChangesAsync(ct);
-
-        var updatedEntry = await dbContext.VocabularyEntries
+    private async Task<VocabularyEntryEntity> LoadOwnedEntryAsync(Guid id, string username, CancellationToken ct)
+    {
+        var normalizedUsername = UsernameHelper.Require(username);
+        var entry = await dbContext.VocabularyEntries
             .Include(item => item.ReadingItem)
             .Include(item => item.WordDetails)
             .Include(item => item.RelatedWords)
             .Include(item => item.AiOperations)
             .Include(item => item.Examples)
                 .ThenInclude(example => example.ReadingItem)
-            .FirstAsync(
-                item => item.Id == request.VocabularyId && item.Username == normalizedUsername,
-                ct);
+            .FirstOrDefaultAsync(item => item.Id == id && item.Username == normalizedUsername, ct);
 
-        return updatedEntry.ToVocabularyEntryDto();
+        if (entry is null)
+        {
+            throw new NotFoundException($"Vocabulary entry '{id}' was not found.");
+        }
+
+        return entry;
     }
 }

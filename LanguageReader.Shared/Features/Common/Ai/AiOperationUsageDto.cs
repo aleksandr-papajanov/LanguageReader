@@ -1,9 +1,13 @@
 namespace LanguageReader.Shared.Features.Common;
 
 public sealed record AiOperationUsageDto(
-    AiOperationKind Kind,
+    string OperationName,
     string Provider,
     string Model,
+    string ExecutionMode,
+    int TurnCount,
+    int ToolCallCount,
+    string? ToolNames,
     int InputTokens,
     int OutputTokens,
     int TotalTokens,

@@ -4,7 +4,7 @@ internal static class DeleteVocabularyEntryEndpoint
 {
     public static IEndpointRouteBuilder MapDeleteVocabularyEntryEndpoint(this IEndpointRouteBuilder api)
     {
-        api.MapDelete("/api/vocabulary/{VocabularyId:guid}",
+        api.MapDelete("/vocabulary/{VocabularyId:guid}",
             async ([AsParameters] DeleteVocabularyEntryRequest request,
                    DeleteVocabularyEntryHandler handler,
                    CancellationToken ct) =>

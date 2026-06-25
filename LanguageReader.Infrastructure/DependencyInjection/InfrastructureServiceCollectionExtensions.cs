@@ -5,20 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using LanguageReader.Infrastructure.Agents.Core;
-using LanguageReader.Infrastructure.Agents.Json;
-using LanguageReader.Infrastructure.Agents.Json.Operations;
-using LanguageReader.Infrastructure.Agents.Tools;
-using LanguageReader.Infrastructure.Agents.Providers;
-using LanguageReader.Infrastructure.Agents.Prompts;
-using LanguageReader.Infrastructure.Agents.Providers.OpenAI;
+using LanguageReader.Infrastructure.Ai.Execution;
+using LanguageReader.Infrastructure.Ai.Operations.Translation.Tools;
+using LanguageReader.Infrastructure.Ai.Providers;
+using LanguageReader.Infrastructure.Ai.Providers.OpenAI;
+using LanguageReader.Infrastructure.Ai.Workflows;
 using LanguageReader.Infrastructure.Features.Common.Language;
 using LanguageReader.Infrastructure.Features.News.Services;
 using LanguageReader.Infrastructure.Features.ReadingItems.Parsing;
 using LanguageReader.Infrastructure.Features.ReadingItems.Services;
-using LanguageReader.Infrastructure.Features.Translation.Services;
-using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
-using LanguageReader.Infrastructure.Features.Ai.Settings;
+using LanguageReader.Infrastructure.Features.Translation.Workflows;
+using LanguageReader.Infrastructure.Features.Vocabulary.Services;
+using LanguageReader.Infrastructure.Features.Vocabulary.Workflows;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace LanguageReader.Infrastructure.DependencyInjection;
@@ -109,34 +107,21 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IReadingItemContentParser, Fb2ReadingItemContentParser>();
         services.AddScoped<ReadingItemDocumentStorageService>();
         services.AddScoped<IReadingItemContentService, ReadingItemContentService>();
-        services.AddScoped<IUserAiServiceModeResolver, UserAiServiceModeResolver>();
         services.AddScoped<IAiModelResolver, AiModelResolver>();
         services.AddScoped<IAiJsonRequestService, AiJsonRequestService>();
-        services.AddScoped<IAiJsonOperationRunner, AiJsonOperationRunner>();
+        services.AddScoped<IAiExecutor, AiExecutor>();
+        services.AddScoped<IAiExecutionHandler, AgentHandler>();
+        services.AddScoped<IAiExecutionHandler, SinglePromptHandler>();
+        services.AddScoped<IAiExecutionHandler, ConversationHandler>();
+        services.AddScoped<WorkflowRunner>();
+        services.AddScoped<TranslationContextTool>();
+        services.AddScoped<TranslateSelectionWorkflow>();
+        services.AddScoped<SaveVocabularyEntryWorkflow>();
+        services.AddScoped<AddVocabularyExampleWorkflow>();
+        services.AddScoped<VocabularyAutofillApplicator>();
         services.AddSingleton<IVocabularyNormalizationRuleProvider, VocabularyNormalizationRuleProvider>();
-        services.AddScoped<ITranslationService, TranslationService>();
-        services.AddScoped<ITranslationBackend, FakeTranslationService>();
-        services.AddScoped<ITranslationBackend, AiTranslationService>();
-        services.AddScoped<IVocabularyEnrichmentService, VocabularyEnrichmentService>();
-        services.AddScoped<IVocabularyEnrichmentBackend, FakeVocabularyEnrichmentService>();
-        services.AddScoped<IVocabularyEnrichmentBackend, AiVocabularyEnrichmentService>();
         services.AddHttpClient<INewsFeedService, NewsFeedService>(ConfigureContentHttpClient);
         services.AddHttpClient<IArticleImportService, ArticleImportService>(ConfigureContentHttpClient);
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers legacy provider-neutral agent services kept for future experimentation.
-    /// This path is not part of the active direct-JSON runtime flow.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddLegacyAgentServices(this IServiceCollection services)
-    {
-        services.AddSingleton<IToolDispatcher, ToolDispatcher>();
-        services.AddTransient<IAgentFactory, AgentFactory>();
-        services.AddSingleton<IAgentPromptStore, InMemoryAgentPromptStore>();
 
         return services;
     }

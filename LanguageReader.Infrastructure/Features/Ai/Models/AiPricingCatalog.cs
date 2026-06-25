@@ -34,11 +34,6 @@ internal static class AiPricingCatalog
             }
         }
 
-        if (string.Equals(provider, "FakeAI", StringComparison.OrdinalIgnoreCase))
-        {
-            return (0.05m, 0.15m);
-        }
-
         return (0.0m, 0.0m);
     }
 }

@@ -61,6 +61,18 @@ body {
     padding-bottom: 0.45rem;
 }
 
+.app-shell--hidden,
+.reader-workspace {
+    display: none;
+}
+
+.reader-workspace--active {
+    display: block;
+    min-width: 0;
+    padding-top: 0.35rem;
+    padding-bottom: 0.45rem;
+}
+
 @media (min-width: 768px) {
     .app-layout__top-inner,
     .app-layout__content-inner,
@@ -69,6 +81,10 @@ body {
     }
 
     .app-shell {
+        padding-block: 0.75rem;
+    }
+
+    .reader-workspace--active {
         padding-block: 0.75rem;
     }
 }

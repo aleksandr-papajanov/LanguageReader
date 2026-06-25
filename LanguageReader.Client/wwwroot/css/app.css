@@ -481,3 +481,63 @@ input[type="file"].app-input {
         padding-bottom: var(--space-7);
     }
 }
+/* Reader viewport diagnostics. Enable with: window.languageReaderDebugViewport = true */
+.reader-viewport-debug {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    pointer-events: none;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+}
+
+.reader-viewport-debug__viewport {
+    position: fixed;
+    left: 0;
+    right: 0;
+    border-block: 2px dashed rgba(44, 125, 204, 0.78);
+    background: rgba(44, 125, 204, 0.055);
+}
+
+.reader-viewport-debug__line {
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 2px solid rgba(44, 125, 204, 0.9);
+}
+
+.reader-viewport-debug__line::after,
+.reader-viewport-debug__rect::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 0.35rem;
+    top: 0.2rem;
+    padding: 0.08rem 0.28rem;
+    border-radius: 999px;
+    background: rgba(23, 20, 17, 0.82);
+    color: #fff;
+    white-space: nowrap;
+}
+
+.reader-viewport-debug__rect {
+    position: fixed;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 2px rgba(23, 20, 17, 0.5);
+}
+
+.reader-viewport-debug__block--bookmark {
+    border-color: rgba(30, 150, 80, 0.95);
+    background: rgba(30, 150, 80, 0.12);
+}
+
+.reader-viewport-debug__block--progress {
+    border-color: rgba(245, 168, 38, 0.95);
+    background: rgba(245, 168, 38, 0.12);
+}
+
+.reader-viewport-debug__block--restore,
+.reader-viewport-debug__rect--restore {
+    border-color: rgba(208, 64, 64, 0.95);
+    background: rgba(208, 64, 64, 0.12);
+}

@@ -32,6 +32,18 @@
         transform 140ms ease;
 }
 
+.app-nav-item-host ::deep button.app-nav-item {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    margin: 0;
+    border-color: transparent;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: inherit;
+}
+
 .app-nav-item-host ::deep .app-nav-item::before {
     content: "";
     position: absolute;
@@ -46,6 +58,13 @@
 .app-nav-item-host ::deep .app-nav-item:hover {
     color: var(--color-text);
     transform: translateY(-1px);
+}
+
+.app-nav-item-host ::deep .app-nav-item--disabled,
+.app-nav-item-host ::deep .app-nav-item--disabled:hover {
+    cursor: not-allowed;
+    opacity: 0.45;
+    transform: none;
 }
 
 .app-nav-item-host ::deep .app-nav-item:hover::before {

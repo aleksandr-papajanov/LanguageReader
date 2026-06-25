@@ -42,11 +42,17 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("input_tokens");
 
-                    b.Property<string>("Kind")
+                    b.Property<string>("OperationName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("operation_name");
+
+                    b.Property<string>("ExecutionMode")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
-                        .HasColumnName("kind");
+                        .HasColumnName("execution_mode");
 
                     b.Property<string>("Model")
                         .IsRequired()
@@ -77,6 +83,19 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                     b.Property<int>("TotalTokens")
                         .HasColumnType("integer")
                         .HasColumnName("total_tokens");
+
+                    b.Property<int>("ToolCallCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("tool_call_count");
+
+                    b.Property<string>("ToolNames")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("tool_names");
+
+                    b.Property<int>("TurnCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("turn_count");
 
                     b.Property<Guid?>("TranslatedRangeId")
                         .HasColumnType("uuid")
@@ -554,14 +573,6 @@ namespace LanguageReader.Infrastructure.Data.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")
                         .HasColumnName("username");
-
-                    b.Property<string>("AiServiceMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasDefaultValue("Fake")
-                        .HasColumnName("ai_service_mode");
 
                     b.Property<string>("NativeLanguage")
                         .HasMaxLength(64)

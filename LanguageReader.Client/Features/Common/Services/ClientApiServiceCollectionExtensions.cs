@@ -11,6 +11,8 @@ public static class ClientApiServiceCollectionExtensions
         services.AddScoped<ReadingItemsApiClient>();
         services.AddScoped<NewsApiClient>();
         services.AddScoped<ReadingApiClient>();
+        services.AddScoped<ReaderViewportService>();
+        services.AddScoped<ReaderWorkspaceService>();
         services.AddScoped<SettingsApiClient>();
         services.AddScoped<StatsApiClient>();
         services.AddScoped<TranslationApiClient>();

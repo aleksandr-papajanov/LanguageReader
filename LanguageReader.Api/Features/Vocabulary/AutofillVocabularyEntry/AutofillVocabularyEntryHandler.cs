@@ -1,16 +1,17 @@
-using LanguageReader.Api.Features.Vocabulary.Services;
+using LanguageReader.Infrastructure.Ai.Execution;
+using LanguageReader.Infrastructure.Ai.Operations.Vocabulary;
 using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
 using LanguageReader.Infrastructure.Features.Vocabulary.Entities;
-using LanguageReader.Infrastructure.Features.Vocabulary.Models.Enrichment;
-using LanguageReader.Infrastructure.Features.Vocabulary.Services.Enrichment;
+using LanguageReader.Infrastructure.Features.Vocabulary.Workflows;
+using LanguageReader.Infrastructure.Features.Vocabulary.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Api.Features.Vocabulary;
 
 internal sealed class AutofillVocabularyEntryHandler(
     ApplicationDbContext dbContext,
-    IVocabularyEnrichmentService enrichmentService,
+    IAiExecutor aiExecutor,
     VocabularyAutofillApplicator autofillApplicator)
 {
     public async Task<VocabularyEntryDto> HandleAsync(AutofillVocabularyEntryRequest request, CancellationToken ct)
@@ -22,18 +23,20 @@ internal sealed class AutofillVocabularyEntryHandler(
             throw new ValidationException("Autofill is only available for saved words.");
         }
 
-        var generated = await enrichmentService.AutofillAsync(
-            new VocabularyAutofillRequest(
-                entry.Username,
-                entry.Word,
-                entry.Translation,
-                string.IsNullOrWhiteSpace(entry.SourceLanguage) ? entry.TargetLanguage : entry.SourceLanguage,
-                entry.TargetLanguage,
-                entry.Examples.FirstOrDefault(example => example.IsFromReadingItem)?.Text),
+        var result = await aiExecutor.ExecuteAsync(
+            new VocabularyDetailsOperation(
+                new VocabularyAutofillRequest(
+                    entry.Username,
+                    entry.Word,
+                    entry.Translation,
+                    string.IsNullOrWhiteSpace(entry.SourceLanguage) ? entry.TargetLanguage : entry.SourceLanguage,
+                    entry.TargetLanguage,
+                    entry.Examples.FirstOrDefault(example => example.IsFromReadingItem)?.Text)),
             ct);
-        autofillApplicator.Apply(entry, generated, ct);
 
+        autofillApplicator.Apply(entry, SaveVocabularyEntryWorkflow.BuildAutofillResult(result), ct);
         await dbContext.SaveChangesAsync(ct);
+
         return entry.ToVocabularyEntryDto();
     }
 

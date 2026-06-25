@@ -76,16 +76,16 @@
     }
 </div>
 
-<AppStickyDock AdditionalClass="reader-progress-dock">
-    <div data-reader-top-chrome="true">
-        <ReaderBottomDock CurrentPage="@CurrentPage"
-                          TotalPages="@TotalPages"
-                          ProgressPercent="@ProgressPercent"
-                          IsPreviousDisabled="@IsPreviousDisabled"
-                          IsNextDisabled="@IsNextDisabled"
-                          PreviousClicked="PreviousClicked"
-                          NextClicked="NextClicked" />
-    </div>
+<AppStickyDock AdditionalClass="reader-progress-dock"
+               data-reader-top-chrome="true"
+               DataReaderTopChrome="true">
+    <ReaderBottomDock CurrentPage="@CurrentPage"
+                      TotalPages="@TotalPages"
+                      ProgressPercent="@ProgressPercent"
+                      IsPreviousDisabled="@IsPreviousDisabled"
+                      IsNextDisabled="@IsNextDisabled"
+                      PreviousClicked="PreviousClicked"
+                      NextClicked="NextClicked" />
 </AppStickyDock>
 
 @code {

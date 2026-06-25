@@ -1,4 +1,4 @@
-using LanguageReader.Infrastructure.Agents.Providers.Models;
+using LanguageReader.Infrastructure.Ai.Providers.Models;
 
 namespace LanguageReader.Infrastructure.Features.Ai.Models;
 
@@ -6,16 +6,25 @@ internal static class AiOperationUsageMappingExtensions
 {
     public static AiOperationUsageDto ToAiOperationUsageDto(
         this AiProviderUsage? providerUsage,
-        AiOperationKind kind,
+        string operationName,
         string provider,
         string model,
+        string executionMode,
+        int turnCount,
+        int toolCallCount,
+        string? toolNames,
         string input,
         string output,
         decimal inputCostPerMillionTokensUsd,
         decimal outputCostPerMillionTokensUsd)
     {
-        var normalizedProvider = string.IsNullOrWhiteSpace(provider) ? "FakeAI" : provider.Trim();
-        var normalizedModel = string.IsNullOrWhiteSpace(model) ? "fake-language-v1" : model.Trim();
+        var normalizedOperationName = string.IsNullOrWhiteSpace(operationName) ? "Unknown operation" : operationName.Trim();
+        var normalizedProvider = string.IsNullOrWhiteSpace(provider) ? "Unknown" : provider.Trim();
+        var normalizedModel = string.IsNullOrWhiteSpace(model) ? "unknown" : model.Trim();
+        var normalizedExecutionMode = string.IsNullOrWhiteSpace(executionMode) ? "Unknown" : executionMode.Trim();
+        var normalizedToolNames = string.IsNullOrWhiteSpace(toolNames) ? null : toolNames.Trim();
+        var normalizedTurnCount = Math.Max(1, turnCount);
+        var normalizedToolCallCount = Math.Max(0, toolCallCount);
         var estimatedInputTokens = EstimateTokens(input);
         var estimatedOutputTokens = EstimateTokens(output);
         var inputTokens = providerUsage?.InputTokens ?? estimatedInputTokens;
@@ -27,9 +36,13 @@ internal static class AiOperationUsageMappingExtensions
         var totalCost = RoundUsd(inputCost + outputCost);
 
         return new AiOperationUsageDto(
-            kind,
+            normalizedOperationName,
             normalizedProvider,
             normalizedModel,
+            normalizedExecutionMode,
+            normalizedTurnCount,
+            normalizedToolCallCount,
+            normalizedToolNames,
             inputTokens,
             outputTokens,
             totalTokens,
@@ -46,9 +59,13 @@ internal static class AiOperationUsageMappingExtensions
         }
 
         return new AiOperationUsageDto(
-            AiOperationKind.Translation,
+            second.OperationName,
             second.Provider,
             second.Model,
+            second.ExecutionMode,
+            first.TurnCount + second.TurnCount,
+            first.ToolCallCount + second.ToolCallCount,
+            MergeToolNames(first.ToolNames, second.ToolNames),
             first.InputTokens + second.InputTokens,
             first.OutputTokens + second.OutputTokens,
             first.TotalTokens + second.TotalTokens,
@@ -71,5 +88,16 @@ internal static class AiOperationUsageMappingExtensions
     private static decimal RoundUsd(decimal value)
     {
         return Math.Round(value, 8, MidpointRounding.AwayFromZero);
+    }
+
+    private static string? MergeToolNames(string? first, string? second)
+    {
+        var names = new[] { first, second }
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .SelectMany(item => item!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return names.Length == 0 ? null : string.Join(", ", names);
     }
 }

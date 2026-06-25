@@ -1,0 +1,35 @@
+@inject ReaderWorkspaceService Workspace
+@implements IDisposable
+
+<section class="@WorkspaceClass" aria-hidden="@(!IsVisible)">
+    @if (Workspace.CurrentReadingItemId.HasValue)
+    {
+        <ReaderView ReadingItemId="Workspace.CurrentReadingItemId.Value"
+                    QueryBlock="Workspace.QueryBlock"
+                    QueryOffset="Workspace.QueryOffset"
+                    IsActive="@IsVisible" />
+    }
+</section>
+
+@code {
+    private bool IsVisible => Workspace.Mode == ReaderWorkspaceMode.Reader;
+
+    private string WorkspaceClass => IsVisible
+        ? "reader-workspace reader-workspace--active"
+        : "reader-workspace";
+
+    protected override void OnInitialized()
+    {
+        Workspace.Changed += HandleWorkspaceChanged;
+    }
+
+    private void HandleWorkspaceChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Workspace.Changed -= HandleWorkspaceChanged;
+    }
+}
