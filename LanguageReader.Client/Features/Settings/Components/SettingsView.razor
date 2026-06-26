@@ -1,5 +1,6 @@
 @inject SettingsApiClient Api
 @inject UserSession Session
+@inject AppErrorService Errors
 
 <AppHeading Title="Settings"
             Subtitle="Reader and translation preferences." />
@@ -31,11 +32,6 @@ else
                 @if (!string.IsNullOrWhiteSpace(state.Message))
                 {
                     <p class="app-inline-success">@state.Message</p>
-                }
-
-                @if (!string.IsNullOrWhiteSpace(state.Error))
-                {
-                    <p class="app-inline-error">@state.Error</p>
                 }
 
                 <AppButton Label="Save"
@@ -71,13 +67,24 @@ else
             return;
         }
 
-        await state.LoadAsync(Api, Session.Username!);
+        try
+        {
+            await state.LoadAsync(Api, Session.Username!);
+        }
+        catch (Exception exception)
+        {
+            Errors.Show(exception);
+        }
     }
 
 
     private async Task SaveAsync(MouseEventArgs _)
     {
         await state.SaveAsync(Api, Session.Username!);
+        if (!string.IsNullOrWhiteSpace(state.Error))
+        {
+            Errors.Show(state.Error);
+        }
     }
 
     private Task SelectTab(string tab)

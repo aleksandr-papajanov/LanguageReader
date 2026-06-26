@@ -1,5 +1,6 @@
 @inject StatsApiClient Api
 @inject UserSession Session
+@inject AppErrorService Errors
 
 @if (ShowHeading)
 {
@@ -45,11 +46,6 @@ else
     @if (isLoading && stats is null)
     {
         <AppLoader Label="Loading AI operations" />
-    }
-    else if (!string.IsNullOrWhiteSpace(error))
-    {
-        <AppAlert Title="Statistics could not be loaded."
-                  Message="@error" />
     }
     else if (stats is not null)
     {
@@ -105,7 +101,6 @@ else
     private GetAiOperationsStatsResponse? stats;
     private string fromDate = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
     private string toDate = DateTime.Today.ToString("yyyy-MM-dd");
-    private string? error;
     private bool isLoading;
     private int renderedOperationCount;
 
@@ -152,7 +147,7 @@ else
         }
 
         isLoading = true;
-        error = null;
+        Errors.Clear();
 
         try
         {
@@ -165,7 +160,7 @@ else
         }
         catch (Exception exception)
         {
-            error = exception.Message;
+            Errors.Show(exception);
             renderedOperationCount = 0;
         }
         finally

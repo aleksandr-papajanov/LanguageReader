@@ -1,6 +1,7 @@
 @inject VocabularyApiClient Api
 @inject UserSession Session
 @inject NavigationManager Navigation
+@inject AppErrorService Errors
 
 <AppHeading Title="Training"
             Subtitle="A simple recall loop from your saved words." />
@@ -12,10 +13,6 @@
 else if (isLoading)
 {
     <AppLoader Label="Loading training deck" />
-}
-else if (!string.IsNullOrWhiteSpace(error))
-{
-    <p class="text-danger">@error</p>
 }
 else if (entries.Count == 0)
 {
@@ -89,7 +86,6 @@ else if (activeEntry is not null)
     private bool isRevealed;
     private bool showOriginal;
     private bool suppressFlipAnimation;
-    private string? error;
     private Guid? selectedReadingItemId;
 
     private IReadOnlyList<VocabularyEntryDto> FilteredEntries =>
@@ -103,7 +99,7 @@ else if (activeEntry is not null)
         }
 
         isLoading = true;
-        error = null;
+        Errors.Clear();
 
         try
         {
@@ -116,7 +112,7 @@ else if (activeEntry is not null)
         }
         catch (Exception exception)
         {
-            error = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {

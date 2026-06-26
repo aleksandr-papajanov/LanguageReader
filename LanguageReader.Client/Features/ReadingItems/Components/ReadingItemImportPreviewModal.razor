@@ -7,12 +7,6 @@
         {
             <AppLoader Label="Parsing content" />
         }
-        else if (!string.IsNullOrWhiteSpace(ErrorMessage))
-        {
-            <AppAlert Tone="error"
-                      Title="Could not parse this page"
-                      Message="@ErrorMessage" />
-        }
         else if (Preview is not null)
         {
             <div class="reading-item-import-preview">

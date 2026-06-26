@@ -1,5 +1,4 @@
-<div class="app-tabs-shell">
-<AppStickyDock AdditionalClass="app-tabs-dock" TopOffset="@StickyTopOffset">
+<div class="app-tabs-shell" style="@TabsShellStyle">
     <div class="app-tabs" role="tablist" aria-label="@AriaLabel">
         @foreach (var item in Items)
         {
@@ -25,7 +24,6 @@
             </button>
         }
     </div>
-</AppStickyDock>
 </div>
 
 @code {
@@ -43,6 +41,10 @@
 
     [Parameter]
     public string? StickyTopOffset { get; set; }
+
+    private string? TabsShellStyle => string.IsNullOrWhiteSpace(StickyTopOffset)
+        ? null
+        : $"--app-tabs-top: {StickyTopOffset}";
 
     private string GetTabClass(string value)
     {

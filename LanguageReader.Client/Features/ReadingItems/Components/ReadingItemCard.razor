@@ -173,10 +173,7 @@
             return;
         }
 
-        ReaderWorkspace.Open(
-            Item.Id,
-            Item.Position?.BlockIndex,
-            Item.Position?.CharacterOffset);
+        ReaderWorkspace.Open(Item.Id);
     }
 
     private string GetTypeLabel() => Item.Type == ReadingItemType.Article ? "Article" : "Book";

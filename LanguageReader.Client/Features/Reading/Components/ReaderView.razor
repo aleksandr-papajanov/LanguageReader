@@ -5,10 +5,12 @@
 @inject SettingsApiClient SettingsApi
 @inject TranslationApiClient TranslationApi
 @inject ReaderSessionCache ReaderCache
+@inject ReaderWorkspaceService ReaderWorkspace
 @inject MascotService Mascot
 @inject UserSession Session
 @inject NavigationManager Navigation
 @inject IJSRuntime JsRuntime
+@inject AppErrorService Errors
 @implements IAsyncDisposable
 
 @if (!Session.IsSignedIn)
@@ -20,12 +22,6 @@ else if (isLoading)
 {
     <AppHeading Title="Reader" Subtitle="Preparing your reading session." />
     <AppLoader Label="Loading reading item" />
-}
-else if (!string.IsNullOrWhiteSpace(error))
-{
-    <AppHeading Title="Reader" Subtitle="We could not open this reading item." />
-    <AppAlert Title="This reading item could not be opened."
-              Message="@error" />
 }
 else if (content is not null)
 {
@@ -42,13 +38,8 @@ else if (content is not null)
                        NextClicked="NextPageAsync" />
 
 
-        @if (!string.IsNullOrWhiteSpace(translationError))
-        {
-            <AppAlert Title="This action could not be completed."
-                      Message="@translationError" />
-        }
-
-        <ReaderTextSurface @ref="textSurface"
+        <ReaderTextSurface @key="ReaderSurfaceKey"
+                           @ref="textSurface"
                            Blocks="CurrentPageBlocks"
                            Images="content.Images"
                            TranslatedRanges="translatedRanges"
@@ -79,6 +70,11 @@ else if (content is not null)
                            ClearSelectionRequested="ClearSelectionAsync" />
     </div>
 }
+else
+{
+    <AppHeading Title="Reader" Subtitle="Preparing your reading session." />
+    <AppLoader Label="Opening reader" />
+}
 
 @code {
     [Parameter]
@@ -92,6 +88,12 @@ else if (content is not null)
 
     [Parameter]
     public bool IsActive { get; set; } = true;
+
+    [Parameter]
+    public long ActivationVersion { get; set; }
+
+    [Parameter]
+    public long OpenRequestVersion { get; set; }
 
     private readonly PeriodicTimer saveTimer = new(TimeSpan.FromSeconds(10));
     private readonly List<ReaderBlock> blocks = [];
@@ -131,6 +133,7 @@ else if (content is not null)
     private Guid? loadedReadingItemId;
     private int? loadedQueryBlock;
     private int? loadedQueryOffset;
+    private long handledOpenRequestVersion;
 
     private SelectionKind activeMode = SelectionKind.Word;
     private CancellationTokenSource? timerCancellation;
@@ -141,9 +144,13 @@ else if (content is not null)
 
     private IReadOnlyList<ReaderBlock> CurrentPageBlocks => blocks;
 
+    private string ReaderSurfaceKey => content is null
+        ? $"{ReadingItemId}:empty"
+        : $"{ReadingItemId}:{content.PageIndex}:{content.StartBlockIndex}:{content.EndBlockIndex}";
+
     protected override void OnInitialized()
     {
-        Navigation.LocationChanged += HandleLocationChanged;
+        ReaderWorkspace.LeavingReader += SaveCurrentPositionBestEffortAsync;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -158,19 +165,30 @@ else if (content is not null)
             && loadedQueryBlock == QueryBlock
             && loadedQueryOffset == QueryOffset)
         {
+            if (handledOpenRequestVersion != OpenRequestVersion && QueryBlock.HasValue)
+            {
+                if (!IsBlockOnCurrentPage(QueryBlock.Value))
+                {
+                    await LoadReaderAsync();
+                    handledOpenRequestVersion = OpenRequestVersion;
+                    return;
+                }
+
+                progress = MoveProgressTo(QueryBlock.Value, QueryOffset ?? 0);
+                QueueScrollToCurrentPosition();
+                handledOpenRequestVersion = OpenRequestVersion;
+            }
+
             return;
         }
 
         await LoadReaderAsync();
+        handledOpenRequestVersion = OpenRequestVersion;
     }
 
-    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    private bool IsBlockOnCurrentPage(int blockIndex)
     {
-        if (Session.IsSignedIn && content is not null)
-        {
-            CancelProgressPersistence();
-            _ = InvokeAsync(SaveCurrentPositionBestEffortAsync);
-        }
+        return blocks.Any(block => block.Index == blockIndex);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -190,14 +208,11 @@ else if (content is not null)
         isLoading = true;
         error = null;
         translationError = null;
+        Errors.Clear();
 
         try
         {
             await Session.SetLastReaderRouteAsync($"/reader/{ReadingItemId}");
-            loadedReadingItemId = ReadingItemId;
-            loadedQueryBlock = QueryBlock;
-            loadedQueryOffset = QueryOffset;
-
             await LoadReadingItemDetailsAsync();
             await LoadUserDataAsync();
 
@@ -239,10 +254,16 @@ else if (content is not null)
                 QueueScrollToCurrentPosition();
             }
             StartProgressTimer();
+
+            loadedReadingItemId = ReadingItemId;
+            loadedQueryBlock = QueryBlock;
+            loadedQueryOffset = QueryOffset;
+            handledOpenRequestVersion = OpenRequestVersion;
         }
         catch (Exception exception)
         {
             error = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -464,6 +485,7 @@ else if (content is not null)
     {
         activeMode = mode;
         translationError = null;
+        Errors.Clear();
         activeTranslation = null;
 
         if (selection is null)
@@ -526,6 +548,7 @@ else if (content is not null)
 
         isTranslating = true;
         translationError = null;
+        Errors.Clear();
 
         try
         {
@@ -560,6 +583,7 @@ else if (content is not null)
         catch (Exception exception)
         {
             translationError = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -574,6 +598,7 @@ else if (content is not null)
         var entry = GetVocabularyEntry(range, includeHidden: true);
         isSavingVocabulary = true;
         translationError = null;
+        Errors.Clear();
 
         try
         {
@@ -607,6 +632,7 @@ else if (content is not null)
         catch (Exception exception)
         {
             translationError = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -619,6 +645,7 @@ else if (content is not null)
     {
         isSavingVocabulary = true;
         translationError = null;
+        Errors.Clear();
 
         try
         {
@@ -630,6 +657,7 @@ else if (content is not null)
         catch (Exception exception)
         {
             translationError = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -682,6 +710,7 @@ else if (content is not null)
         catch (Exception exception)
         {
             translationError = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -704,6 +733,7 @@ else if (content is not null)
         catch (Exception exception)
         {
             translationError = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -757,6 +787,7 @@ else if (content is not null)
     {
         selection = readerSelection;
         translationError = null;
+        Errors.Clear();
         activeTranslation = null;
 
         if (readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Sentence or SelectionKind.Paragraph)
@@ -885,7 +916,7 @@ else if (content is not null)
     private string? BuildTranslationContext(ReaderSelection readerSelection)
     {
         return readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Unknown
-            ? selectionService.GetContextSentence(blocks, readerSelection.BlockIndex, readerSelection.StartOffset)
+            ? selectionService.GetContextWindow(blocks, readerSelection.BlockIndex, readerSelection.StartOffset)
             : readerSelection.SelectedText;
     }
 
@@ -1153,32 +1184,32 @@ else if (content is not null)
 
     private async Task GoBack()
     {
-        await SaveProgressFromViewportAsync();
+        await ReaderWorkspace.ShowMainAsync();
         Navigation.NavigateTo("");
     }
 
-    private Task OpenVocabularyLibraryAsync()
+    private async Task OpenVocabularyLibraryAsync()
     {
+        await ReaderWorkspace.ShowMainAsync();
         Navigation.NavigateTo("/vocabulary");
-        return Task.CompletedTask;
     }
 
-    private Task OpenTranslationVocabularyDetailsAsync(TranslatedRangeDto range)
+    private async Task OpenTranslationVocabularyDetailsAsync(TranslatedRangeDto range)
     {
         var entry = GetVocabularyEntry(range, includeHidden: true);
         if (entry is null)
         {
-            return Task.CompletedTask;
+            return;
         }
-
+        
         var returnUrl = Uri.EscapeDataString($"/reader/{ReadingItemId}?block={progress.BlockIndex}&offset={progress.CharacterOffset}");
+        await ReaderWorkspace.ShowMainAsync();
         Navigation.NavigateTo($"/words/{entry.Id}?returnUrl={returnUrl}");
-        return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
-        Navigation.LocationChanged -= HandleLocationChanged;
+        ReaderWorkspace.LeavingReader -= SaveCurrentPositionBestEffortAsync;
         CancelProgressPersistence();
 
         try

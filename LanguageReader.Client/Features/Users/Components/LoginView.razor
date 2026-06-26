@@ -1,6 +1,7 @@
 @inject SessionApiClient Api
 @inject UserSession Session
 @inject NavigationManager Navigation
+@inject AppErrorService Errors
 
 <AppHeading Title="Login"
             Subtitle="Sign in or create a simple local account." />
@@ -55,11 +56,6 @@
                       Placeholder="Repeat password" />
     }
 
-    @if (!string.IsNullOrWhiteSpace(error))
-    {
-        <p class="app-inline-error">@error</p>
-    }
-
     <AppButton Label="@SubmitLabel"
                Variant="primary"
                Icon="@(mode == AuthMode.Register ? "person_add" : "arrow_forward")"
@@ -75,7 +71,6 @@
     private string email = string.Empty;
     private string password = string.Empty;
     private string confirmPassword = string.Empty;
-    private string? error;
     private bool isBusy;
 
     private string SubmitLabel => mode == AuthMode.Register
@@ -85,7 +80,7 @@
     private Task SetMode(AuthMode nextMode)
     {
         mode = nextMode;
-        error = null;
+        Errors.Clear();
         return Task.CompletedTask;
     }
 
@@ -115,7 +110,7 @@
 
     private async Task SubmitAsync(MouseEventArgs _)
     {
-        error = null;
+        Errors.Clear();
         isBusy = true;
 
         try
@@ -129,7 +124,7 @@
         }
         catch (Exception exception)
         {
-            error = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {

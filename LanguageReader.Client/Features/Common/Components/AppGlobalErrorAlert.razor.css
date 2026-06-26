@@ -1,0 +1,32 @@
+.app-global-error {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 0.75rem);
+    left: 50%;
+    z-index: 3000;
+    width: min(32rem, calc(100vw - 1.5rem));
+    transform: translateX(-50%);
+    filter: drop-shadow(0 18px 28px rgb(41 32 22 / 0.18));
+}
+
+.app-global-error .app-alert {
+    padding-right: 3rem;
+}
+
+.app-global-error__close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+}
+
+.app-global-error__close:hover {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}

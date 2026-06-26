@@ -49,9 +49,13 @@ public static class ApiErrorHandler
             return $"Request failed: {(int)response.StatusCode} {response.ReasonPhrase}";
         }
 
+        var message = string.IsNullOrWhiteSpace(error.Message)
+            ? $"Request failed: {(int)response.StatusCode} {response.ReasonPhrase}"
+            : error.Message.Trim();
+
         if (error.Errors is null || error.Errors.Count == 0)
         {
-            return AppendTraceId(error.Message, error.TraceId);
+            return AppendTraceId(message, error.TraceId);
         }
 
         var details = string.Join(
@@ -59,7 +63,7 @@ public static class ApiErrorHandler
             error.Errors.SelectMany(pair =>
                 pair.Value.Select(value => $"{pair.Key}: {value}")));
 
-        return AppendTraceId($"{error.Message} {details}".Trim(), error.TraceId);
+        return AppendTraceId($"{message} {details}".Trim(), error.TraceId);
     }
 
     private static void LogApiError(

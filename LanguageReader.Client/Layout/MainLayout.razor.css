@@ -12,79 +12,92 @@ body {
 }
 
 .app-layout {
+    height: 100dvh;
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    overflow-x: clip;
+    overflow: hidden;
     background: var(--color-bg);
     color: var(--color-text);
 }
 
 .app-layout__top {
-    position: sticky;
-    top: 0;
+    flex: 0 0 auto;
+    position: relative;
     z-index: 20;
 }
 
 .app-layout__content {
     flex: 1;
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: calc(var(--app-bottomnav-height) + var(--safe-bottom));
 }
 
 .app-layout__bottom {
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
+    display: contents;
+    pointer-events: none;
 }
 
 .app-layout__top-inner,
-.app-layout__content-inner,
-.app-layout__bottom-inner {
+.app-layout__content-inner {
     width: min(100%, 50rem);
     margin-inline: auto;
     padding-inline: 1rem;
     min-width: 0;
 }
 
+.app-layout__content-inner {
+    height: 100%;
+}
+
 .app-layout__top-inner {
     padding-inline: 0;
 }
 
-.app-layout__bottom-inner {
-    padding-top: 0;
-    padding-bottom: max(0.45rem, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+.app-workspaces {
+    position: relative;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
-.app-shell {
+.app-workspace {
     min-width: 0;
+    height: 100%;
     padding-top: 0.35rem;
     padding-bottom: 0.45rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: auto;
+
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
 }
 
-.app-shell--hidden,
-.reader-workspace {
-    display: none;
-}
+.app-workspace--active {
+    position: relative;
+    inset: auto;
 
-.reader-workspace--active {
-    display: block;
-    min-width: 0;
-    padding-top: 0.35rem;
-    padding-bottom: 0.45rem;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 @media (min-width: 768px) {
     .app-layout__top-inner,
-    .app-layout__content-inner,
-    .app-layout__bottom-inner {
+    .app-layout__content-inner {
         padding-inline: 1.5rem;
     }
 
-    .app-shell {
-        padding-block: 0.75rem;
-    }
-
-    .reader-workspace--active {
+    .app-workspace {
         padding-block: 0.75rem;
     }
 }

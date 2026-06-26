@@ -1,11 +1,15 @@
 .bottom-nav {
-    position: relative;
+    position: fixed;
+    left: 50%;
+    bottom: max(0.45rem, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+    z-index: 30;
+    transform: translateX(-50%);
+    pointer-events: auto;
+
     isolation: isolate;
 
     width: min(100%, 28rem);
     margin-inline: auto;
-
-    z-index: 1;
 
     padding: 0.34rem 0.4rem;
 
@@ -112,6 +116,7 @@
 
 .bottom-nav--embedded {
     position: static;
+    transform: none;
     width: min(100%, 42rem);
     margin: var(--space-2) auto 0;
 

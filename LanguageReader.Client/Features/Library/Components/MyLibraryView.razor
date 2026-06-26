@@ -1,6 +1,7 @@
 @inject ReadingItemImportsApiClient Api
 @inject NavigationManager Navigation
 @inject UserSession Session
+@inject AppErrorService Errors
 
 <AppHeading Title="Add Reading Item"
             Subtitle="Import an FB2 or XML source into your private library." />
@@ -31,11 +32,6 @@ else
                            PreviewUrlClicked="PreviewUrlAsync"
                            ConfirmPreviewClicked="ConfirmUrlImportAsync"
                            PreviewClosed="@state.ClosePreview" />
-
-    @if (!string.IsNullOrWhiteSpace(state.Error))
-    {
-        <p class="app-inline-error">@state.Error</p>
-    }
 }
 
 @code {
@@ -44,15 +40,31 @@ else
     private async Task UploadAsync()
     {
         await state.UploadAsync(Api, Navigation, Session.Username!);
+        ShowStateErrors();
     }
 
     private async Task PreviewUrlAsync()
     {
         await state.PreviewUrlAsync(Api);
+        ShowStateErrors();
     }
 
     private async Task ConfirmUrlImportAsync()
     {
         await state.ConfirmUrlImportAsync(Api, Navigation, Session.Username!);
+        ShowStateErrors();
+    }
+
+    private void ShowStateErrors()
+    {
+        if (!string.IsNullOrWhiteSpace(state.Error))
+        {
+            Errors.Show(state.Error);
+        }
+
+        if (!string.IsNullOrWhiteSpace(state.PreviewError))
+        {
+            Errors.Show(state.PreviewError);
+        }
     }
 }

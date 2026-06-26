@@ -123,6 +123,36 @@ public sealed class ReaderSelectionService
         return paragraph.Text[start..end].Trim();
     }
 
+    public string? GetContextWindow(
+        IReadOnlyList<ReaderBlock> paragraphs,
+        int targetBlockIndex,
+        int targetOffset,
+        int sentenceRadius = 2)
+    {
+        var paragraph = paragraphs.FirstOrDefault(item => item.Index == targetBlockIndex);
+        if (paragraph is null)
+        {
+            return null;
+        }
+
+        if (paragraph.Sentences.Count == 0)
+        {
+            return paragraph.Text.Trim();
+        }
+
+        var sentenceIndex = paragraph.Sentences
+            .Select((sentence, index) => new { sentence, index })
+            .FirstOrDefault(item => item.sentence.Contains(targetOffset))
+            ?.index ?? 0;
+
+        var startIndex = Math.Max(0, sentenceIndex - sentenceRadius);
+        var endIndex = Math.Min(paragraph.Sentences.Count - 1, sentenceIndex + sentenceRadius);
+        var start = Math.Clamp(paragraph.Sentences[startIndex].StartOffset, 0, paragraph.Text.Length);
+        var end = Math.Clamp(paragraph.Sentences[endIndex].EndOffset, start, paragraph.Text.Length);
+
+        return paragraph.Text[start..end].Trim();
+    }
+
     private static ReaderSelection? BuildWordSelection(
         ReaderBlock paragraph,
         int offset,

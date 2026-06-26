@@ -5,10 +5,7 @@
 }
 
 .app-sticky-dock--top {
-    top: var(
-        --app-sticky-dock-top,
-        calc(env(safe-area-inset-top) + var(--app-top-chrome-height, 4.5rem))
-    );
+    top: var(--app-sticky-dock-top, 0px);
 }
 
 .app-sticky-dock--bottom {

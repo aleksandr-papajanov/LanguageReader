@@ -1,8 +1,10 @@
 @using LanguageReader.Client.Features.ReadingItems.Components
 @inject ReadingItemsApiClient ReadingItemsApi
 @inject ReaderSessionCache ReaderCache
+@inject ReaderWorkspaceService ReaderWorkspace
 @inject NavigationManager Navigation
 @inject UserSession Session
+@inject AppErrorService Errors
 
 <AppHeading Title="Library"
             Subtitle="A quiet reading workspace for books, saved articles, progress, and shared texts."
@@ -15,11 +17,6 @@
 else if (state.IsLoading)
 {
     <AppLoader Label="Loading library" />
-}
-else if (!string.IsNullOrWhiteSpace(state.Error))
-{
-    <AppAlert Title="We could not load the library."
-              Message="@state.Error" />
 }
 else
 {
@@ -140,6 +137,7 @@ else
         }
 
         await state.LoadAsync(Session.Username!, ReadingItemsApi, ReaderCache);
+        ShowStateError();
     }
 
     private async Task HandlePrimaryActionAsync(ReadingItemSummaryDto item)
@@ -149,11 +147,7 @@ else
             return;
         }
 
-        var route = item.Position is null
-            ? $"/reader/{item.Id}"
-            : $"/reader/{item.Id}?block={item.Position.BlockIndex}&offset={item.Position.CharacterOffset}";
-
-        Navigation.NavigateTo(route);
+        ReaderWorkspace.Open(item.Id);
         await Task.CompletedTask;
     }
 
@@ -163,6 +157,11 @@ else
         try
         {
             await state.TogglePublicAsync(item, Session.Username!, ReadingItemsApi);
+            ShowStateError();
+        }
+        catch (Exception exception)
+        {
+            Errors.Show(exception);
         }
         finally
         {
@@ -176,6 +175,11 @@ else
         try
         {
             await state.DeleteAsync(item.Id, Session.Username!, ReadingItemsApi);
+            ShowStateError();
+        }
+        catch (Exception exception)
+        {
+            Errors.Show(exception);
         }
         finally
         {
@@ -219,5 +223,13 @@ else
             "articles" => type == ReadingItemType.Article,
             _ => true
         };
+    }
+
+    private void ShowStateError()
+    {
+        if (!string.IsNullOrWhiteSpace(state.Error))
+        {
+            Errors.Show(state.Error);
+        }
     }
 }

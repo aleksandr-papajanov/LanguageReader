@@ -15,6 +15,11 @@
 
     protected override void OnParametersSet()
     {
+        if (Workspace.ShouldIgnoreRouteActivation(ReadingItemId))
+        {
+            return;
+        }
+
         Workspace.Open(ReadingItemId, QueryBlock, QueryOffset);
     }
 }

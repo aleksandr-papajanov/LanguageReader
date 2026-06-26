@@ -23,6 +23,7 @@ window.languageReaderReaderViewport = (() => {
       return "";
     }
 
+    const scrollContainer = getScrollContainer(root);
     const id = `reader-viewport-${++observerId}`;
     let frame = 0;
     let lastSignature = "";
@@ -48,14 +49,14 @@ window.languageReaderReaderViewport = (() => {
       });
     };
 
-    window.addEventListener("scroll", notify, { passive: true });
+    scrollContainer.addEventListener("scroll", notify, { passive: true });
     window.addEventListener("resize", notify, { passive: true });
     notify();
 
     observers.set(id, {
       disconnect: () => {
         window.cancelAnimationFrame(frame);
-        window.removeEventListener("scroll", notify);
+        scrollContainer.removeEventListener("scroll", notify);
         window.removeEventListener("resize", notify);
       }
     });
@@ -129,21 +130,30 @@ window.languageReaderReaderViewport = (() => {
         viewportTop: viewport.top,
         viewportBottom: viewport.bottom,
         delta,
-        scrollY: window.scrollY
+        scrollTop: getScrollTop(root)
       });
 
       if (Math.abs(delta) <= restoreTolerancePx) {
         return didScroll;
       }
 
-      window.scrollTo({
-        top: Math.max(0, window.scrollY + delta),
-        behavior: "auto"
-      });
+      scrollBy(root, delta);
       didScroll = true;
 
       await animationFrame();
       await animationFrame();
+    }
+
+    const finalRect = getBlockRect(root, blockIndex, offset);
+    if (finalRect) {
+      const viewport = getViewport();
+      const finalDelta = finalRect.top - viewport.top;
+      if (Math.abs(finalDelta) > getPixelTolerance()) {
+        scrollBy(root, finalDelta);
+        didScroll = true;
+        await animationFrame();
+        await animationFrame();
+      }
     }
 
     return didScroll;
@@ -160,13 +170,35 @@ window.languageReaderReaderViewport = (() => {
   function getBookmarkBlockIndex(blocks, viewport) {
     for (const block of blocks) {
       const rect = block.getBoundingClientRect();
-      const crossesTopBoundary = rect.top < viewport.top && rect.bottom <= viewport.top + boundaryTolerancePx;
-      if (!crossesTopBoundary && rect.bottom > viewport.top && rect.top < viewport.bottom) {
-        return numberOrNull(block.dataset.blockIndex);
+
+      if (rect.bottom <= viewport.top + boundaryTolerancePx || rect.top >= viewport.bottom) {
+        continue;
       }
+
+      if (rect.top < viewport.top && rect.bottom > viewport.top) {
+        const visibleTailHeight = rect.bottom - viewport.top;
+        if (visibleTailHeight <= getBlockLineHeight(block)) {
+          continue;
+        }
+      }
+
+      return numberOrNull(block.dataset.blockIndex);
     }
 
     return numberOrNull(blocks[0]?.dataset.blockIndex);
+  }
+
+  function getBlockLineHeight(block) {
+    const style = window.getComputedStyle(block);
+    const parsed = Number.parseFloat(style.lineHeight);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+
+    const fontSize = Number.parseFloat(style.fontSize);
+    return Number.isFinite(fontSize) && fontSize > 0
+      ? fontSize * 1.2
+      : block.getBoundingClientRect().height;
   }
 
   function getProgressBlockIndex(root, blocks, viewport) {
@@ -217,13 +249,52 @@ window.languageReaderReaderViewport = (() => {
   }
 
   function getViewport() {
-    const top = getReaderTopChromeBottom();
-    const bottom = window.innerHeight - getReaderBottomChromeHeight();
+    const scrollContainer = getActiveScrollContainer();
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const top = Math.max(containerRect.top, getReaderTopChromeBottom());
+    const bottom = Math.min(containerRect.bottom, window.innerHeight - getReaderBottomChromeHeight());
 
     return {
       top,
       bottom
     };
+  }
+
+  function getScrollContainer(root) {
+    return root?.closest?.(".app-workspace")
+      ?? document.querySelector(".app-workspace--reader")
+      ?? document.scrollingElement
+      ?? document.documentElement;
+  }
+
+  function getActiveScrollContainer() {
+    return document.querySelector(".app-workspace--reader.app-workspace--active")
+      ?? document.querySelector(".app-workspace--active")
+      ?? document.scrollingElement
+      ?? document.documentElement;
+  }
+
+  function getScrollTop(root) {
+    const scrollContainer = getScrollContainer(root);
+    return scrollContainer === document.scrollingElement || scrollContainer === document.documentElement
+      ? window.scrollY
+      : scrollContainer.scrollTop;
+  }
+
+  function scrollBy(root, delta) {
+    const scrollContainer = getScrollContainer(root);
+    if (scrollContainer === document.scrollingElement || scrollContainer === document.documentElement) {
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + delta),
+        behavior: "auto"
+      });
+      return;
+    }
+
+    scrollContainer.scrollTo({
+      top: Math.max(0, scrollContainer.scrollTop + delta),
+      behavior: "auto"
+    });
   }
 
   function getReaderTopChromeBottom() {
@@ -368,94 +439,4 @@ window.languageReaderReaderViewport = (() => {
     getProgress,
     scrollBlockIntoView
   };
-})();
-
-(() => {
-  let attempts = 0;
-
-  function nextFrame() {
-    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  }
-
-  function pixelTolerance() {
-    return Math.max(0.5, 1 / Math.max(1, window.devicePixelRatio || 1));
-  }
-
-  function chromeBottom(selector) {
-    return Array.from(document.querySelectorAll(selector))
-      .map((element) => {
-        const chrome = element.closest(".app-sticky-dock") || element;
-        const rect = chrome.getBoundingClientRect();
-        const style = window.getComputedStyle(chrome);
-        const marginBottom = Number.parseFloat(style.marginBottom);
-        return rect.bottom + (Number.isFinite(marginBottom) ? marginBottom : 0);
-      })
-      .filter((bottom) => Number.isFinite(bottom) && bottom > 0 && bottom < window.innerHeight + 200)
-      .reduce((bottom, value) => Math.max(bottom, value), 0);
-  }
-
-  function viewportTop() {
-    return chromeBottom("[data-reader-top-chrome]");
-  }
-
-  function findBlock(root, blockIndex) {
-    return root?.querySelector(
-      `[data-reader-block-index="${blockIndex}"],` +
-      `[data-block-index="${blockIndex}"],` +
-      `[data-reader-content-block-index="${blockIndex}"]`
-    );
-  }
-
-  function installPreciseRestore() {
-    const api = window.languageReaderReaderViewport;
-    if (!api) {
-      attempts += 1;
-      if (attempts < 40) {
-        window.setTimeout(installPreciseRestore, 25);
-      }
-      return;
-    }
-
-    api.scrollBlockIntoView = async (root, blockIndex, offset = 0) => {
-      const block = findBlock(root, blockIndex);
-      if (!block) {
-        return false;
-      }
-
-      let didScroll = false;
-      const targetOffset = Number.isFinite(offset) ? offset : 0;
-
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const rect = block.getBoundingClientRect();
-        const delta = rect.top - viewportTop() + targetOffset;
-
-        if (Math.abs(delta) <= pixelTolerance()) {
-          return didScroll;
-        }
-
-        window.scrollTo({
-          top: Math.max(0, window.scrollY + delta),
-          behavior: "auto"
-        });
-
-        didScroll = true;
-        await nextFrame();
-      }
-
-      const finalRect = block.getBoundingClientRect();
-      const finalDelta = finalRect.top - viewportTop() + targetOffset;
-      if (Math.abs(finalDelta) > pixelTolerance()) {
-        window.scrollTo({
-          top: Math.max(0, window.scrollY + finalDelta),
-          behavior: "auto"
-        });
-        didScroll = true;
-        await nextFrame();
-      }
-
-      return didScroll;
-    };
-  }
-
-  installPreciseRestore();
 })();

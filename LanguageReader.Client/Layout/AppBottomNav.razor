@@ -84,6 +84,7 @@
     public bool Embedded { get; set; }
 
     private ElementReference scroller;
+    private string? pendingPath;
 
     private string NavClass => Embedded
         ? "bottom-nav bottom-nav--embedded"
@@ -94,6 +95,8 @@
         .Split('?', '#')[0]
         .Trim('/')
         .ToLowerInvariant();
+
+    private string ActivePath => pendingPath ?? CurrentPath;
 
     private bool IsNewsActive => IsRouteActive("news");
 
@@ -112,13 +115,20 @@
 
         var normalizedRoute = route.Trim('/').ToLowerInvariant();
         return string.IsNullOrWhiteSpace(normalizedRoute)
-            ? string.IsNullOrWhiteSpace(CurrentPath)
-            : CurrentPath.StartsWith(normalizedRoute, StringComparison.Ordinal);
+            ? string.IsNullOrWhiteSpace(ActivePath)
+            : ActivePath.StartsWith(normalizedRoute, StringComparison.Ordinal);
     }
 
     protected override void OnInitialized()
     {
+        Navigation.LocationChanged += HandleLocationChanged;
         ReaderWorkspace.Changed += HandleReaderWorkspaceChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        pendingPath = null;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void HandleReaderWorkspaceChanged()
@@ -132,11 +142,12 @@
         return Task.CompletedTask;
     }
 
-    private Task ShowMainAndNavigateAsync(string route)
+    private async Task ShowMainAndNavigateAsync(string route)
     {
+        pendingPath = route.Trim('/').ToLowerInvariant();
+        await ReaderWorkspace.ShowMainAsync();
         Navigation.NavigateTo(route);
-        ReaderWorkspace.ShowMain();
-        return Task.CompletedTask;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private Task ShowLibraryAsync(MouseEventArgs _)
@@ -165,6 +176,7 @@
 
     public void Dispose()
     {
+        Navigation.LocationChanged -= HandleLocationChanged;
         ReaderWorkspace.Changed -= HandleReaderWorkspaceChanged;
     }
 }

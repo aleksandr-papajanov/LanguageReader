@@ -5,17 +5,12 @@
 @using LanguageReader.Shared.Features.ReadingItems
 @inject NewsApiClient NewsApi
 @inject ReadingItemsApiClient ReadingItemsApi
+@inject ReaderWorkspaceService ReaderWorkspace
 @inject NavigationManager Navigation
 @inject UserSession Session
+@inject AppErrorService Errors
 
 <AppHeading Title="News" Subtitle="Fresh articles you can save into your reading library." />
-
-@if (!string.IsNullOrWhiteSpace(errorMessage))
-{
-    <AppAlert Tone="error" Title="Unable to load news">
-        @errorMessage
-    </AppAlert>
-}
 
 <section class="news-shell">
     <div class="news-header-row">
@@ -115,6 +110,7 @@
         {
             items = [];
             errorMessage = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -135,11 +131,7 @@
             return;
         }
 
-        var route = item.Position is null
-            ? $"/reader/{item.Id}"
-            : $"/reader/{item.Id}?block={item.Position.BlockIndex}&offset={item.Position.CharacterOffset}";
-
-        Navigation.NavigateTo(route);
+        ReaderWorkspace.Open(item.Id);
     }
 
     private async Task PreviewArticleAsync(ReadingItemSummaryDto item)
@@ -168,6 +160,7 @@
         {
             articlePreview = null;
             articlePreviewError = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -200,11 +193,12 @@
 
             CloseArticlePreview();
             await LoadAsync();
-            Navigation.NavigateTo($"/reader/{result.Id}");
+            ReaderWorkspace.Open(result.Id);
         }
         catch (Exception exception)
         {
             errorMessage = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -241,6 +235,7 @@
         catch (Exception exception)
         {
             errorMessage = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {
@@ -268,6 +263,7 @@
         catch (Exception exception)
         {
             errorMessage = exception.Message;
+            Errors.Show(exception);
         }
         finally
         {

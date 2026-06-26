@@ -173,6 +173,7 @@ body {
     line-height: var(--line-ui);
     background: var(--color-bg);
     color: var(--color-text);
+    overflow: hidden;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -213,13 +214,28 @@ summary,
 }
 
 .app-layout {
-    min-height: 100vh;
+    height: 100dvh;
+    min-height: 100dvh;
 }
 
 .app-layout__content {
-    min-height: 100vh;
+    min-height: 0;
     padding-top: var(--app-workspace-top);
     padding-bottom: var(--app-workspace-bottom);
+}
+
+.bottom-nav {
+    position: fixed;
+    left: 50%;
+    bottom: max(0.45rem, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+    z-index: 30;
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+
+.bottom-nav.bottom-nav--embedded {
+    position: static;
+    transform: none;
 }
 
 .material-symbols-outlined {

@@ -89,7 +89,7 @@ Return only valid JSON matching the provided schema.
             reasoning = IsReasoningModel(model)
                 ? new { effort = hasTools ? "low" : "minimal" }
                 : null,
-            text = request.ResponseFormat == AiProviderResponseFormat.Json && !hasTools
+            text = request.ResponseFormat == AiProviderResponseFormat.Json
                 ? BuildTextFormat(request)
                 : null
         };

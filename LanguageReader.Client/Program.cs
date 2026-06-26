@@ -16,6 +16,7 @@ var apiBaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = apiBaseAddress });
 builder.Services.AddScoped<IViewportService, ViewportService>();
 builder.Services.AddScoped<MascotService>();
+builder.Services.AddScoped<AppErrorService>();
 builder.Services.AddScoped<UserSession>();
 builder.Services.AddLanguageReaderApiClients();
 

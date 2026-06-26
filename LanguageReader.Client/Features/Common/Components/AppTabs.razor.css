@@ -1,13 +1,14 @@
 .app-tabs-shell {
     position: sticky;
-    top: 4rem;
-    z-index: 6;
+    top: var(--app-tabs-top, 0px);
+    z-index: 12;
+
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-3);
     padding: 0.1rem 0 0.35rem;
-    
+    margin-bottom: var(--space-3);
 }
 
 .app-tabs {

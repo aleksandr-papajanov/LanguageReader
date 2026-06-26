@@ -7,6 +7,8 @@
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
+<AppGlobalErrorAlert />
+
 <div class="app-layout">
     <header class="app-layout__top">
         <div class="app-layout__top-inner">
@@ -16,19 +18,21 @@
 
     <main class="app-layout__content">
         <div class="app-layout__content-inner">
-            <article class="@MainWorkspaceClass">
-                @Body
-            </article>
+            <div class="app-workspaces">
+                <article class="@MainWorkspaceClass" aria-hidden="@(ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader)">
+                    @Body
+                </article>
 
-            <ReaderWorkspace />
+                <section class="@ReaderWorkspaceClass" aria-hidden="@(ReaderWorkspace.Mode != ReaderWorkspaceMode.Reader)">
+                    <ReaderWorkspace />
+                </section>
+            </div>
         </div>
     </main>
 
-    <footer class="app-layout__bottom">
-        <div class="app-layout__bottom-inner">
-            <AppBottomNav />
-        </div>
-    </footer>
+    <div class="app-layout__bottom" aria-label="Primary navigation overlay">
+        <AppBottomNav />
+    </div>
 </div>
 
 @code {
@@ -39,8 +43,12 @@
     private bool previousRouteWasReader;
 
     private string MainWorkspaceClass => ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader
-        ? "app-shell app-shell--hidden"
-        : "app-shell";
+        ? "app-workspace app-workspace--main"
+        : "app-workspace app-workspace--main app-workspace--active";
+
+    private string ReaderWorkspaceClass => ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader
+        ? "app-workspace app-workspace--reader app-workspace--active"
+        : "app-workspace app-workspace--reader";
 
     protected override void OnInitialized()
     {
@@ -75,6 +83,18 @@
 
     private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
+        var path = Navigation.ToBaseRelativePath(e.Location).TrimStart('/').ToLowerInvariant();
+        if (!path.StartsWith("reader/", StringComparison.Ordinal)
+            && ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader)
+        {
+            _ = ReaderWorkspace.ShowMainAsync();
+        }
+
+        if (!path.StartsWith("reader/", StringComparison.Ordinal))
+        {
+            ReaderWorkspace.ClearSuppressedRouteActivation();
+        }
+
         ApplyMascotRoute(e.Location, isInitialRoute: false);
         _ = InvokeAsync(StateHasChanged);
     }
@@ -104,7 +124,8 @@
     private void ApplyMascotRoute(string uri, bool isInitialRoute)
     {
         var path = Navigation.ToBaseRelativePath(uri).TrimStart('/').ToLowerInvariant();
-        var isReaderRoute = path.StartsWith("reader/", StringComparison.Ordinal);
+        var isReaderRoute = path.StartsWith("reader/", StringComparison.Ordinal)
+            && ReaderWorkspace.Mode == ReaderWorkspaceMode.Reader;
 
         if (isReaderRoute)
         {

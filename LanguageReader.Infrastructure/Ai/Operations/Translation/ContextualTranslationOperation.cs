@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using LanguageReader.Infrastructure.Ai.Execution;
 using LanguageReader.Infrastructure.Ai.Models;
 using LanguageReader.Infrastructure.Ai.Operations.Translation.Tools;
@@ -37,7 +38,7 @@ public sealed class ContextualTranslationOperation(
         [
             new AiProviderToolDefinition(
                 ContextToolName,
-                "Gets the sentence or block context around the selected fragment.",
+                "Gets extended surrounding context: up to two sentences before and after the selected fragment.",
                 BuildContextToolSchema())
         ];
     }
@@ -68,7 +69,7 @@ public sealed class ContextualTranslationOperation(
         [
             new(
                 AiMessageRole.System,
-                "Translate only the selected fragment. Before answering, call get_translation_context and use its result as surrounding context."),
+                "Translate only the selected fragment. Use the provided basic context first. Call get_translation_context only when extra surrounding sentences are needed to resolve meaning."),
 
             new(
                 AiMessageRole.User,
@@ -82,12 +83,22 @@ public sealed class ContextualTranslationOperation(
 Selected fragment: {request.SourceText.Trim()}
 Source language: {request.SourceLanguage.Trim()}
 Target language: {request.TargetLanguage.Trim()}
+Basic context: {BuildBasicContext(request)}
 
 Rules:
 - Translate only the selected fragment, not the full context.
+- Use the basic context immediately; do not ignore it.
+- If the meaning is ambiguous, call get_translation_context for extra surrounding sentences.
 - The result should fit naturally if inserted back into the context.
 - Add a short note in parentheses only if the translation is unclear without it.
 """;
+    }
+
+    private static string BuildBasicContext(TranslateRequest request)
+    {
+        return string.IsNullOrWhiteSpace(request.OriginalText)
+            ? request.SourceText.Trim()
+            : request.OriginalText.Trim();
     }
 
     private static string BuildContextToolSchema()
@@ -166,5 +177,8 @@ Rules:
         };
     }
 
-    public sealed record Payload(string TranslatedText);
+    public sealed record Payload(
+        [property: JsonPropertyName("translatedText")]
+        string TranslatedText
+    );
 }
