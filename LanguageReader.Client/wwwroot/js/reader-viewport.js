@@ -311,7 +311,7 @@ window.languageReaderReaderViewport = (() => {
   }
 
   function getReaderBottomChromeHeight() {
-    const bottomChrome = document.querySelector(".app-layout__bottom");
+    const bottomChrome = document.querySelector(".bottom-nav");
     const rect = bottomChrome?.getBoundingClientRect();
 
     return rect && rect.width > 0 && rect.height > 0

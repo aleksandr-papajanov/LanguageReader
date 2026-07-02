@@ -1,6 +1,6 @@
 .app-tabs-shell {
     position: sticky;
-    top: var(--app-tabs-top, 0px);
+    top: 0;
     z-index: 12;
 
     display: flex;

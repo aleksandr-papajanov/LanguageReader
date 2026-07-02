@@ -1,12 +1,10 @@
-using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Users.Entities;
-using Microsoft.EntityFrameworkCore;
+using LanguageReader.Infrastructure.Features.Users.Services;
 
 namespace LanguageReader.Api.Features.Users;
 
 internal sealed class RegisterUserHandler(
-    ApplicationDbContext dbContext,
+    UserAccountService userAccounts,
     PasswordHashService passwordHashService)
 {
     public async Task<SessionDto> HandleAsync(RegisterUserRequest request, CancellationToken ct)
@@ -24,26 +22,14 @@ internal sealed class RegisterUserHandler(
             throw new ValidationException("Passwords do not match.");
         }
 
-        var exists = await dbContext.UserAccounts
-            .AnyAsync(account =>
-                account.Username == username
-                || (email != null && account.Email == email),
-                ct);
+        var exists = await userAccounts.ExistsAsync(username, email, ct);
 
         if (exists)
         {
             throw new ValidationException("A user with this username or email already exists.");
         }
 
-        dbContext.UserAccounts.Add(new UserAccountEntity
-        {
-            Username = username,
-            Email = email,
-            PasswordHash = passwordHashService.Hash(request.Password),
-            CreatedAtUtc = DateTimeOffset.UtcNow
-        });
-
-        await dbContext.SaveChangesAsync(ct);
+        await userAccounts.CreateAsync(username, email, passwordHashService.Hash(request.Password), ct);
         return username.ToSessionDto();
     }
 

@@ -66,4 +66,13 @@ public sealed class VocabularyAutofillApplicator(ApplicationDbContext dbContext)
 
         dbContext.AiOperations.Add(AiOperationMapper.ToEntity(generated.Usage, entry.Username, vocabularyEntryId: entry.Id));
     }
+
+    public async Task ApplyAndSaveAsync(
+        VocabularyEntryEntity entry,
+        VocabularyAutofillResult generated,
+        CancellationToken cancellationToken)
+    {
+        Apply(entry, generated, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

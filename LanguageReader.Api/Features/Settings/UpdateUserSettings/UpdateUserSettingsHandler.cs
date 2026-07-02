@@ -1,18 +1,16 @@
-using LanguageReader.Infrastructure.Data;
+using LanguageReader.Infrastructure.Features.Settings.Services;
 
 namespace LanguageReader.Api.Features.Settings;
 
-internal sealed class UpdateUserSettingsHandler(
-    ApplicationDbContext dbContext,
-    UserSettingsAccessor userSettingsAccessor)
+internal sealed class UpdateUserSettingsHandler(UserSettingsService userSettings)
 {
     public async Task<UserSettingsDto> HandleAsync(UpdateUserSettingsRequest request, CancellationToken ct)
     {
         var normalizedUsername = UsernameHelper.Require(request.Username);
-        var settings = await userSettingsAccessor.GetOrCreateAsync(normalizedUsername, ct);
-        settings.NativeLanguage = SupportedLanguages.Normalize(request.NativeLanguage);
-
-        await dbContext.SaveChangesAsync(ct);
+        var settings = await userSettings.UpdateNativeLanguageAsync(
+            normalizedUsername,
+            request.NativeLanguage,
+            ct);
 
         return settings.ToUserSettingsDto();
     }

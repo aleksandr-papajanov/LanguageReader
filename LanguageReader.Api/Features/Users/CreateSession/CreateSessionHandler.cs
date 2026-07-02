@@ -1,17 +1,16 @@
-using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using LanguageReader.Infrastructure.Features.Users.Services;
 
 namespace LanguageReader.Api.Features.Users;
 
 internal sealed class CreateSessionHandler(
-    ApplicationDbContext dbContext,
+    UserAccountService userAccounts,
     PasswordHashService passwordHashService)
 {
     public async Task<SessionDto> HandleAsync(LoginRequest request, CancellationToken ct)
     {
         var username = UsernameHelper.Require(request.Username);
-        var account = await dbContext.UserAccounts.FirstOrDefaultAsync(account => account.Username == username, ct);
+        var account = await userAccounts.FindByUsernameAsync(username, ct);
 
         if (account is not null)
         {

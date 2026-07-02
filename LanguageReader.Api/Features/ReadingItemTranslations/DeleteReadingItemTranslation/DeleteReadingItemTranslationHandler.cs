@@ -1,32 +1,17 @@
-using LanguageReader.Infrastructure.Data;
-using LanguageReader.Infrastructure.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Services;
 
 namespace LanguageReader.Api.Features.ReadingItemTranslations;
 
-internal sealed class DeleteReadingItemTranslationHandler(ApplicationDbContext dbContext)
+internal sealed class DeleteReadingItemTranslationHandler(ReadingItemTranslationService translations)
 {
     public async Task HandleAsync(DeleteReadingItemTranslationRequest request, CancellationToken ct)
     {
         var normalizedUsername = UsernameHelper.Require(request.Username);
-        var range = await dbContext.TranslatedRanges.FirstOrDefaultAsync(
-            range =>
-                range.Id == request.TranslationId
-                && range.ReadingItemId == request.ReadingItemId
-                && range.Username == normalizedUsername,
+        await translations.DeleteAsync(
+            request.ReadingItemId,
+            request.TranslationId,
+            normalizedUsername,
             ct);
-
-        if (range is null)
-        {
-            throw new NotFoundException($"Translated range '{request.TranslationId}' was not found.");
-        }
-
-        await dbContext.AiOperations
-            .Where(operation => operation.TranslatedRangeId == range.Id && operation.VocabularyEntryId == null)
-            .ExecuteDeleteAsync(ct);
-
-        dbContext.TranslatedRanges.Remove(range);
-        await dbContext.SaveChangesAsync(ct);
     }
 }
 

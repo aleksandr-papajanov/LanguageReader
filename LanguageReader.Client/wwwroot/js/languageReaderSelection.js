@@ -1349,7 +1349,7 @@ function getReaderViewportInsets() {
     return {
         top: readerChrome > 0
             ? readerChrome
-            : getCssLength("--reader-header-offset") + getCssLength("--reader-header-visual-height", 96),
+            : getCssLength("--reader-header-offset"),
         bottom
     };
 }

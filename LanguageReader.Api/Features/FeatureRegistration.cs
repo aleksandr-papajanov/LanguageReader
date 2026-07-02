@@ -15,7 +15,6 @@ internal static class FeatureRegistration
 {
     public static IServiceCollection AddFeatureHandlers(this IServiceCollection services)
     {
-        services.AddScoped<UserSettingsAccessor>();
         services.AddHttpContextAccessor();
         services.AddScoped<ReadingItemApiUrlBuilder>();
         services.AddScoped<ReadingItemImportWriter>();
@@ -27,7 +26,7 @@ internal static class FeatureRegistration
         services.AddScoped<GetReadingItemHandler>();
         services.AddScoped<GetReadingItemContentHandler>();
         services.AddScoped<GetReadingItemAssetHandler>();
-        services.AddHttpClient<GetRemoteImageProxyHandler>();
+        services.AddScoped<GetRemoteImageProxyHandler>();
         services.AddScoped<UpdateReadingItemVisibilityHandler>();
         services.AddScoped<DeleteReadingItemHandler>();
         services.AddScoped<ResetImportedReadingContentHandler>();

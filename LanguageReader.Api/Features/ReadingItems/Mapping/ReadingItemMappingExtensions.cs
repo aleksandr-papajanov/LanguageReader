@@ -9,29 +9,45 @@ internal static class ReadingItemMappingExtensions
 {
     public static ReadingItemDetailsDto ToReadingItemDetailsDto(
         this ReadingItemEntity item,
-        string normalizedUsername,
+        string? username,
         ReadingItemApiUrlBuilder apiUrls)
+    {
+        var metadata = item.ArticleMetadata;
+
+        return item.ToReadingItemDetailsDto(
+            metadata,
+            LanguageNameNormalizer.Normalize(item.OriginalLanguage),
+            apiUrls.GetCoverImageUrl(item, username),
+            ReadingItemFeatureHelpers.ResolveSourceKey(
+                metadata?.SourceName,
+                metadata?.RssFeedUrl,
+                metadata?.OriginalUrl));
+    }
+
+    public static ReadingItemDetailsDto ToReadingItemDetailsDto(
+        this ReadingItemEntity item,
+        ArticleMetadataEntity? metadata,
+        string normalizedOriginalLanguage,
+        string? coverImageUrl,
+        string? sourceKey)
     {
         return new ReadingItemDetailsDto(
             item.Id,
             item.Title,
             item.Type,
-            LanguageNameNormalizer.Normalize(item.OriginalLanguage),
+            normalizedOriginalLanguage,
             item.IsPublic,
             item.CreatedAtUtc,
             item.UpdatedAtUtc,
-            ReadingItemFeatureHelpers.ResolveSourceKey(
-                item.ArticleMetadata?.SourceName,
-                item.ArticleMetadata?.RssFeedUrl,
-                item.ArticleMetadata?.OriginalUrl),
-            item.ArticleMetadata?.SourceName,
-            item.ArticleMetadata?.Author,
-            item.ArticleMetadata?.PublishedAtUtc,
-            item.ArticleMetadata?.OriginalUrl,
-            apiUrls.GetCoverImageUrl(item, normalizedUsername),
-            item.ArticleMetadata?.Excerpt,
-            item.ArticleMetadata?.RssFeedUrl,
-            item.ArticleMetadata?.ExternalId);
+            sourceKey,
+            metadata?.SourceName,
+            metadata?.Author,
+            metadata?.PublishedAtUtc,
+            metadata?.OriginalUrl,
+            coverImageUrl,
+            metadata?.Excerpt,
+            metadata?.RssFeedUrl,
+            metadata?.ExternalId);
     }
 
     public static ReadingItemSummaryDto ToReadingItemSummaryDto(

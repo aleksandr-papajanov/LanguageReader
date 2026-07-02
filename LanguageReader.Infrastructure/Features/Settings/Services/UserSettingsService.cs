@@ -2,16 +2,16 @@ using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Features.Settings.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace LanguageReader.Api.Features.Settings.Services;
+namespace LanguageReader.Infrastructure.Features.Settings.Services;
 
-internal sealed class UserSettingsAccessor(ApplicationDbContext dbContext)
+public sealed class UserSettingsService(ApplicationDbContext dbContext)
 {
     public async Task<UserSettingsEntity> GetOrCreateAsync(
         string username,
         CancellationToken cancellationToken)
     {
         var settings = await dbContext.UserSettings
-            .FirstOrDefaultAsync(settings => settings.Username == username, cancellationToken);
+            .FirstOrDefaultAsync(item => item.Username == username, cancellationToken);
 
         if (settings is not null)
         {
@@ -24,6 +24,19 @@ internal sealed class UserSettingsAccessor(ApplicationDbContext dbContext)
         };
 
         dbContext.UserSettings.Add(settings);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return settings;
+    }
+
+    public async Task<UserSettingsEntity> UpdateNativeLanguageAsync(
+        string username,
+        string? nativeLanguage,
+        CancellationToken cancellationToken)
+    {
+        var settings = await GetOrCreateAsync(username, cancellationToken);
+        settings.NativeLanguage = SupportedLanguages.Normalize(nativeLanguage);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return settings;

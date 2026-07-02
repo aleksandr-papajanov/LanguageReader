@@ -1,16 +1,14 @@
 using LanguageReader.Api.Features.ReadingItems;
-using LanguageReader.Infrastructure.Data;
 using LanguageReader.Infrastructure.Exceptions;
-using LanguageReader.Infrastructure.Features.Ai;
-using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Entities;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Services;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace LanguageReader.Api.Features.ReadingItemTranslations;
 
 internal sealed class CreateReadingItemTranslationHandler(
-    ApplicationDbContext dbContext,
+    ReadingItemAccessService readingItems,
+    ReadingItemTranslationService translations,
     IReadingItemContentService readingItemContentService)
 {
     public async Task<TranslatedRangeDto> HandleAsync(CreateTranslatedRangeRequest request, CancellationToken ct)
@@ -27,45 +25,12 @@ internal sealed class CreateReadingItemTranslationHandler(
             throw new ValidationException("Original and translated text are required.");
         }
 
-        var readingItem = await dbContext.ReadingItems.AsNoTracking().FirstOrDefaultAsync(item => item.Id == request.ReadingItemId, ct);
-        if (readingItem is null)
-        {
-            throw new NotFoundException($"Reading item '{request.ReadingItemId}' was not found.");
-        }
-
-        if (!ReadingItemFeatureHelpers.CanRead(readingItem, normalizedUsername))
-        {
-            throw new ForbiddenException("You do not have access to this reading item.");
-        }
+        var readingItem = await readingItems.LoadReadableReadOnlyAsync(request.ReadingItemId, normalizedUsername, ct);
 
         await ValidateRangeAsync(readingItem, request, normalizedUsername, ct);
 
         var kind = SavedTextKindMapper.FromSelectionKind(request.SelectionKind);
-        var range = new TranslatedRangeEntity
-        {
-            Id = Guid.NewGuid(),
-            Username = normalizedUsername,
-            ReadingItemId = request.ReadingItemId,
-            BlockIndex = request.BlockIndex,
-            StartOffset = request.StartOffset,
-            EndOffset = request.EndOffset,
-            OriginalText = request.OriginalText.Trim(),
-            TranslatedText = request.TranslatedText.Trim(),
-            ShowOriginal = false,
-            Kind = kind,
-            CreatedAtUtc = DateTimeOffset.UtcNow
-        };
-
-        dbContext.TranslatedRanges.Add(range);
-        if (request.Usage is not null)
-        {
-            dbContext.AiOperations.Add(AiOperationMapper.ToEntity(
-                request.Usage,
-                normalizedUsername,
-                translatedRangeId: range.Id));
-        }
-
-        await dbContext.SaveChangesAsync(ct);
+        var range = await translations.CreateAsync(request, normalizedUsername, kind, ct);
 
         return range.ToTranslatedRangeDto();
     }

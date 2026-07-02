@@ -1,5 +1,6 @@
 using LanguageReader.Infrastructure.Features.Reading.Entities;
 using LanguageReader.Infrastructure.Features.ReadingItems.Entities;
+using LanguageReader.Infrastructure.Features.ReadingItems.Services;
 
 namespace LanguageReader.Api.Features.ReadingItems;
 
@@ -9,21 +10,12 @@ internal static class ReadingItemFeatureHelpers
 
     public static string NormalizeUsername(string? username)
     {
-        return string.IsNullOrWhiteSpace(username)
-            ? string.Empty
-            : username.Trim();
+        return ReadingItemAccessPolicy.NormalizeUsername(username);
     }
 
     public static bool CanRead(ReadingItemEntity item, string? username)
     {
-        if (item.IsPublic)
-        {
-            return true;
-        }
-
-        var normalizedUsername = NormalizeUsername(username);
-        return !string.IsNullOrWhiteSpace(normalizedUsername)
-            && string.Equals(item.OwnerUsername, normalizedUsername, StringComparison.OrdinalIgnoreCase);
+        return ReadingItemAccessPolicy.CanRead(item, username);
     }
 
     public static ReadingItemReadingStatus GetReadingStatus(ReadingProgressEntity? progress)

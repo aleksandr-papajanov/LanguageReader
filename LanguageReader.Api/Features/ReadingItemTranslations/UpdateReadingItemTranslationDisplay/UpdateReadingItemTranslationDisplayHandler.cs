@@ -1,30 +1,20 @@
-using LanguageReader.Infrastructure.Data;
-using LanguageReader.Infrastructure.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Services;
 
 namespace LanguageReader.Api.Features.ReadingItemTranslations;
 
-internal sealed class UpdateReadingItemTranslationDisplayHandler(ApplicationDbContext dbContext)
+internal sealed class UpdateReadingItemTranslationDisplayHandler(ReadingItemTranslationService translations)
 {
     public async Task<TranslatedRangeDto> HandleAsync(
         UpdateTranslatedRangeDisplayRequest request,
         CancellationToken ct)
     {
         var normalizedUsername = UsernameHelper.Require(request.Username);
-        var range = await dbContext.TranslatedRanges.FirstOrDefaultAsync(
-            range =>
-                range.Id == request.TranslationId
-                && range.ReadingItemId == request.ReadingItemId
-                && range.Username == normalizedUsername,
+        var range = await translations.UpdateDisplayAsync(
+            request.ReadingItemId,
+            request.TranslationId,
+            normalizedUsername,
+            request.ShowOriginal,
             ct);
-
-        if (range is null)
-        {
-            throw new NotFoundException($"Translated range '{request.TranslationId}' was not found.");
-        }
-
-        range.ShowOriginal = request.ShowOriginal;
-        await dbContext.SaveChangesAsync(ct);
 
         return range.ToTranslatedRangeDto();
     }

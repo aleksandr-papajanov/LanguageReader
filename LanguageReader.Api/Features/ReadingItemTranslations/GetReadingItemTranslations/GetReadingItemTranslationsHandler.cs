@@ -1,33 +1,19 @@
 using LanguageReader.Api.Features.ReadingItems;
-using LanguageReader.Infrastructure.Data;
-using LanguageReader.Infrastructure.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using LanguageReader.Infrastructure.Features.ReadingItemTranslations.Services;
+using LanguageReader.Infrastructure.Features.ReadingItems.Services;
 
 namespace LanguageReader.Api.Features.ReadingItemTranslations;
 
-internal sealed class GetReadingItemTranslationsHandler(ApplicationDbContext dbContext)
+internal sealed class GetReadingItemTranslationsHandler(
+    ReadingItemAccessService readingItems,
+    ReadingItemTranslationService translations)
 {
     public async Task<IReadOnlyList<TranslatedRangeDto>> HandleAsync(GetReadingItemTranslationsRequest request, CancellationToken ct)
     {
         var normalizedUsername = UsernameHelper.Require(request.Username);
-        var readingItem = await dbContext.ReadingItems.AsNoTracking().FirstOrDefaultAsync(item => item.Id == request.ReadingItemId, ct);
-        if (readingItem is null)
-        {
-            throw new NotFoundException($"Reading item '{request.ReadingItemId}' was not found.");
-        }
+        _ = await readingItems.LoadReadableReadOnlyAsync(request.ReadingItemId, normalizedUsername, ct);
+        var rows = await translations.LoadForReadingItemAsync(request.ReadingItemId, normalizedUsername, ct);
 
-        if (!ReadingItemFeatureHelpers.CanRead(readingItem, normalizedUsername))
-        {
-            throw new ForbiddenException("You do not have access to this reading item.");
-        }
-
-        var translations = await dbContext.TranslatedRanges
-            .AsNoTracking()
-            .Where(range => range.Username == normalizedUsername && range.ReadingItemId == request.ReadingItemId)
-            .OrderBy(range => range.BlockIndex)
-            .ThenBy(range => range.StartOffset)
-            .ToListAsync(ct);
-
-        return translations.Select(range => range.ToTranslatedRangeDto()).ToList();
+        return rows.Select(range => range.ToTranslatedRangeDto()).ToList();
     }
 }

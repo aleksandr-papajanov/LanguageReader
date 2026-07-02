@@ -70,19 +70,16 @@
     --icon-size-sm: 1rem;
     --icon-size-md: 1.2rem;
 
-    --app-topbar-height: 66px;
     --app-bottomnav-height: 5.35rem;
+    --app-layouttop-height: 2.5rem;
 
     /* Safe areas */
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 
     /* Reader-specific offsets */
-    --reader-header-offset: var(--app-topbar-height);
-    --reader-header-visual-height: 3.25rem;
-    --reader-bottom-offset: calc(var(--app-bottomnav-height) + var(--safe-bottom));
-    --app-workspace-top: 0rem;
-    --app-workspace-bottom: 0rem;
+    --reader-header-offset: var(--app-layouttop-height);
+    --reader-bottom-offset: var(--app-bottomnav-height);
 
     --line-ui: 1.5;
     --line-reading: 1.72;
@@ -211,31 +208,6 @@ summary,
 [role="button"],
 [tabindex] {
     touch-action: manipulation;
-}
-
-.app-layout {
-    height: 100dvh;
-    min-height: 100dvh;
-}
-
-.app-layout__content {
-    min-height: 0;
-    padding-top: var(--app-workspace-top);
-    padding-bottom: var(--app-workspace-bottom);
-}
-
-.bottom-nav {
-    position: fixed;
-    left: 50%;
-    bottom: max(0.45rem, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
-    z-index: 30;
-    transform: translateX(-50%);
-    pointer-events: auto;
-}
-
-.bottom-nav.bottom-nav--embedded {
-    position: static;
-    transform: none;
 }
 
 .material-symbols-outlined {
