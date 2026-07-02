@@ -10,7 +10,6 @@
     width: 100%;
 }
 
-.settings-panel .app-inline-success,
-.settings-panel .app-inline-error {
+.settings-panel .app-inline-success {
     margin-top: calc(var(--space-2) * -1);
 }

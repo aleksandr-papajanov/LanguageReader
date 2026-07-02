@@ -1,0 +1,40 @@
+@implements IDisposable
+@inject AppErrorService Errors
+
+@if (Errors.Messages.Count > 0)
+{
+    <div class="app-error-notifications" role="region" aria-label="Application errors">
+        @foreach (var error in Errors.Messages)
+        {
+            <article class="app-error-notification" role="alert" aria-live="assertive" @key="error.Id">
+                <div class="app-error-notification__content">
+                    <strong class="app-error-notification__title">@error.Title</strong>
+                    <p class="app-error-notification__message">@error.Message</p>
+                </div>
+                <button type="button"
+                        class="app-error-notification__close"
+                        aria-label="Dismiss error"
+                        @onclick="() => Errors.Dismiss(error.Id)">
+                    <AppIcon Name="close" Size="18" />
+                </button>
+            </article>
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Errors.Changed += HandleChanged;
+    }
+
+    private void HandleChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Errors.Changed -= HandleChanged;
+    }
+}

@@ -30,7 +30,7 @@
     {
         <AppLoader Label="Switching source" />
     }
-    else if (items.Count == 0 && string.IsNullOrWhiteSpace(errorMessage))
+    else if (items.Count == 0)
     {
         <AppAlert Tone="info"
                   Title="No articles yet"
@@ -53,7 +53,6 @@
 
 <ReadingItemImportPreviewModal IsOpen="@isPreviewOpen"
                                Preview="@articlePreview"
-                               ErrorMessage="@articlePreviewError"
                                IsBusy="@isImportingPreview"
                                IsLoading="@isPreviewingArticle"
                                Title="Review article"
@@ -69,8 +68,6 @@
     private Guid? busyItemId;
     private ReadingItemSummaryDto? previewItem;
     private ReadingItemImportPreviewDto? articlePreview;
-    private string? articlePreviewError;
-    private string? errorMessage;
     private bool isLoading;
     private bool isSwitchingSource;
     private bool isPreviewOpen;
@@ -84,8 +81,6 @@
 
     private async Task LoadAsync(bool showInitialLoading = false)
     {
-        errorMessage = null;
-
         if (string.IsNullOrWhiteSpace(Session.Username))
         {
             items = [];
@@ -109,7 +104,6 @@
         catch (Exception exception)
         {
             items = [];
-            errorMessage = exception.Message;
             Errors.Show(exception);
         }
         finally
@@ -142,9 +136,7 @@
         }
 
         busyItemId = item.Id;
-        errorMessage = null;
         articlePreview = null;
-        articlePreviewError = null;
         previewItem = item;
         isPreviewOpen = true;
         isPreviewingArticle = true;
@@ -154,12 +146,10 @@
             articlePreview = await NewsApi.PreviewArticleAsync(
                 new PreviewNewsArticleRequest(item.SourceKey ?? NewsSourceKeys.Svt, item.OriginalUrl),
                 CancellationToken.None);
-            articlePreviewError = null;
         }
         catch (Exception exception)
         {
             articlePreview = null;
-            articlePreviewError = exception.Message;
             Errors.Show(exception);
         }
         finally
@@ -180,7 +170,6 @@
 
         busyItemId = previewItem.Id;
         isImportingPreview = true;
-        errorMessage = null;
 
         try
         {
@@ -197,7 +186,6 @@
         }
         catch (Exception exception)
         {
-            errorMessage = exception.Message;
             Errors.Show(exception);
         }
         finally
@@ -211,7 +199,6 @@
     {
         isPreviewOpen = false;
         articlePreview = null;
-        articlePreviewError = null;
         previewItem = null;
         isPreviewingArticle = false;
     }
@@ -224,7 +211,6 @@
         }
 
         busyItemId = item.Id;
-        errorMessage = null;
 
         try
         {
@@ -234,7 +220,6 @@
         }
         catch (Exception exception)
         {
-            errorMessage = exception.Message;
             Errors.Show(exception);
         }
         finally
@@ -252,7 +237,6 @@
         }
 
         busyItemId = item.Id;
-        errorMessage = null;
 
         try
         {
@@ -262,7 +246,6 @@
         }
         catch (Exception exception)
         {
-            errorMessage = exception.Message;
             Errors.Show(exception);
         }
         finally

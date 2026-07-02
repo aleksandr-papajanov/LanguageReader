@@ -80,7 +80,6 @@
     private Task SetMode(AuthMode nextMode)
     {
         mode = nextMode;
-        Errors.Clear();
         return Task.CompletedTask;
     }
 
@@ -110,7 +109,6 @@
 
     private async Task SubmitAsync(MouseEventArgs _)
     {
-        Errors.Clear();
         isBusy = true;
 
         try

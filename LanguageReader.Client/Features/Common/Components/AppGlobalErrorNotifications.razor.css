@@ -1,0 +1,64 @@
+.app-error-notifications {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 0.75rem);
+    left: 50%;
+    z-index: 3000;
+    display: grid;
+    gap: var(--space-3);
+    width: min(32rem, calc(100vw - 1.5rem));
+    max-height: min(calc(100vh - 1.5rem), 32rem);
+    overflow-y: auto;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.app-error-notification {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-3);
+    align-items: start;
+    padding: var(--space-4);
+    border: 1px solid rgba(141, 47, 47, 0.24);
+    border-radius: var(--radius-md);
+    background: var(--color-error-soft);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+}
+
+.app-error-notification__content {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.app-error-notification__title {
+    font-size: var(--text-secondary);
+    font-weight: 700;
+}
+
+.app-error-notification__message {
+    margin: 0;
+    color: var(--color-text-soft);
+    font-size: var(--text-secondary);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.app-error-notification__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+}
+
+.app-error-notification__close:hover {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}

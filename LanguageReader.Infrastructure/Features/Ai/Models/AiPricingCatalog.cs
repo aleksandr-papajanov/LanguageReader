@@ -34,6 +34,30 @@ internal static class AiPricingCatalog
             }
         }
 
+        if (string.Equals(provider, "OpenRouter", StringComparison.OrdinalIgnoreCase))
+        {
+            if (model.Contains(":free", StringComparison.OrdinalIgnoreCase)
+                || model.Equals("openrouter/free", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0.00m, 0.00m);
+            }
+
+            if (model.Contains("gpt-5-nano", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0.05m, 0.40m);
+            }
+
+            if (model.Contains("deepseek-v4-flash", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0.089m, 0.18m);
+            }
+
+            if (model.Equals("qwen/qwen-plus", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0.26m, 0.78m);
+            }
+        }
+
         return (0.0m, 0.0m);
     }
 }

@@ -199,6 +199,7 @@ Return only valid JSON matching the provided schema.
     private static bool IsReasoningModel(string model)
     {
         return model.StartsWith("gpt-5", StringComparison.OrdinalIgnoreCase)
+            || model.Contains("/gpt-5", StringComparison.OrdinalIgnoreCase)
             || model.StartsWith("o", StringComparison.OrdinalIgnoreCase);
     }
 

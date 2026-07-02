@@ -208,7 +208,6 @@ else
         isLoading = true;
         error = null;
         translationError = null;
-        Errors.Clear();
 
         try
         {
@@ -485,7 +484,6 @@ else
     {
         activeMode = mode;
         translationError = null;
-        Errors.Clear();
         activeTranslation = null;
 
         if (selection is null)
@@ -548,7 +546,6 @@ else
 
         isTranslating = true;
         translationError = null;
-        Errors.Clear();
 
         try
         {
@@ -598,7 +595,6 @@ else
         var entry = GetVocabularyEntry(range, includeHidden: true);
         isSavingVocabulary = true;
         translationError = null;
-        Errors.Clear();
 
         try
         {
@@ -645,7 +641,6 @@ else
     {
         isSavingVocabulary = true;
         translationError = null;
-        Errors.Clear();
 
         try
         {
@@ -787,7 +782,6 @@ else
     {
         selection = readerSelection;
         translationError = null;
-        Errors.Clear();
         activeTranslation = null;
 
         if (readerSelection.SelectionType is SelectionKind.Word or SelectionKind.Sentence or SelectionKind.Paragraph)

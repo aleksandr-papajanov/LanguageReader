@@ -67,7 +67,6 @@
 
 <ReadingItemImportPreviewModal IsOpen="@IsPreviewOpen"
                                Preview="@Preview"
-                               ErrorMessage="@PreviewError"
                                IsBusy="@IsBusy"
                                IsLoading="@IsPreviewing"
                                ConfirmLabel="Save"
@@ -92,9 +91,6 @@
 
     [Parameter]
     public ReadingItemImportPreviewDto? Preview { get; set; }
-
-    [Parameter]
-    public string? PreviewError { get; set; }
 
     [Parameter]
     public bool IsPreviewOpen { get; set; }

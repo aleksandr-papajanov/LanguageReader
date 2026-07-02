@@ -68,7 +68,7 @@
                    Variant="ghost"
                    Disabled="@IsBusy"
                    OnClick="HandleCancelClickedAsync" />
-        @if (!IsLoading && Preview is not null && string.IsNullOrWhiteSpace(ErrorMessage))
+        @if (!IsLoading && Preview is not null)
         {
             <AppButton Label="@ConfirmLabel"
                        Variant="primary"
@@ -85,9 +85,6 @@
 
     [Parameter]
     public ReadingItemImportPreviewDto? Preview { get; set; }
-
-    [Parameter]
-    public string? ErrorMessage { get; set; }
 
     [Parameter]
     public bool IsBusy { get; set; }

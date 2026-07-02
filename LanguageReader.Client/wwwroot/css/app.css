@@ -336,10 +336,6 @@ input[type="file"].app-input {
     white-space: normal;
 }
 
-.text-danger {
-    color: var(--color-error) !important;
-}
-
 .text-success {
     color: var(--color-success) !important;
 }
@@ -348,14 +344,9 @@ input[type="file"].app-input {
     padding: var(--space-6);
 }
 
-.app-inline-error,
 .app-inline-success {
     margin: 0;
     font-size: var(--text-meta);
-}
-
-.app-inline-error {
-    color: var(--color-error);
 }
 
 .app-inline-success {
@@ -373,41 +364,7 @@ input[type="file"].app-input {
 }
 
 #blazor-error-ui {
-    color-scheme: light only;
-    background: rgba(141, 47, 47, 0.12);
-    border: 1px solid rgba(141, 47, 47, 0.24);
-    border-radius: var(--radius-md);
-    top: calc(var(--safe-top) + 0.85rem);
-    box-shadow: var(--shadow-md);
-    box-sizing: border-box;
-    display: none;
-    left: 50%;
-    padding: 0.85rem 3.5rem 0.85rem 1rem;
-    position: fixed;
-    transform: translateX(-50%);
-    width: min(calc(100% - 1.5rem), 42rem);
-    z-index: 1000;
-    color: var(--color-text);
-    backdrop-filter: blur(10px);
-}
-
-#blazor-error-ui .blazor-error-ui__message {
-    color: var(--color-text-soft);
-    margin-left: 0.45rem;
-}
-
-#blazor-error-ui .reload {
-    margin-left: 0.75rem;
-    font-weight: 700;
-}
-
-#blazor-error-ui .dismiss {
-    cursor: pointer;
-    position: absolute;
-    right: 0.9rem;
-    top: 0.8rem;
-    color: var(--color-text-soft);
-    font-size: var(--text-meta);
+    display: none !important;
 }
 
 .blazor-error-boundary {

@@ -1,7 +1,7 @@
 namespace LanguageReader.Shared.Configuration;
 
 /// <summary>
-/// OpenAI configuration bound from the OpenAI configuration section.
+/// OpenAI-compatible AI provider configuration bound from the OpenAI configuration section.
 /// </summary>
 public sealed class OpenAiOptions
 {
@@ -21,12 +21,12 @@ public sealed class OpenAiOptions
     public string ProviderName { get; init; } = "OpenAI";
 
     /// <summary>
-    /// Base API URL for future OpenAI requests.
+    /// Base API URL for OpenAI-compatible AI requests.
     /// </summary>
     public string BaseUrl { get; init; } = "https://api.openai.com/v1/";
 
     /// <summary>
-    /// Default model identifier for future AI features.
+    /// Default model identifier for AI features.
     /// </summary>
     public string? DefaultModel { get; init; }
 }
